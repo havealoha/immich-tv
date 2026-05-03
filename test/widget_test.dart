@@ -53,6 +53,8 @@ void main() {
 
     expect(find.text('Welcome to ImmichTV'), findsOneWidget);
     expect(find.textContaining(restoredSession.user.email), findsOneWidget);
+    expect(find.text('Timeline'), findsWidgets);
+    expect(find.text('Asset asset-1'), findsOneWidget);
   });
 
   testWidgets('walks through validation and sign-in into home shell', (
@@ -90,6 +92,75 @@ void main() {
 
     expect(find.text('Welcome to ImmichTV'), findsOneWidget);
     expect(find.textContaining('family@example.com'), findsOneWidget);
+  });
+
+  testWidgets('supports keyboard-style submit flow on onboarding', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1280, 720);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(
+      ImmichTvApp(
+        authRepository: FakeAuthRepository(),
+        serverRepository: FakeServerRepository(),
+        mediaRepository: FakeMediaRepository(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byType(TextField).first);
+    await tester.pump();
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Sign in to Immich'), findsOneWidget);
+
+    await tester.tap(find.byType(TextField).at(2));
+    await tester.enterText(
+      find.byType(TextField).at(1),
+      'keyboard@example.com',
+    );
+    await tester.enterText(find.byType(TextField).at(2), 'secret-password');
+    await tester.tap(find.byType(TextField).at(2));
+    await tester.pump();
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Welcome to ImmichTV'), findsOneWidget);
+    expect(find.textContaining('keyboard@example.com'), findsOneWidget);
+  });
+
+  testWidgets('switches between library sections and shows empty states', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1280, 720);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(
+      ImmichTvApp(
+        authRepository: FakeAuthRepository(restoredSession: _demoSession()),
+        serverRepository: FakeServerRepository(),
+        mediaRepository: FakeMediaRepository(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Asset asset-1'), findsOneWidget);
+
+    await tester.tap(find.text('Albums').first);
+    await tester.pumpAndSettle();
+    expect(find.text('No albums yet'), findsOneWidget);
+
+    await tester.tap(find.text('Favorites').first);
+    await tester.pumpAndSettle();
+    expect(find.text('Nothing here yet'), findsOneWidget);
+
+    await tester.tap(find.text('Slideshow').first);
+    await tester.pumpAndSettle();
+    expect(find.text('Slideshow mode is queued next'), findsOneWidget);
   });
 }
 
@@ -135,13 +206,25 @@ class FakeServerRepository implements ServerRepository {
 
 class FakeMediaRepository implements MediaRepository {
   @override
-  Future<List<AlbumSummary>> fetchAlbums() async => const [];
+  Future<List<AlbumSummary>> fetchAlbums(AuthenticatedSession session) async =>
+      const [];
 
   @override
-  Future<List<AssetSummary>> fetchFavoritesPage() async => const [];
+  Future<List<AssetSummary>> fetchFavoritesPage(
+    AuthenticatedSession session,
+  ) async => const [];
 
   @override
-  Future<List<AssetSummary>> fetchTimelinePage() async => const [];
+  Future<List<AssetSummary>> fetchTimelinePage(
+    AuthenticatedSession session,
+  ) async => [
+    AssetSummary(
+      id: 'asset-1',
+      thumbnailUrl: 'https://photos.example.com/api/assets/asset-1/thumbnail',
+      type: 'IMAGE',
+      createdAt: DateTime(2024, 11, 9),
+    ),
+  ];
 }
 
 AuthenticatedSession _demoSession() {

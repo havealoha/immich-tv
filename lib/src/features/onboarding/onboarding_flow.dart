@@ -3,7 +3,11 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../core/repositories/auth_repository.dart';
 import '../../core/repositories/server_repository.dart';
+import '../../shared/presentation/app_colors.dart';
 import '../../shared/presentation/app_breakpoints.dart';
+import '../../shared/presentation/app_radii.dart';
+import '../../shared/presentation/app_spacing.dart';
+import '../../shared/presentation/widgets/shortcut_hint.dart';
 import '../app_flow/cubit/app_flow_cubit.dart';
 import 'cubit/onboarding_cubit.dart';
 import 'cubit/onboarding_state.dart';
@@ -21,12 +25,20 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
   );
   final _emailController = TextEditingController(text: 'family@example.com');
   final _passwordController = TextEditingController();
+  final _serverFieldFocusNode = FocusNode(debugLabel: 'serverField');
+  final _emailFieldFocusNode = FocusNode(debugLabel: 'emailField');
+  final _passwordFieldFocusNode = FocusNode(debugLabel: 'passwordField');
+  final _actionButtonFocusNode = FocusNode(debugLabel: 'primaryAction');
 
   @override
   void dispose() {
     _serverController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
+    _serverFieldFocusNode.dispose();
+    _emailFieldFocusNode.dispose();
+    _passwordFieldFocusNode.dispose();
+    _actionButtonFocusNode.dispose();
     super.dispose();
   }
 
@@ -139,6 +151,9 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
   ) {
     final isSubmitting = state.isBusy;
     final serverValidated = state.hasValidatedServer;
+    final helperText = serverValidated
+        ? 'Press Enter to sign in after entering your credentials.'
+        : 'Press Enter to validate your server URL.';
 
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -163,7 +178,12 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
         const SizedBox(height: 28),
         TextField(
           controller: _serverController,
+          focusNode: _serverFieldFocusNode,
           enabled: !serverValidated && !isSubmitting,
+          textInputAction: TextInputAction.done,
+          onSubmitted: !serverValidated && !isSubmitting
+              ? (_) => _handlePrimaryAction(context, state)
+              : null,
           decoration: const InputDecoration(
             labelText: 'Immich server URL',
             hintText: 'https://photos.example.com',
@@ -188,14 +208,22 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
           const SizedBox(height: 18),
           TextField(
             controller: _emailController,
+            focusNode: _emailFieldFocusNode,
             enabled: !isSubmitting,
+            textInputAction: TextInputAction.next,
+            onSubmitted: (_) => _passwordFieldFocusNode.requestFocus(),
             decoration: const InputDecoration(labelText: 'Email'),
           ),
           const SizedBox(height: 18),
           TextField(
             controller: _passwordController,
+            focusNode: _passwordFieldFocusNode,
             enabled: !isSubmitting,
             obscureText: true,
+            textInputAction: TextInputAction.done,
+            onSubmitted: !isSubmitting
+                ? (_) => _handlePrimaryAction(context, state)
+                : null,
             decoration: const InputDecoration(labelText: 'Password'),
           ),
           const SizedBox(height: 18),
@@ -226,38 +254,28 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
           ),
         ],
         const SizedBox(height: 24),
+        Row(
+          children: [
+            const ShortcutHint(label: 'Enter'),
+            const SizedBox(width: AppSpacing.sm),
+            Expanded(
+              child: Text(
+                helperText,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: AppColors.textMuted,
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 18),
         SizedBox(
           width: double.infinity,
           child: FilledButton(
+            focusNode: _actionButtonFocusNode,
             onPressed: isSubmitting
                 ? null
-                : () async {
-                    final onboardingCubit = context.read<OnboardingCubit>();
-                    final appFlowCubit = context.read<AppFlowCubit>();
-
-                    if (!serverValidated) {
-                      await onboardingCubit.validateServer(
-                        _serverController.text,
-                      );
-                      return;
-                    }
-
-                    final session = await onboardingCubit.signIn(
-                      email: _emailController.text.trim(),
-                      password: _passwordController.text,
-                    );
-
-                    if (!mounted || session == null) {
-                      return;
-                    }
-
-                    appFlowCubit.completeSignIn(session);
-                  },
-            style: FilledButton.styleFrom(
-              padding: const EdgeInsets.symmetric(vertical: 18),
-              backgroundColor: const Color(0xFF6FE0DB),
-              foregroundColor: const Color(0xFF062227),
-            ),
+                : () => _handlePrimaryAction(context, state),
             child: Text(
               isSubmitting
                   ? 'Working...'
@@ -269,6 +287,33 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
         ),
       ],
     );
+  }
+
+  Future<void> _handlePrimaryAction(
+    BuildContext context,
+    OnboardingState state,
+  ) async {
+    final onboardingCubit = context.read<OnboardingCubit>();
+    final appFlowCubit = context.read<AppFlowCubit>();
+
+    if (!state.hasValidatedServer) {
+      await onboardingCubit.validateServer(_serverController.text);
+      if (mounted) {
+        _emailFieldFocusNode.requestFocus();
+      }
+      return;
+    }
+
+    final session = await onboardingCubit.signIn(
+      email: _emailController.text.trim(),
+      password: _passwordController.text,
+    );
+
+    if (!mounted || session == null) {
+      return;
+    }
+
+    appFlowCubit.completeSignIn(session);
   }
 }
 
@@ -288,9 +333,9 @@ class _StatusBanner extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF0D1B22),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFF1E3947)),
+        color: AppColors.backgroundElevated,
+        borderRadius: BorderRadius.circular(AppRadii.md),
+        border: Border.all(color: AppColors.border),
       ),
       child: Row(
         children: [
@@ -301,7 +346,7 @@ class _StatusBanner extends StatelessWidget {
               message,
               style: Theme.of(
                 context,
-              ).textTheme.bodyMedium?.copyWith(color: const Color(0xFFB8C8CF)),
+              ).textTheme.bodyMedium?.copyWith(color: AppColors.textSecondary),
             ),
           ),
         ],
@@ -324,14 +369,14 @@ class _IntroPanel extends StatelessWidget {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
           decoration: BoxDecoration(
-            color: const Color(0xFF0D1B22),
-            borderRadius: BorderRadius.circular(999),
-            border: Border.all(color: const Color(0xFF1E3947)),
+            color: AppColors.backgroundElevated,
+            borderRadius: BorderRadius.circular(AppRadii.pill),
+            border: Border.all(color: AppColors.border),
           ),
           child: const Text(
             'MVP foundation',
             style: TextStyle(
-              color: Color(0xFF6FE0DB),
+              color: AppColors.focus,
               fontWeight: FontWeight.w600,
               letterSpacing: 0.3,
             ),
@@ -349,7 +394,7 @@ class _IntroPanel extends StatelessWidget {
         Text(
           'This first milestone focuses on the core path: app bootstrap, server entry, authentication handoff, and a library shell ready for albums, timeline, favorites, and slideshow work.',
           style: theme.textTheme.bodyLarge?.copyWith(
-            color: const Color(0xFFB8C8CF),
+            color: AppColors.textSecondary,
             height: 1.6,
           ),
         ),
@@ -377,7 +422,7 @@ class _IntroPanel extends StatelessWidget {
         Text(
           'Today we are replacing the starter app with product-shaped structure so feature work has a clean home.',
           style: theme.textTheme.bodyMedium?.copyWith(
-            color: const Color(0xFF7FA2AF),
+            color: AppColors.textMuted,
           ),
         ),
       ],
@@ -402,14 +447,14 @@ class _FeatureCallout extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: const Color(0xFF0D1B22),
+        color: AppColors.backgroundElevated,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFF1E3947)),
+        border: Border.all(color: AppColors.border),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, color: const Color(0xFF6FE0DB), size: 28),
+          Icon(icon, color: AppColors.focus, size: 28),
           const SizedBox(width: 16),
           Expanded(
             child: Column(
@@ -425,7 +470,7 @@ class _FeatureCallout extends StatelessWidget {
                 Text(
                   body,
                   style: theme.textTheme.bodyMedium?.copyWith(
-                    color: const Color(0xFFB8C8CF),
+                    color: AppColors.textSecondary,
                     height: 1.5,
                   ),
                 ),

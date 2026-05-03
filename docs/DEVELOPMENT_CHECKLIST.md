@@ -27,28 +27,28 @@ This checklist is phase-based so we can move in deliberate slices while keeping 
 - [x] Implement real login against the Immich API.
 - [x] Persist the authenticated session without storing the password.
 - [x] Add sign-out and forced re-authentication flows.
-- [ ] Add platform-aware input UX:
+- [x] Add platform-aware input UX:
   TV: remote-friendly focus targets and large keyboard prompts.
   Mobile/Web/Desktop: standard form interactions and keyboard shortcuts.
 
 ## Phase 3: Multi-Platform UX Foundation
 
-- [ ] Define adaptive breakpoints for TV, desktop, tablet, and phone layouts.
-- [ ] Build a shared design token layer for spacing, focus rings, typography, and color.
-- [ ] Add focus management patterns for TV remote navigation.
-- [ ] Add pointer, mouse, touch, and keyboard support where relevant.
+- [x] Define adaptive breakpoints for TV, desktop, tablet, and phone layouts.
+- [x] Build a shared design token layer for spacing, focus rings, typography, and color.
+- [x] Add focus management patterns for TV remote navigation.
+- [x] Add pointer, mouse, touch, and keyboard support where relevant.
 - [ ] Confirm every critical flow works on Android TV, Android mobile, iOS, web, macOS, Windows, and Linux.
 - [ ] Add platform capability notes for anything that must degrade gracefully.
 
 ## Phase 4: Library Browsing MVP
 
-- [ ] Fetch and display the main timeline feed.
+- [x] Fetch and display the main timeline feed.
 - [ ] Fetch and display albums.
 - [ ] Fetch and display favorites.
 - [ ] Add asset grid virtualization and pagination.
 - [ ] Add thumbnail loading and caching.
-- [ ] Build loading, empty, and error states for each tab.
-- [ ] Add high-level navigation between Timeline, Albums, Favorites, and Slideshow.
+- [x] Build loading, empty, and error states for each tab.
+- [x] Add high-level navigation between Timeline, Albums, Favorites, and Slideshow.
 
 ## Phase 5: Asset Viewer and Playback
 
@@ -80,4 +80,4 @@ This checklist is phase-based so we can move in deliberate slices while keeping 
 - [x] Add concrete auth and server-validation repositories.
 - [x] Replace mock bootstrap and sign-in behavior with real Immich API calls.
 - [x] Persist session state across launches.
-- [ ] Start the first TV-specific focus/navigation primitives.
+- [x] Start the first TV-specific focus/navigation primitives.

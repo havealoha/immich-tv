@@ -9,9 +9,11 @@ import 'src/core/services/server_url_normalizer.dart';
 import 'src/features/auth/data/immich_auth_repository.dart';
 import 'src/app_shell.dart';
 import 'src/features/app_flow/cubit/app_flow_cubit.dart';
-import 'src/features/library/data/noop_media_repository.dart';
+import 'src/features/library/data/immich_media_repository.dart';
 import 'src/features/onboarding/data/immich_server_repository.dart';
 import 'src/platform/storage/platform_session_storage.dart';
+import 'src/shared/presentation/app_colors.dart';
+import 'src/shared/presentation/app_radii.dart';
 
 void runImmichTvApp() {
   runApp(ImmichTvApp());
@@ -47,7 +49,17 @@ class ImmichTvApp extends StatelessWidget {
              ),
              normalizer: const ServerUrlNormalizer(),
            ),
-       _mediaRepository = mediaRepository ?? NoopMediaRepository();
+       _mediaRepository =
+           mediaRepository ??
+           ImmichMediaRepository(
+             dio: Dio(
+               BaseOptions(
+                 connectTimeout: const Duration(seconds: 8),
+                 receiveTimeout: const Duration(seconds: 8),
+                 sendTimeout: const Duration(seconds: 8),
+               ),
+             ),
+           );
 
   final AuthRepository _authRepository;
   final ServerRepository _serverRepository;
@@ -58,10 +70,10 @@ class ImmichTvApp extends StatelessWidget {
     final baseTheme = ThemeData(
       useMaterial3: true,
       colorScheme: ColorScheme.fromSeed(
-        seedColor: const Color(0xFF1E847F),
+        seedColor: AppColors.focus,
         brightness: Brightness.dark,
       ),
-      scaffoldBackgroundColor: const Color(0xFF08131A),
+      scaffoldBackgroundColor: AppColors.background,
     );
 
     return MultiRepositoryProvider(
@@ -79,29 +91,49 @@ class ImmichTvApp extends StatelessWidget {
             displayColor: Colors.white,
           ),
           cardTheme: baseTheme.cardTheme.copyWith(
-            color: const Color(0xFF10232D),
+            color: AppColors.surface,
             elevation: 0,
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(24),
-              side: const BorderSide(color: Color(0xFF1E3947)),
+              borderRadius: BorderRadius.circular(AppRadii.lg),
+              side: const BorderSide(color: AppColors.border),
             ),
           ),
           inputDecorationTheme: InputDecorationTheme(
             filled: true,
-            fillColor: const Color(0xFF0F2029),
+            fillColor: AppColors.surfaceMuted,
             border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(18),
-              borderSide: const BorderSide(color: Color(0xFF2A4656)),
+              borderRadius: BorderRadius.circular(AppRadii.md),
+              borderSide: const BorderSide(color: AppColors.borderStrong),
             ),
             enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(18),
-              borderSide: const BorderSide(color: Color(0xFF2A4656)),
+              borderRadius: BorderRadius.circular(AppRadii.md),
+              borderSide: const BorderSide(color: AppColors.borderStrong),
             ),
             focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(18),
-              borderSide: const BorderSide(color: Color(0xFF6FE0DB), width: 2),
+              borderRadius: BorderRadius.circular(AppRadii.md),
+              borderSide: const BorderSide(color: AppColors.focus, width: 2),
             ),
             labelStyle: const TextStyle(color: Color(0xFFB6D6D4)),
+          ),
+          outlinedButtonTheme: OutlinedButtonThemeData(
+            style: OutlinedButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+              foregroundColor: AppColors.textPrimary,
+              side: const BorderSide(color: AppColors.borderStrong),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(AppRadii.md),
+              ),
+            ),
+          ),
+          filledButtonTheme: FilledButtonThemeData(
+            style: FilledButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 18),
+              backgroundColor: AppColors.focus,
+              foregroundColor: AppColors.actionForeground,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(AppRadii.md),
+              ),
+            ),
           ),
         ),
         home: BlocProvider(
