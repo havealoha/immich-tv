@@ -43,8 +43,8 @@ This checklist is phase-based so we can move in deliberate slices while keeping 
 ## Phase 4: Library Browsing MVP
 
 - [x] Fetch and display the main timeline feed.
-- [ ] Fetch and display albums.
-- [ ] Fetch and display favorites.
+- [x] Fetch and display albums.
+- [x] Fetch and display favorites.
 - [ ] Add asset grid virtualization and pagination.
 - [ ] Add thumbnail loading and caching.
 - [x] Build loading, empty, and error states for each tab.

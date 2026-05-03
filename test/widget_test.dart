@@ -152,11 +152,11 @@ void main() {
 
     await tester.tap(find.text('Albums').first);
     await tester.pumpAndSettle();
-    expect(find.text('No albums yet'), findsOneWidget);
+    expect(find.text('Summer Trip'), findsOneWidget);
 
     await tester.tap(find.text('Favorites').first);
     await tester.pumpAndSettle();
-    expect(find.text('Nothing here yet'), findsOneWidget);
+    expect(find.text('Asset favorite-1'), findsOneWidget);
 
     await tester.tap(find.text('Slideshow').first);
     await tester.pumpAndSettle();
@@ -207,12 +207,20 @@ class FakeServerRepository implements ServerRepository {
 class FakeMediaRepository implements MediaRepository {
   @override
   Future<List<AlbumSummary>> fetchAlbums(AuthenticatedSession session) async =>
-      const [];
+      [const AlbumSummary(id: 'album-1', name: 'Summer Trip', assetCount: 42)];
 
   @override
   Future<List<AssetSummary>> fetchFavoritesPage(
     AuthenticatedSession session,
-  ) async => const [];
+  ) async => [
+    AssetSummary(
+      id: 'favorite-1',
+      thumbnailUrl:
+          'https://photos.example.com/api/assets/favorite-1/thumbnail',
+      type: 'IMAGE',
+      createdAt: DateTime(2024, 10, 2),
+    ),
+  ];
 
   @override
   Future<List<AssetSummary>> fetchTimelinePage(

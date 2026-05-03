@@ -13,16 +13,41 @@ class ImmichMediaRepository implements MediaRepository {
 
   @override
   Future<List<AlbumSummary>> fetchAlbums(AuthenticatedSession session) async {
-    await Future<void>.delayed(const Duration(milliseconds: 180));
-    return const [];
+    final response = await _dio.get<List<dynamic>>(
+      session.serverConfig.apiUrl.resolve('albums').toString(),
+      options: Options(
+        headers: ImmichHeaders.sessionToken(session.accessToken),
+      ),
+    );
+
+    final items = response.data ?? const [];
+    return items
+        .whereType<Map<String, dynamic>>()
+        .map(_mapAlbum)
+        .whereType<AlbumSummary>()
+        .toList(growable: false);
   }
 
   @override
   Future<List<AssetSummary>> fetchFavoritesPage(
     AuthenticatedSession session,
   ) async {
-    await Future<void>.delayed(const Duration(milliseconds: 180));
-    return const [];
+    final response = await _dio.post<dynamic>(
+      session.serverConfig.apiUrl.resolve('search/metadata').toString(),
+      data: {'isFavorite': true},
+      options: Options(
+        headers: {
+          ...ImmichHeaders.sessionToken(session.accessToken),
+          'Content-Type': 'application/json',
+        },
+      ),
+    );
+
+    final items = _extractAssetMaps(response.data);
+    return items
+        .map((item) => _mapAsset(item, session))
+        .whereType<AssetSummary>()
+        .toList(growable: false);
   }
 
   @override
@@ -114,13 +139,37 @@ class ImmichMediaRepository implements MediaRepository {
     }
 
     if (payload is Map<String, dynamic>) {
-      final nested = payload['assets'] ?? payload['items'];
-      if (nested is List) {
-        return nested.whereType<Map<String, dynamic>>().toList(growable: false);
+      final candidates = [
+        payload['assets'],
+        payload['items'],
+        payload['results'],
+      ];
+      for (final nested in candidates) {
+        if (nested is List) {
+          return nested.whereType<Map<String, dynamic>>().toList(
+            growable: false,
+          );
+        }
       }
     }
 
     return const [];
+  }
+
+  AlbumSummary? _mapAlbum(Map<String, dynamic> item) {
+    final id = item['id'] as String?;
+    final name = (item['albumName'] ?? item['name'] ?? item['title'])
+        ?.toString();
+    if (id == null || id.isEmpty || name == null || name.isEmpty) {
+      return null;
+    }
+
+    final assetCountValue = item['assetCount'];
+    final assetCount = assetCountValue is int
+        ? assetCountValue
+        : int.tryParse(assetCountValue?.toString() ?? '') ?? 0;
+
+    return AlbumSummary(id: id, name: name, assetCount: assetCount);
   }
 
   AssetSummary? _mapAsset(
