@@ -103,9 +103,9 @@ class AppLogger {
 final logger = AppLogger.instance;
 
 final dioLogger = PrettyDioLogger(
-  requestHeader: true,
-  requestBody: true,
-  responseBody: true,
-  responseHeader: true,
+  requestHeader: false,
+  requestBody: false,
+  responseBody: false,
+  responseHeader: false,
   compact: true,
 );

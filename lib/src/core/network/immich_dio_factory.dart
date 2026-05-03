@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 
 import '../logging/app_logger.dart';
 
@@ -14,7 +15,10 @@ class ImmichDioFactory {
       ),
     );
 
-    dio.interceptors.add(dioLogger);
+    if (kDebugMode) {
+      dio.interceptors.add(dioLogger);
+    }
+
     return dio;
   }
 }

@@ -16,6 +16,10 @@ class LibraryCubit extends Cubit<LibraryState> {
   Future<void> loadInitial() => selectTab(state.selectedTab);
 
   Future<void> selectTab(LibraryTab tab) async {
+    if (tab == state.selectedTab && state.status == LibraryLoadStatus.success) {
+      return;
+    }
+
     emit(
       state.copyWith(
         selectedTab: tab,

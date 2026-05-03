@@ -55,15 +55,12 @@ class ImmichAssetImageRepository implements AssetImageRepository {
     required List<List<String>> urls,
     required String accessToken,
   }) async {
-    final candidates = urls.take(12);
-    await Future.wait(
-      candidates.map(
-        (imageUrls) => fetchImageBytes(
-          urls: imageUrls,
-          accessToken: accessToken,
-        ).catchError((_) => Uint8List(0)),
-      ),
-    );
+    for (final imageUrls in urls.take(4)) {
+      await fetchImageBytes(
+        urls: imageUrls,
+        accessToken: accessToken,
+      ).catchError((_) => Uint8List(0));
+    }
   }
 
   Future<Uint8List> _loadBytes({
