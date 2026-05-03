@@ -14,7 +14,7 @@ class ImmichMediaRepository implements MediaRepository {
   @override
   Future<List<AlbumSummary>> fetchAlbums(AuthenticatedSession session) async {
     final response = await _dio.get<List<dynamic>>(
-      session.serverConfig.apiUrl.resolve('albums').toString(),
+      session.serverConfig.apiEndpoint('albums').toString(),
       options: Options(
         headers: ImmichHeaders.sessionToken(session.accessToken),
       ),
@@ -33,7 +33,7 @@ class ImmichMediaRepository implements MediaRepository {
     AuthenticatedSession session,
   ) async {
     final response = await _dio.post<dynamic>(
-      session.serverConfig.apiUrl.resolve('search/metadata').toString(),
+      session.serverConfig.apiEndpoint('search/metadata').toString(),
       data: {'isFavorite': true},
       options: Options(
         headers: {
@@ -55,7 +55,6 @@ class ImmichMediaRepository implements MediaRepository {
     AuthenticatedSession session,
   ) async {
     final headers = ImmichHeaders.sessionToken(session.accessToken);
-    final apiUrl = session.serverConfig.apiUrl;
 
     final bucketCandidates = [
       {
@@ -78,7 +77,7 @@ class ImmichMediaRepository implements MediaRepository {
     for (final query in bucketCandidates) {
       try {
         final response = await _dio.get<List<dynamic>>(
-          apiUrl.resolve('timeline/buckets').toString(),
+          session.serverConfig.apiEndpoint('timeline/buckets').toString(),
           queryParameters: query,
           options: Options(headers: headers),
         );
@@ -104,7 +103,7 @@ class ImmichMediaRepository implements MediaRepository {
     }
 
     final detailResponse = await _dio.get<dynamic>(
-      apiUrl.resolve('timeline/bucket').toString(),
+      session.serverConfig.apiEndpoint('timeline/bucket').toString(),
       queryParameters: {...chosenQuery, 'timeBucket': timeBucket},
       options: Options(headers: headers),
     );
@@ -191,8 +190,8 @@ class ImmichMediaRepository implements MediaRepository {
 
     return AssetSummary(
       id: id,
-      thumbnailUrl: session.serverConfig.apiUrl
-          .resolve('assets/$id/thumbnail')
+      thumbnailUrl: session.serverConfig
+          .apiEndpoint('assets/$id/thumbnail')
           .toString(),
       type: type,
       createdAt: createdAt ?? DateTime.fromMillisecondsSinceEpoch(0),

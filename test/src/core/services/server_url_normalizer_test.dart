@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:immichtv/src/core/models/server_config.dart';
 import 'package:immichtv/src/core/services/server_url_normalizer.dart';
 
 void main() {
@@ -23,5 +24,27 @@ void main() {
 
     expect(config.serverUrl.toString(), 'https://example.com/immich');
     expect(config.apiUrl.toString(), 'https://example.com/immich/api');
+  });
+
+  test('appends API endpoints without dropping the api prefix', () {
+    final config = ServerConfig(
+      rawInput: 'http://192.168.0.243:2283',
+      serverUrl: Uri(scheme: 'http', host: '192.168.0.243', port: 2283),
+      apiUrl: Uri(
+        scheme: 'http',
+        host: '192.168.0.243',
+        port: 2283,
+        path: '/api',
+      ),
+    );
+
+    expect(
+      config.apiEndpoint('auth/login').toString(),
+      'http://192.168.0.243:2283/api/auth/login',
+    );
+    expect(
+      config.apiEndpoint('users/me').toString(),
+      'http://192.168.0.243:2283/api/users/me',
+    );
   });
 }

@@ -34,7 +34,7 @@ class ImmichAuthRepository implements AuthRepository {
 
     try {
       final response = await _dio.post<Map<String, dynamic>>(
-        serverConfig.apiUrl.resolve('auth/login').toString(),
+        serverConfig.apiEndpoint('auth/login').toString(),
         data: {'email': trimmedEmail, 'password': password},
       );
 
@@ -48,7 +48,7 @@ class ImmichAuthRepository implements AuthRepository {
       }
 
       final profileResponse = await _dio.get<Map<String, dynamic>>(
-        serverConfig.apiUrl.resolve('users/me').toString(),
+        serverConfig.apiEndpoint('users/me').toString(),
         options: Options(headers: ImmichHeaders.sessionToken(token)),
       );
 
@@ -77,7 +77,7 @@ class ImmichAuthRepository implements AuthRepository {
 
     try {
       final response = await _dio.get<Map<String, dynamic>>(
-        stored.serverConfig.apiUrl.resolve('users/me').toString(),
+        stored.serverConfig.apiEndpoint('users/me').toString(),
         options: Options(
           headers: ImmichHeaders.sessionToken(stored.accessToken),
         ),

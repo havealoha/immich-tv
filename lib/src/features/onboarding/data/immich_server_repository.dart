@@ -26,7 +26,7 @@ class ImmichServerRepository implements ServerRepository {
   }
 
   Future<ServerConfig> _discoverApiEndpoint(ServerConfig config) async {
-    final wellKnownUrl = config.serverUrl.resolve('.well-known/immich');
+    final wellKnownUrl = config.serverEndpoint('.well-known/immich');
 
     try {
       final response = await _dio.get<Map<String, dynamic>>(
@@ -54,7 +54,7 @@ class ImmichServerRepository implements ServerRepository {
 
     for (final candidate in candidates) {
       try {
-        await _dio.get<dynamic>(config.apiUrl.resolve(candidate).toString());
+        await _dio.get<dynamic>(config.apiEndpoint(candidate).toString());
         return candidate;
       } on DioException catch (error) {
         if (error.response?.statusCode == 404) {
