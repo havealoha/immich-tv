@@ -9,7 +9,6 @@ import '../../core/repositories/media_repository.dart';
 import '../../shared/presentation/app_colors.dart';
 import '../../shared/presentation/app_spacing.dart';
 import '../../shared/presentation/widgets/authenticated_asset_image.dart';
-import '../../shared/presentation/widgets/shortcut_hint.dart';
 import '../app_flow/cubit/app_flow_cubit.dart';
 import '../library/cubit/library_cubit.dart';
 import '../library/cubit/library_state.dart';
@@ -339,41 +338,9 @@ class _ContentPane extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
     return Padding(
-      padding: const EdgeInsets.fromLTRB(28, 28, 28, 20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Welcome to ImmichTV',
-            style: theme.textTheme.displaySmall?.copyWith(
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-          const SizedBox(height: AppSpacing.sm),
-          Row(
-            children: [
-              const ShortcutHint(label: 'Enter'),
-              const SizedBox(width: AppSpacing.sm),
-              Expanded(
-                child: Text(
-                  'Select any menu from the left to change this view. Open any asset with Enter, a remote select button, or a click.',
-                  style: theme.textTheme.bodyLarge?.copyWith(
-                    color: AppColors.textSecondary,
-                    height: 1.5,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: AppSpacing.xl),
-          Expanded(
-            child: _LibraryContent(state: state, session: session),
-          ),
-        ],
-      ),
+      padding: const EdgeInsets.fromLTRB(28, 20, 28, 20),
+      child: _LibraryContent(state: state, session: session),
     );
   }
 }
@@ -486,7 +453,7 @@ class _AssetSectionView extends StatelessWidget {
         return false;
       },
       child: GridView.builder(
-        cacheExtent: 1200,
+        cacheExtent: 720,
         gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
           maxCrossAxisExtent: 240,
           mainAxisSpacing: 8,
@@ -554,66 +521,76 @@ class _AssetTileState extends State<_AssetTile> {
         child: AnimatedScale(
           duration: const Duration(milliseconds: 180),
           scale: isActive ? 0.985 : 1,
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              AuthenticatedAssetImage(
-                imageUrls: widget.asset.thumbnailUrls,
-                accessToken: widget.session.accessToken,
-                heroTag: 'asset-${widget.asset.id}',
-                placeholderIcon: widget.asset.isVideo
-                    ? Icons.smart_display_outlined
-                    : Icons.photo_outlined,
-              ),
-              DecoratedBox(
-                decoration: BoxDecoration(
-                  border: Border.all(
-                    color: _isFocused ? AppColors.focus : Colors.transparent,
-                    width: 2,
-                  ),
+          child: RepaintBoundary(
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                AuthenticatedAssetImage(
+                  imageUrls: widget.asset.thumbnailUrls,
+                  accessToken: widget.session.accessToken,
+                  requiresAuth: widget.asset.requiresAuth,
+                  heroTag: 'asset-${widget.asset.id}',
+                  placeholderIcon: widget.asset.isVideo
+                      ? Icons.smart_display_outlined
+                      : Icons.photo_outlined,
+                  filterQuality: FilterQuality.low,
                 ),
-              ),
-              Positioned.fill(
-                child: DecoratedBox(
+                DecoratedBox(
                   decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [
-                        Colors.transparent,
-                        Colors.black.withValues(alpha: isActive ? 0.68 : 0.54),
-                      ],
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
+                    border: Border.all(
+                      color: _isFocused ? AppColors.focus : Colors.transparent,
+                      width: 2,
                     ),
                   ),
                 ),
-              ),
-              Positioned(
-                left: AppSpacing.sm,
-                right: AppSpacing.sm,
-                bottom: AppSpacing.sm,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Asset ${widget.asset.id}',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.titleSmall?.copyWith(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w700,
+                Positioned.fill(
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          Colors.transparent,
+                          Colors.black.withValues(
+                            alpha: isActive ? 0.68 : 0.54,
+                          ),
+                        ],
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
                       ),
                     ),
-                    const SizedBox(height: 2),
-                    Text(
-                      _formatDate(widget.asset.createdAt),
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: Colors.white.withValues(alpha: 0.82),
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
-              ),
-            ],
+                if (widget.asset.isVideo)
+                  const Positioned.fill(
+                    child: IgnorePointer(child: Center(child: _VideoBadge())),
+                  ),
+                Positioned(
+                  left: AppSpacing.sm,
+                  right: AppSpacing.sm,
+                  bottom: AppSpacing.sm,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Asset ${widget.asset.id}',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.titleSmall?.copyWith(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        _formatDate(widget.asset.createdAt),
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: Colors.white.withValues(alpha: 0.82),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -625,6 +602,25 @@ class _AssetTileState extends State<_AssetTile> {
     final month = value.month.toString().padLeft(2, '0');
     final day = value.day.toString().padLeft(2, '0');
     return '$year-$month-$day';
+  }
+}
+
+class _VideoBadge extends StatelessWidget {
+  const _VideoBadge();
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: 0.48),
+        shape: BoxShape.circle,
+        border: Border.all(color: Colors.white.withValues(alpha: 0.14)),
+      ),
+      child: const Padding(
+        padding: EdgeInsets.all(AppSpacing.md),
+        child: Icon(Icons.play_arrow_rounded, color: Colors.white, size: 32),
+      ),
+    );
   }
 }
 

@@ -7,50 +7,118 @@ import '../../../core/repositories/asset_image_repository.dart';
 import '../app_colors.dart';
 import '../app_spacing.dart';
 
-class AuthenticatedAssetImage extends StatelessWidget {
+class AuthenticatedAssetImage extends StatefulWidget {
   const AuthenticatedAssetImage({
     super.key,
     required this.imageUrls,
     required this.accessToken,
+    this.requiresAuth = true,
     this.fit = BoxFit.cover,
     this.heroTag,
     this.borderRadius,
     this.placeholderIcon = Icons.image_outlined,
+    this.filterQuality = FilterQuality.low,
   });
 
   final List<String> imageUrls;
   final String accessToken;
+  final bool requiresAuth;
   final BoxFit fit;
   final String? heroTag;
   final double? borderRadius;
   final IconData placeholderIcon;
+  final FilterQuality filterQuality;
+
+  @override
+  State<AuthenticatedAssetImage> createState() =>
+      _AuthenticatedAssetImageState();
+}
+
+class _AuthenticatedAssetImageState extends State<AuthenticatedAssetImage> {
+  Future<Uint8List>? _imageFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _syncFuture();
+  }
+
+  @override
+  void didUpdateWidget(covariant AuthenticatedAssetImage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.accessToken != widget.accessToken ||
+        oldWidget.requiresAuth != widget.requiresAuth ||
+        oldWidget.imageUrls.join('|') != widget.imageUrls.join('|')) {
+      _syncFuture();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    final primaryUrl = imageUrls.isNotEmpty ? imageUrls.first : null;
+    final primaryUrl = widget.imageUrls.isNotEmpty
+        ? widget.imageUrls.first
+        : null;
     if (primaryUrl != null && primaryUrl.startsWith('mock://')) {
-      Widget child = _MockAssetArt(imageUrl: primaryUrl, fit: fit);
-      if (borderRadius != null) {
+      Widget child = _MockAssetArt(imageUrl: primaryUrl, fit: widget.fit);
+      if (widget.borderRadius != null) {
         child = ClipRRect(
-          borderRadius: BorderRadius.circular(borderRadius!),
+          borderRadius: BorderRadius.circular(widget.borderRadius!),
           child: child,
         );
       }
 
-      if (heroTag != null) {
-        child = Hero(tag: heroTag!, child: child);
+      if (widget.heroTag != null) {
+        child = Hero(tag: widget.heroTag!, child: child);
       }
 
       return child;
     }
 
-    final future = context.read<AssetImageRepository>().fetchImageBytes(
-      urls: imageUrls,
-      accessToken: accessToken,
-    );
+    if (!widget.requiresAuth && primaryUrl != null) {
+      Widget child = Image.network(
+        primaryUrl,
+        fit: widget.fit,
+        filterQuality: widget.filterQuality,
+        loadingBuilder: (context, widget, progress) {
+          if (progress == null) {
+            return widget;
+          }
+
+          return const _ImagePlaceholder(
+            child: SizedBox(
+              width: 28,
+              height: 28,
+              child: CircularProgressIndicator(strokeWidth: 2.4),
+            ),
+          );
+        },
+        errorBuilder: (context, error, stackTrace) {
+          return _ImagePlaceholder(
+            child: Icon(
+              widget.placeholderIcon,
+              color: AppColors.textMuted,
+              size: 30,
+            ),
+          );
+        },
+      );
+
+      if (widget.borderRadius != null) {
+        child = ClipRRect(
+          borderRadius: BorderRadius.circular(widget.borderRadius!),
+          child: child,
+        );
+      }
+
+      if (widget.heroTag != null) {
+        child = Hero(tag: widget.heroTag!, child: child);
+      }
+
+      return child;
+    }
 
     return FutureBuilder<Uint8List>(
-      future: future,
+      future: _imageFuture,
       builder: (context, snapshot) {
         Widget child;
         if (snapshot.connectionState == ConnectionState.waiting) {
@@ -63,30 +131,46 @@ class AuthenticatedAssetImage extends StatelessWidget {
           );
         } else if (snapshot.hasError || !snapshot.hasData) {
           child = _ImagePlaceholder(
-            child: Icon(placeholderIcon, color: AppColors.textMuted, size: 30),
+            child: Icon(
+              widget.placeholderIcon,
+              color: AppColors.textMuted,
+              size: 30,
+            ),
           );
         } else {
           child = Image.memory(
             snapshot.data!,
-            fit: fit,
+            fit: widget.fit,
             gaplessPlayback: true,
-            filterQuality: FilterQuality.medium,
+            filterQuality: widget.filterQuality,
           );
         }
 
-        if (borderRadius != null) {
+        if (widget.borderRadius != null) {
           child = ClipRRect(
-            borderRadius: BorderRadius.circular(borderRadius!),
+            borderRadius: BorderRadius.circular(widget.borderRadius!),
             child: child,
           );
         }
 
-        if (heroTag != null) {
-          child = Hero(tag: heroTag!, child: child);
+        if (widget.heroTag != null) {
+          child = Hero(tag: widget.heroTag!, child: child);
         }
 
-        return child;
+        return RepaintBoundary(child: child);
       },
+    );
+  }
+
+  void _syncFuture() {
+    if (!widget.requiresAuth) {
+      _imageFuture = null;
+      return;
+    }
+
+    _imageFuture = context.read<AssetImageRepository>().fetchImageBytes(
+      urls: widget.imageUrls,
+      accessToken: widget.accessToken,
     );
   }
 }

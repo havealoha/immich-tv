@@ -1,6 +1,6 @@
 {
-    "name": "immichtv",
-    "short_name": "immichtv",
+    "name": "Immich TV",
+    "short_name": "Immich TV",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

@@ -7,6 +7,7 @@ class AssetSummary extends Equatable {
     required this.displayUrls,
     required this.type,
     required this.createdAt,
+    this.requiresAuth = true,
   });
 
   final String id;
@@ -14,6 +15,7 @@ class AssetSummary extends Equatable {
   final List<String> displayUrls;
   final String type;
   final DateTime createdAt;
+  final bool requiresAuth;
 
   bool get isVideo => type.toUpperCase().contains('VIDEO');
 
@@ -22,5 +24,12 @@ class AssetSummary extends Equatable {
   String get displayUrl => displayUrls.first;
 
   @override
-  List<Object?> get props => [id, thumbnailUrls, displayUrls, type, createdAt];
+  List<Object?> get props => [
+    id,
+    thumbnailUrls,
+    displayUrls,
+    type,
+    createdAt,
+    requiresAuth,
+  ];
 }

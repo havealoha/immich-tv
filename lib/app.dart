@@ -111,7 +111,7 @@ class ImmichTvApp extends StatelessWidget {
         RepositoryProvider<MediaRepository>.value(value: _mediaRepository),
       ],
       child: MaterialApp(
-        title: 'ImmichTV',
+        title: 'Immich TV',
         debugShowCheckedModeBanner: false,
         theme: baseTheme.copyWith(
           textTheme: baseTheme.textTheme.apply(

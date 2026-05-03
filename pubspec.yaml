@@ -39,6 +39,7 @@ dependencies:
   logger: ^2.6.1
   pretty_dio_logger: ^1.4.0
   shared_preferences: ^2.5.3
+  video_player: ^2.10.0
 
 dev_dependencies:
   flutter_test:

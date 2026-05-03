@@ -56,9 +56,8 @@ void main() {
 
     await tester.pumpAndSettle();
 
-    expect(find.text('Welcome to ImmichTV'), findsOneWidget);
-    expect(find.textContaining(restoredSession.user.email), findsOneWidget);
     expect(find.text('Timeline'), findsWidgets);
+    expect(find.textContaining(restoredSession.user.email), findsOneWidget);
     expect(find.text('Asset asset-1'), findsOneWidget);
   });
 
@@ -96,7 +95,7 @@ void main() {
     await tester.tap(find.text('Continue to library shell'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Welcome to ImmichTV'), findsOneWidget);
+    expect(find.text('Timeline'), findsWidgets);
     expect(find.textContaining('family@example.com'), findsOneWidget);
   });
 
@@ -135,7 +134,7 @@ void main() {
     await tester.testTextInput.receiveAction(TextInputAction.done);
     await tester.pumpAndSettle();
 
-    expect(find.text('Welcome to ImmichTV'), findsOneWidget);
+    expect(find.text('Timeline'), findsWidgets);
     expect(find.textContaining('keyboard@example.com'), findsOneWidget);
   });
 
@@ -221,14 +220,13 @@ void main() {
     await tester.tap(firstAssetLabel, warnIfMissed: false);
     await tester.pumpAndSettle();
 
-    expect(find.text('Photo asset-1'), findsOneWidget);
-    expect(find.text('1 / 2'), findsOneWidget);
+    expect(find.text('2024-11-09'), findsOneWidget);
+    expect(find.text('Close'), findsOneWidget);
 
     await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
     await tester.pumpAndSettle();
 
-    expect(find.text('Photo asset-2'), findsOneWidget);
-    expect(find.text('2 / 2'), findsOneWidget);
+    expect(find.text('2024-11-10'), findsOneWidget);
   });
 }
 

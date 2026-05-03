@@ -61,33 +61,55 @@ class MockMediaRepository implements MediaRepository {
 List<AssetSummary> _buildTimeline() {
   final items = <AssetSummary>[];
   final start = DateTime(2025, 4, 28, 18);
-  final palettes = [
-    ('sea-glass', 'Lagoon'),
-    ('sunrise', 'Warm Dawn'),
-    ('dusk', 'Quiet Blue'),
-    ('citrus', 'Citrus'),
-    ('ember', 'Ember'),
-    ('forest', 'Canopy'),
+  final imageSeeds = [
+    'immichtv-city-1',
+    'immichtv-portrait-2',
+    'immichtv-road-3',
+    'immichtv-coast-4',
+    'immichtv-mountain-5',
+    'immichtv-river-6',
+    'immichtv-studio-7',
+    'immichtv-forest-8',
+    'immichtv-night-9',
+    'immichtv-interior-10',
+    'immichtv-sunrise-11',
+    'immichtv-travel-12',
+  ];
+  final videoUrls = [
+    'https://samplelib.com/lib/preview/mp4/sample-5s.mp4',
+    'https://samplelib.com/lib/preview/mp4/sample-10s.mp4',
+    'https://samplelib.com/lib/preview/mp4/sample-15s.mp4',
   ];
 
   for (var index = 0; index < 180; index++) {
     final createdAt = start.subtract(Duration(hours: index * 7));
-    final palette = palettes[index % palettes.length];
     final id = 'mock-asset-${index + 1}';
+    final imageSeed = imageSeeds[index % imageSeeds.length];
+    final isVideo = index % 11 == 0;
+    final thumbnailUrl = _picsumSquareUrl(
+      seed: isVideo ? 'video-thumb-$imageSeed' : imageSeed,
+      size: 800,
+    );
+    final displayUrl = isVideo
+        ? videoUrls[index % videoUrls.length]
+        : _picsumSquareUrl(seed: '$imageSeed-full', size: 1600);
     items.add(
       AssetSummary(
         id: id,
-        thumbnailUrls: [
-          'mock://asset/$id?palette=${palette.$1}&variant=thumbnail',
-        ],
-        displayUrls: ['mock://asset/$id?palette=${palette.$1}&variant=display'],
-        type: 'IMAGE',
+        thumbnailUrls: [thumbnailUrl],
+        displayUrls: [displayUrl],
+        type: isVideo ? 'VIDEO' : 'IMAGE',
         createdAt: createdAt,
+        requiresAuth: false,
       ),
     );
   }
 
   return items;
+}
+
+String _picsumSquareUrl({required String seed, required int size}) {
+  return 'https://picsum.photos/seed/$seed/$size/$size';
 }
 
 List<AssetSummary> _buildFavorites() {
