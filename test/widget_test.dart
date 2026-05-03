@@ -159,7 +159,9 @@ void main() {
 
     await tester.tap(find.text('Albums').first);
     await tester.pumpAndSettle();
-    expect(find.text('Summer Trip'), findsOneWidget);
+    expect(find.text('Summer Trip'), findsWidgets);
+    expect(find.text('2 photos'), findsOneWidget);
+    expect(find.text('Asset asset-1'), findsOneWidget);
 
     await tester.tap(find.text('Favorites').first);
     await tester.pumpAndSettle();
@@ -279,7 +281,7 @@ void main() {
     await tester.tap(find.textContaining('Albums •'));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.textContaining('Start Summer Trip'));
+    await tester.tap(find.text('Start slideshow'));
     await tester.pumpAndSettle();
 
     expect(find.text('Photo 1 of 2'), findsOneWidget);
