@@ -40,9 +40,9 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
     final environment = context.read<AppEnvironment>();
     final useMockServices = environment.useMockServices;
 
-    _serverController.text = useMockServices ? 'https://demo.immichtv.local' : '';
-    _emailController.text = useMockServices ? 'livingroom@demo.immichtv' : '';
-    _passwordController.text = useMockServices ? 'demo-password' : '';
+    _serverController.text = useMockServices ? 'https://demo.immichtv.local' : 'http://192.168.0.243:2283';
+    _emailController.text = useMockServices ? 'livingroom@demo.immichtv' : 'afridi.khondakar@gmail.com';
+    _passwordController.text = useMockServices ? 'demo-password' : '#Noobshit911';
     _hasAppliedInitialValues = true;
   }
 
