@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../app_shell.dart';
+import '../app_flow/cubit/app_flow_cubit.dart';
+import 'cubit/onboarding_cubit.dart';
+import 'cubit/onboarding_state.dart';
 
 class OnboardingFlow extends StatefulWidget {
-  const OnboardingFlow({super.key, required this.onAuthenticated});
-
-  final ValueChanged<AppSession> onAuthenticated;
+  const OnboardingFlow({super.key});
 
   @override
   State<OnboardingFlow> createState() => _OnboardingFlowState();
@@ -18,9 +19,6 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
   final _emailController = TextEditingController(text: 'family@example.com');
   final _passwordController = TextEditingController();
 
-  bool _isSubmitting = false;
-  bool _serverValidated = false;
-
   @override
   void dispose() {
     _serverController.dispose();
@@ -29,109 +27,41 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
     super.dispose();
   }
 
-  Future<void> _validateServer() async {
-    setState(() {
-      _isSubmitting = true;
-    });
-
-    await Future<void>.delayed(const Duration(milliseconds: 400));
-
-    if (!mounted) {
-      return;
-    }
-
-    setState(() {
-      _serverValidated = true;
-      _isSubmitting = false;
-    });
-  }
-
-  Future<void> _signIn() async {
-    setState(() {
-      _isSubmitting = true;
-    });
-
-    await Future<void>.delayed(const Duration(milliseconds: 400));
-
-    if (!mounted) {
-      return;
-    }
-
-    widget.onAuthenticated(
-      AppSession(
-        serverUrl: _normalizedServerUrl,
-        userEmail: _emailController.text.trim(),
-        displayName: 'Living Room',
-      ),
-    );
-  }
-
   String get _normalizedServerUrl =>
       _serverController.text.trim().replaceAll(RegExp(r'/$'), '');
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    return BlocProvider(
+      create: (_) => OnboardingCubit(),
+      child: BlocBuilder<OnboardingCubit, OnboardingState>(
+        builder: (context, state) {
+          return Scaffold(
+            body: Container(
+              decoration: const BoxDecoration(
+                gradient: RadialGradient(
+                  colors: [Color(0xFF1A4E58), Color(0xFF08131A)],
+                  center: Alignment.topLeft,
+                  radius: 1.4,
+                ),
+              ),
+              child: SafeArea(
+                child: LayoutBuilder(
+                  builder: (context, viewportConstraints) {
+                    final useCompactLayout =
+                        viewportConstraints.maxWidth < 900 ||
+                        viewportConstraints.maxHeight < 700;
 
-    return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: RadialGradient(
-            colors: [Color(0xFF1A4E58), Color(0xFF08131A)],
-            center: Alignment.topLeft,
-            radius: 1.4,
-          ),
-        ),
-        child: SafeArea(
-          child: LayoutBuilder(
-            builder: (context, viewportConstraints) {
-              final useCompactLayout =
-                  viewportConstraints.maxWidth < 900 ||
-                  viewportConstraints.maxHeight < 700;
+                    final form = _buildForm(context, theme, state);
 
-              if (useCompactLayout) {
-                return SingleChildScrollView(
-                  padding: const EdgeInsets.all(24),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Card(
-                        child: Padding(
-                          padding: const EdgeInsets.all(32),
-                          child: SingleChildScrollView(
-                            child: _IntroPanel(theme: theme),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 24),
-                      Card(
-                        child: Padding(
-                          padding: const EdgeInsets.all(32),
-                          child: SingleChildScrollView(child: _buildForm(theme)),
-                        ),
-                      ),
-                    ],
-                  ),
-                );
-              }
-
-              final panelHeight = (viewportConstraints.maxHeight - 64).clamp(
-                560.0,
-                720.0,
-              );
-
-              return Center(
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 1180),
-                  child: Padding(
-                    padding: const EdgeInsets.all(32),
-                    child: SizedBox(
-                      height: panelHeight.toDouble(),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          Expanded(
-                            child: Card(
+                    if (useCompactLayout) {
+                      return SingleChildScrollView(
+                        padding: const EdgeInsets.all(24),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Card(
                               child: Padding(
                                 padding: const EdgeInsets.all(32),
                                 child: SingleChildScrollView(
@@ -139,45 +69,87 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
                                 ),
                               ),
                             ),
-                          ),
-                          const SizedBox(width: 24),
-                          Expanded(
-                            child: Card(
+                            const SizedBox(height: 24),
+                            Card(
                               child: Padding(
                                 padding: const EdgeInsets.all(32),
-                                child: SingleChildScrollView(
-                                  child: _buildForm(theme),
-                                ),
+                                child: SingleChildScrollView(child: form),
                               ),
                             ),
+                          ],
+                        ),
+                      );
+                    }
+
+                    final panelHeight = (viewportConstraints.maxHeight - 64)
+                        .clamp(560.0, 720.0);
+
+                    return Center(
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 1180),
+                        child: Padding(
+                          padding: const EdgeInsets.all(32),
+                          child: SizedBox(
+                            height: panelHeight.toDouble(),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                Expanded(
+                                  child: Card(
+                                    child: Padding(
+                                      padding: const EdgeInsets.all(32),
+                                      child: SingleChildScrollView(
+                                        child: _IntroPanel(theme: theme),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 24),
+                                Expanded(
+                                  child: Card(
+                                    child: Padding(
+                                      padding: const EdgeInsets.all(32),
+                                      child: SingleChildScrollView(child: form),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
-                        ],
+                        ),
                       ),
-                    ),
-                  ),
+                    );
+                  },
                 ),
-              );
-            },
-          ),
-        ),
+              ),
+            ),
+          );
+        },
       ),
     );
   }
 
-  Widget _buildForm(ThemeData theme) {
+  Widget _buildForm(
+    BuildContext context,
+    ThemeData theme,
+    OnboardingState state,
+  ) {
+    final isSubmitting = state.isBusy;
+    final serverValidated = state.step == OnboardingStep.credentials;
+
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          _serverValidated ? 'Sign in to Immich' : 'Connect your server',
+          serverValidated ? 'Sign in to Immich' : 'Connect your server',
           style: theme.textTheme.headlineMedium?.copyWith(
             fontWeight: FontWeight.w700,
           ),
         ),
         const SizedBox(height: 12),
         Text(
-          _serverValidated
+          serverValidated
               ? 'We found your server. The next step is a secure sign in for the TV session.'
               : 'Start with the URL of your Immich instance. We will validate it before asking for credentials.',
           style: theme.textTheme.bodyLarge?.copyWith(
@@ -188,23 +160,23 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
         const SizedBox(height: 28),
         TextField(
           controller: _serverController,
-          enabled: !_serverValidated && !_isSubmitting,
+          enabled: !serverValidated && !isSubmitting,
           decoration: const InputDecoration(
             labelText: 'Immich server URL',
             hintText: 'https://photos.example.com',
           ),
         ),
         const SizedBox(height: 18),
-        if (_serverValidated) ...[
+        if (serverValidated) ...[
           TextField(
             controller: _emailController,
-            enabled: !_isSubmitting,
+            enabled: !isSubmitting,
             decoration: const InputDecoration(labelText: 'Email'),
           ),
           const SizedBox(height: 18),
           TextField(
             controller: _passwordController,
-            enabled: !_isSubmitting,
+            enabled: !isSubmitting,
             obscureText: true,
             decoration: const InputDecoration(labelText: 'Password'),
           ),
@@ -239,18 +211,37 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
         SizedBox(
           width: double.infinity,
           child: FilledButton(
-            onPressed: _isSubmitting
+            onPressed: isSubmitting
                 ? null
-                : (_serverValidated ? _signIn : _validateServer),
+                : () async {
+                    final onboardingCubit = context.read<OnboardingCubit>();
+                    final appFlowCubit = context.read<AppFlowCubit>();
+
+                    if (!serverValidated) {
+                      await onboardingCubit.validateServer();
+                      return;
+                    }
+
+                    final session = await onboardingCubit.signIn(
+                      serverUrl: _normalizedServerUrl,
+                      email: _emailController.text.trim(),
+                    );
+
+                    if (!mounted) {
+                      return;
+                    }
+
+                    appFlowCubit.completeSignIn(session);
+                  },
             style: FilledButton.styleFrom(
               padding: const EdgeInsets.symmetric(vertical: 18),
               backgroundColor: const Color(0xFF6FE0DB),
               foregroundColor: const Color(0xFF062227),
             ),
             child: Text(
-              _isSubmitting
+              isSubmitting
                   ? 'Working...'
-                  : (_serverValidated
+                  : (serverValidated
                         ? 'Continue to library shell'
                         : 'Validate server'),
             ),

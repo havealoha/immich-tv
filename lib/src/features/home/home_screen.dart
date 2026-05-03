@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../app_shell.dart';
+import '../app_flow/cubit/app_flow_cubit.dart';
+import '../app_flow/cubit/app_flow_state.dart';
 
 class HomeScreen extends StatelessWidget {
-  const HomeScreen({super.key, required this.session, required this.onSignOut});
+  const HomeScreen({super.key, required this.session});
 
   final AppSession session;
-  final VoidCallback onSignOut;
 
   @override
   Widget build(BuildContext context) {
@@ -50,7 +51,7 @@ class HomeScreen extends StatelessWidget {
                       ),
                     ),
                     OutlinedButton(
-                      onPressed: onSignOut,
+                      onPressed: () => context.read<AppFlowCubit>().signOut(),
                       child: const Text('Sign out'),
                     ),
                   ],

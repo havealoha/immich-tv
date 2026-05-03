@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'src/app_shell.dart';
+import 'src/features/app_flow/cubit/app_flow_cubit.dart';
 
 void runImmichTvApp() {
   runApp(const ImmichTvApp());
@@ -54,7 +56,10 @@ class ImmichTvApp extends StatelessWidget {
           labelStyle: const TextStyle(color: Color(0xFFB6D6D4)),
         ),
       ),
-      home: const AppShell(),
+      home: BlocProvider(
+        create: (_) => AppFlowCubit()..initialize(),
+        child: const AppShell(),
+      ),
     );
   }
 }

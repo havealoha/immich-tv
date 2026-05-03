@@ -1,30 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../../app_shell.dart';
-
-class BootstrapFlow extends StatefulWidget {
-  const BootstrapFlow({super.key, required this.onReady});
-
-  final ValueChanged<AppSession?> onReady;
-
-  @override
-  State<BootstrapFlow> createState() => _BootstrapFlowState();
-}
-
-class _BootstrapFlowState extends State<BootstrapFlow> {
-  @override
-  void initState() {
-    super.initState();
-    _simulateBootstrap();
-  }
-
-  Future<void> _simulateBootstrap() async {
-    await Future<void>.delayed(const Duration(milliseconds: 600));
-    if (!mounted) {
-      return;
-    }
-    widget.onReady(null);
-  }
+class BootstrapFlow extends StatelessWidget {
+  const BootstrapFlow({super.key});
 
   @override
   Widget build(BuildContext context) {
