@@ -1,30 +1,48 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
+import 'dart:ui';
 
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-
-import 'package:immichtv/main.dart';
+import 'package:immichtv/app.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+  testWidgets('shows onboarding after bootstrap completes', (tester) async {
+    tester.view.physicalSize = const Size(1280, 720);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+    await tester.pumpWidget(const ImmichTvApp());
 
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
+    expect(find.text('ImmichTV'), findsOneWidget);
+
+    await tester.pump(const Duration(milliseconds: 700));
+
+    expect(find.text('Connect your server'), findsOneWidget);
+    expect(find.text('Validate server'), findsOneWidget);
+  });
+
+  testWidgets('walks through the first-time flow into home shell', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1280, 720);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(const ImmichTvApp());
+    await tester.pump(const Duration(milliseconds: 700));
+
+    await tester.tap(find.text('Validate server'));
     await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
 
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+    expect(find.text('Sign in to Immich'), findsOneWidget);
+
+    await tester.tap(find.text('Continue to library shell'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
+
+    expect(find.text('Welcome to ImmichTV'), findsOneWidget);
+    expect(
+      find.textContaining('Connected to https://photos.example.com'),
+      findsOneWidget,
+    );
   });
 }
