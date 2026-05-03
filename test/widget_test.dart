@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:immichtv/app.dart';
 import 'package:immichtv/src/core/models/album_summary.dart';
@@ -8,8 +9,10 @@ import 'package:immichtv/src/core/models/server_config.dart';
 import 'package:immichtv/src/core/models/server_validation_result.dart';
 import 'package:immichtv/src/core/models/user_profile.dart';
 import 'package:immichtv/src/core/repositories/auth_repository.dart';
+import 'package:immichtv/src/core/repositories/asset_image_repository.dart';
 import 'package:immichtv/src/core/repositories/media_repository.dart';
 import 'package:immichtv/src/core/repositories/server_repository.dart';
+import 'package:immichtv/src/shared/presentation/widgets/focusable_surface.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -22,6 +25,7 @@ void main() {
     await tester.pumpWidget(
       ImmichTvApp(
         authRepository: FakeAuthRepository(),
+        assetImageRepository: FakeAssetImageRepository(),
         serverRepository: FakeServerRepository(),
         mediaRepository: FakeMediaRepository(),
       ),
@@ -44,6 +48,7 @@ void main() {
     await tester.pumpWidget(
       ImmichTvApp(
         authRepository: FakeAuthRepository(restoredSession: restoredSession),
+        assetImageRepository: FakeAssetImageRepository(),
         serverRepository: FakeServerRepository(),
         mediaRepository: FakeMediaRepository(),
       ),
@@ -67,6 +72,7 @@ void main() {
     await tester.pumpWidget(
       ImmichTvApp(
         authRepository: FakeAuthRepository(),
+        assetImageRepository: FakeAssetImageRepository(),
         serverRepository: FakeServerRepository(),
         mediaRepository: FakeMediaRepository(),
       ),
@@ -104,6 +110,7 @@ void main() {
     await tester.pumpWidget(
       ImmichTvApp(
         authRepository: FakeAuthRepository(),
+        assetImageRepository: FakeAssetImageRepository(),
         serverRepository: FakeServerRepository(),
         mediaRepository: FakeMediaRepository(),
       ),
@@ -142,6 +149,7 @@ void main() {
     await tester.pumpWidget(
       ImmichTvApp(
         authRepository: FakeAuthRepository(restoredSession: _demoSession()),
+        assetImageRepository: FakeAssetImageRepository(),
         serverRepository: FakeServerRepository(),
         mediaRepository: FakeMediaRepository(),
       ),
@@ -161,6 +169,42 @@ void main() {
     await tester.tap(find.text('Slideshow').first);
     await tester.pumpAndSettle();
     expect(find.text('Slideshow mode is queued next'), findsOneWidget);
+  });
+
+  testWidgets('opens the fullscreen asset viewer and navigates forward', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1280, 720);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(
+      ImmichTvApp(
+        authRepository: FakeAuthRepository(restoredSession: _demoSession()),
+        assetImageRepository: FakeAssetImageRepository(),
+        serverRepository: FakeServerRepository(),
+        mediaRepository: FakeMediaRepository(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final firstAssetCard = find.ancestor(
+      of: find.text('Asset asset-1').first,
+      matching: find.byType(FocusableSurface),
+    );
+    await tester.ensureVisible(firstAssetCard);
+    tester.widget<FocusableSurface>(firstAssetCard).onPressed?.call();
+    await tester.pump();
+    await tester.pumpAndSettle();
+
+    expect(find.text('Photo asset-1'), findsOneWidget);
+    expect(find.text('1 / 2'), findsOneWidget);
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Photo asset-2'), findsOneWidget);
+    expect(find.text('2 / 2'), findsOneWidget);
   });
 }
 
@@ -215,8 +259,13 @@ class FakeMediaRepository implements MediaRepository {
   ) async => [
     AssetSummary(
       id: 'favorite-1',
-      thumbnailUrl:
-          'https://photos.example.com/api/assets/favorite-1/thumbnail',
+      thumbnailUrls: const [
+        'https://photos.example.com/api/assets/favorite-1/thumbnail?size=preview',
+        'https://photos.example.com/api/assets/favorite-1/thumbnail?size=thumbnail',
+      ],
+      displayUrls: const [
+        'https://photos.example.com/api/assets/favorite-1/original',
+      ],
       type: 'IMAGE',
       createdAt: DateTime(2024, 10, 2),
     ),
@@ -228,11 +277,45 @@ class FakeMediaRepository implements MediaRepository {
   ) async => [
     AssetSummary(
       id: 'asset-1',
-      thumbnailUrl: 'https://photos.example.com/api/assets/asset-1/thumbnail',
+      thumbnailUrls: const [
+        'https://photos.example.com/api/assets/asset-1/thumbnail?size=preview',
+        'https://photos.example.com/api/assets/asset-1/thumbnail?size=thumbnail',
+      ],
+      displayUrls: const [
+        'https://photos.example.com/api/assets/asset-1/original',
+      ],
       type: 'IMAGE',
       createdAt: DateTime(2024, 11, 9),
     ),
+    AssetSummary(
+      id: 'asset-2',
+      thumbnailUrls: const [
+        'https://photos.example.com/api/assets/asset-2/thumbnail?size=preview',
+        'https://photos.example.com/api/assets/asset-2/thumbnail?size=thumbnail',
+      ],
+      displayUrls: const [
+        'https://photos.example.com/api/assets/asset-2/original',
+      ],
+      type: 'IMAGE',
+      createdAt: DateTime(2024, 11, 10),
+    ),
   ];
+}
+
+class FakeAssetImageRepository implements AssetImageRepository {
+  @override
+  Future<Uint8List> fetchImageBytes({
+    required List<String> urls,
+    required String accessToken,
+  }) async {
+    return Uint8List.fromList(_transparentImageBytes);
+  }
+
+  @override
+  Future<void> prefetchImages({
+    required List<List<String>> urls,
+    required String accessToken,
+  }) async {}
 }
 
 AuthenticatedSession _demoSession() {
@@ -250,3 +333,75 @@ AuthenticatedSession _demoSession() {
     ),
   );
 }
+
+const List<int> _transparentImageBytes = <int>[
+  0x89,
+  0x50,
+  0x4E,
+  0x47,
+  0x0D,
+  0x0A,
+  0x1A,
+  0x0A,
+  0x00,
+  0x00,
+  0x00,
+  0x0D,
+  0x49,
+  0x48,
+  0x44,
+  0x52,
+  0x00,
+  0x00,
+  0x00,
+  0x01,
+  0x00,
+  0x00,
+  0x00,
+  0x01,
+  0x08,
+  0x06,
+  0x00,
+  0x00,
+  0x00,
+  0x1F,
+  0x15,
+  0xC4,
+  0x89,
+  0x00,
+  0x00,
+  0x00,
+  0x0D,
+  0x49,
+  0x44,
+  0x41,
+  0x54,
+  0x78,
+  0x9C,
+  0x63,
+  0xF8,
+  0xCF,
+  0xC0,
+  0x00,
+  0x00,
+  0x03,
+  0x01,
+  0x01,
+  0x00,
+  0x18,
+  0xDD,
+  0x8D,
+  0xB1,
+  0x00,
+  0x00,
+  0x00,
+  0x00,
+  0x49,
+  0x45,
+  0x4E,
+  0x44,
+  0xAE,
+  0x42,
+  0x60,
+  0x82,
+];

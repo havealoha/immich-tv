@@ -4,15 +4,18 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../core/models/authenticated_session.dart';
 import '../../core/models/album_summary.dart';
 import '../../core/models/asset_summary.dart';
+import '../../core/repositories/asset_image_repository.dart';
 import '../../core/repositories/media_repository.dart';
 import '../../shared/presentation/app_colors.dart';
 import '../../shared/presentation/app_radii.dart';
 import '../../shared/presentation/app_spacing.dart';
+import '../../shared/presentation/widgets/authenticated_asset_image.dart';
 import '../../shared/presentation/widgets/focusable_surface.dart';
 import '../../shared/presentation/widgets/shortcut_hint.dart';
 import '../app_flow/cubit/app_flow_cubit.dart';
 import '../library/cubit/library_cubit.dart';
 import '../library/cubit/library_state.dart';
+import '../viewer/asset_viewer_screen.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key, required this.session});
@@ -40,126 +43,161 @@ class HomeScreen extends StatelessWidget {
           child: SafeArea(
             child: Padding(
               padding: const EdgeInsets.all(28),
-              child: BlocBuilder<LibraryCubit, LibraryState>(
-                builder: (context, state) {
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Welcome to ImmichTV',
-                                  style: theme.textTheme.displaySmall?.copyWith(
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                ),
-                                const SizedBox(height: 8),
-                                Text(
-                                  'Connected to ${session.serverConfig.serverUrl} as ${session.user.email}',
-                                  style: theme.textTheme.bodyLarge?.copyWith(
-                                    color: const Color(0xFFB8C8CF),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          OutlinedButton(
-                            onPressed: () {
-                              context.read<AppFlowCubit>().signOut();
-                            },
-                            child: const Text('Sign out'),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 28),
-                      Row(
-                        children: [
-                          const ShortcutHint(label: 'Enter'),
-                          const SizedBox(width: AppSpacing.sm),
-                          Expanded(
-                            child: Text(
-                              'Focused cards can be opened with a remote select button, Enter, or a click.',
-                              style: theme.textTheme.bodyMedium?.copyWith(
-                                color: AppColors.textMuted,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 20),
-                      Wrap(
-                        spacing: 20,
-                        runSpacing: 20,
-                        children: [
-                          _LibraryTile(
-                            title: 'Timeline',
-                            subtitle:
-                                'Chronological stream for recent and favorite memories.',
-                            icon: Icons.view_stream_outlined,
-                            width: tileWidth,
-                            isSelected:
-                                state.selectedTab == LibraryTab.timeline,
-                            onPressed: () => context
-                                .read<LibraryCubit>()
-                                .selectTab(LibraryTab.timeline),
-                          ),
-                          _LibraryTile(
-                            title: 'Albums',
-                            subtitle:
-                                'Collection-driven browsing for trips, events, and family stories.',
-                            icon: Icons.photo_album_outlined,
-                            width: tileWidth,
-                            isSelected: state.selectedTab == LibraryTab.albums,
-                            onPressed: () => context
-                                .read<LibraryCubit>()
-                                .selectTab(LibraryTab.albums),
-                          ),
-                          _LibraryTile(
-                            title: 'Favorites',
-                            subtitle:
-                                'Quick access to the best shots for relaxing slideshow playback.',
-                            icon: Icons.favorite_border,
-                            width: tileWidth,
-                            isSelected:
-                                state.selectedTab == LibraryTab.favorites,
-                            onPressed: () => context
-                                .read<LibraryCubit>()
-                                .selectTab(LibraryTab.favorites),
-                          ),
-                          _LibraryTile(
-                            title: 'Slideshow',
-                            subtitle:
-                                'Full-screen playback mode for ambient living-room photo display.',
-                            icon: Icons.slideshow_outlined,
-                            width: tileWidth,
-                            isSelected:
-                                state.selectedTab == LibraryTab.slideshow,
-                            onPressed: () => context
-                                .read<LibraryCubit>()
-                                .selectTab(LibraryTab.slideshow),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 28),
-                      Expanded(
-                        child: Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.all(24),
-                          decoration: BoxDecoration(
-                            color: AppColors.backgroundElevated,
-                            borderRadius: BorderRadius.circular(AppRadii.xl),
-                            border: Border.all(color: AppColors.border),
-                          ),
-                          child: _LibraryContent(state: state),
-                        ),
-                      ),
-                    ],
+              child: BlocListener<LibraryCubit, LibraryState>(
+                listenWhen: (previous, current) =>
+                    previous.selectedTab != current.selectedTab ||
+                    previous.status != current.status,
+                listener: (context, state) {
+                  if (state.status != LibraryLoadStatus.success) {
+                    return;
+                  }
+
+                  final urls = switch (state.selectedTab) {
+                    LibraryTab.timeline =>
+                      state.timeline
+                          .map((asset) => asset.thumbnailUrls)
+                          .toList(growable: false),
+                    LibraryTab.favorites =>
+                      state.favorites
+                          .map((asset) => asset.thumbnailUrls)
+                          .toList(growable: false),
+                    LibraryTab.albums ||
+                    LibraryTab.slideshow => const <List<String>>[],
+                  };
+
+                  if (urls.isEmpty) {
+                    return;
+                  }
+
+                  context.read<AssetImageRepository>().prefetchImages(
+                    urls: urls,
+                    accessToken: session.accessToken,
                   );
                 },
+                child: BlocBuilder<LibraryCubit, LibraryState>(
+                  builder: (context, state) {
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Welcome to ImmichTV',
+                                    style: theme.textTheme.displaySmall
+                                        ?.copyWith(fontWeight: FontWeight.w700),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    'Connected to ${session.serverConfig.serverUrl} as ${session.user.email}',
+                                    style: theme.textTheme.bodyLarge?.copyWith(
+                                      color: const Color(0xFFB8C8CF),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            OutlinedButton(
+                              onPressed: () {
+                                context.read<AppFlowCubit>().signOut();
+                              },
+                              child: const Text('Sign out'),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 28),
+                        Row(
+                          children: [
+                            const ShortcutHint(label: 'Enter'),
+                            const SizedBox(width: AppSpacing.sm),
+                            Expanded(
+                              child: Text(
+                                'Open any asset with your remote select button, Enter, or a click. Inside the viewer, use left and right arrows to move between items.',
+                                style: theme.textTheme.bodyMedium?.copyWith(
+                                  color: AppColors.textMuted,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 20),
+                        Wrap(
+                          spacing: 20,
+                          runSpacing: 20,
+                          children: [
+                            _LibraryTile(
+                              title: 'Timeline',
+                              subtitle:
+                                  'Chronological stream for recent and favorite memories.',
+                              icon: Icons.view_stream_outlined,
+                              width: tileWidth,
+                              isSelected:
+                                  state.selectedTab == LibraryTab.timeline,
+                              onPressed: () => context
+                                  .read<LibraryCubit>()
+                                  .selectTab(LibraryTab.timeline),
+                            ),
+                            _LibraryTile(
+                              title: 'Albums',
+                              subtitle:
+                                  'Collection-driven browsing for trips, events, and family stories.',
+                              icon: Icons.photo_album_outlined,
+                              width: tileWidth,
+                              isSelected:
+                                  state.selectedTab == LibraryTab.albums,
+                              onPressed: () => context
+                                  .read<LibraryCubit>()
+                                  .selectTab(LibraryTab.albums),
+                            ),
+                            _LibraryTile(
+                              title: 'Favorites',
+                              subtitle:
+                                  'Quick access to the best shots for relaxing slideshow playback.',
+                              icon: Icons.favorite_border,
+                              width: tileWidth,
+                              isSelected:
+                                  state.selectedTab == LibraryTab.favorites,
+                              onPressed: () => context
+                                  .read<LibraryCubit>()
+                                  .selectTab(LibraryTab.favorites),
+                            ),
+                            _LibraryTile(
+                              title: 'Slideshow',
+                              subtitle:
+                                  'Full-screen playback mode for ambient living-room photo display.',
+                              icon: Icons.slideshow_outlined,
+                              width: tileWidth,
+                              isSelected:
+                                  state.selectedTab == LibraryTab.slideshow,
+                              onPressed: () => context
+                                  .read<LibraryCubit>()
+                                  .selectTab(LibraryTab.slideshow),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 28),
+                        Expanded(
+                          child: Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.all(24),
+                            decoration: BoxDecoration(
+                              color: AppColors.backgroundElevated,
+                              borderRadius: BorderRadius.circular(AppRadii.xl),
+                              border: Border.all(color: AppColors.border),
+                            ),
+                            child: _LibraryContent(
+                              state: state,
+                              session: session,
+                            ),
+                          ),
+                        ),
+                      ],
+                    );
+                  },
+                ),
               ),
             ),
           ),
@@ -229,17 +267,19 @@ class _LibraryTile extends StatelessWidget {
 }
 
 class _LibraryContent extends StatelessWidget {
-  const _LibraryContent({required this.state});
+  const _LibraryContent({required this.state, required this.session});
 
   final LibraryState state;
+  final AuthenticatedSession session;
 
   @override
   Widget build(BuildContext context) {
     return switch (state.selectedTab) {
       LibraryTab.timeline => _AssetSectionView(
+        session: session,
         title: 'Timeline',
         description:
-            'Your main chronological feed will land here, tuned for fast browsing on TVs and desktops.',
+            'Browse your library in a TV-friendly grid with cached thumbnails and one-click fullscreen viewing.',
         status: state.status,
         errorMessage: state.errorMessage,
         assets: state.timeline,
@@ -252,9 +292,10 @@ class _LibraryContent extends StatelessWidget {
         albums: state.albums,
       ),
       LibraryTab.favorites => _AssetSectionView(
+        session: session,
         title: 'Favorites',
         description:
-            'This section is reserved for your best shots and slideshow-ready moments.',
+            'Jump straight into your strongest stills and hand-picked moments.',
         status: state.status,
         errorMessage: state.errorMessage,
         assets: state.favorites,
@@ -268,6 +309,7 @@ class _LibraryContent extends StatelessWidget {
 
 class _AssetSectionView extends StatelessWidget {
   const _AssetSectionView({
+    required this.session,
     required this.title,
     required this.description,
     required this.status,
@@ -276,6 +318,7 @@ class _AssetSectionView extends StatelessWidget {
     required this.emptyMessage,
   });
 
+  final AuthenticatedSession session;
   final String title;
   final String description;
   final LibraryLoadStatus status;
@@ -313,52 +356,131 @@ class _AssetSectionView extends StatelessWidget {
       );
     }
 
-    return ListView.separated(
+    return GridView.builder(
+      cacheExtent: 1200,
+      gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+        maxCrossAxisExtent: 260,
+        mainAxisSpacing: 18,
+        crossAxisSpacing: 18,
+        childAspectRatio: 0.82,
+      ),
       itemCount: assets.length,
-      separatorBuilder: (_, index) => const SizedBox(height: 12),
       itemBuilder: (context, index) {
         final asset = assets[index];
-        return FocusableSurface(
-          onPressed: () {},
-          child: Row(
-            children: [
-              Container(
-                width: 128,
-                height: 88,
-                decoration: BoxDecoration(
-                  color: AppColors.surface,
-                  borderRadius: BorderRadius.circular(AppRadii.md),
-                ),
-                child: const Icon(
-                  Icons.image_outlined,
-                  color: AppColors.textMuted,
-                ),
-              ),
-              const SizedBox(width: 18),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Asset ${asset.id}',
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      '${asset.type} • ${_formatDate(asset.createdAt)}',
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: AppColors.textSecondary,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
+        return _AssetCard(
+          session: session,
+          asset: asset,
+          autofocus: index == 0,
+          onPressed: () => AssetViewerScreen.show(
+            context,
+            assets: assets,
+            initialIndex: index,
+            accessToken: session.accessToken,
           ),
         );
       },
+    );
+  }
+}
+
+class _AssetCard extends StatelessWidget {
+  const _AssetCard({
+    required this.session,
+    required this.asset,
+    required this.autofocus,
+    required this.onPressed,
+  });
+
+  final AuthenticatedSession session;
+  final AssetSummary asset;
+  final bool autofocus;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return FocusableSurface(
+      autofocus: autofocus,
+      onPressed: onPressed,
+      padding: EdgeInsets.zero,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                AuthenticatedAssetImage(
+                  imageUrls: asset.thumbnailUrls,
+                  accessToken: session.accessToken,
+                  borderRadius: AppRadii.lg,
+                  heroTag: 'asset-${asset.id}',
+                  placeholderIcon: asset.isVideo
+                      ? Icons.smart_display_outlined
+                      : Icons.photo_outlined,
+                ),
+                DecoratedBox(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(AppRadii.lg),
+                    gradient: const LinearGradient(
+                      colors: [Colors.transparent, Color(0xD9000000)],
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                    ),
+                  ),
+                ),
+                Positioned(
+                  top: AppSpacing.sm,
+                  right: AppSpacing.sm,
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: const Color(0xCC0A151A),
+                      borderRadius: BorderRadius.circular(AppRadii.pill),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.sm,
+                        vertical: AppSpacing.xxs,
+                      ),
+                      child: Text(
+                        asset.isVideo ? 'VIDEO' : 'PHOTO',
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 0.8,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Asset ${asset.id}',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  '${asset.isVideo ? 'Video' : 'Photo'} • ${_formatDate(asset.createdAt)}',
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -414,6 +536,7 @@ class _AlbumSectionView extends StatelessWidget {
     }
 
     return GridView.builder(
+      cacheExtent: 800,
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 3,
         crossAxisSpacing: 16,
@@ -430,6 +553,8 @@ class _AlbumSectionView extends StatelessWidget {
             children: [
               Text(
                 album.name,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
                 style: Theme.of(
                   context,
                 ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),

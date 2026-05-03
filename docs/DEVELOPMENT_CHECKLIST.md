@@ -46,15 +46,15 @@ This checklist is phase-based so we can move in deliberate slices while keeping 
 - [x] Fetch and display albums.
 - [x] Fetch and display favorites.
 - [ ] Add asset grid virtualization and pagination.
-- [ ] Add thumbnail loading and caching.
+- [x] Add thumbnail loading and caching.
 - [x] Build loading, empty, and error states for each tab.
 - [x] Add high-level navigation between Timeline, Albums, Favorites, and Slideshow.
 
 ## Phase 5: Asset Viewer and Playback
 
-- [ ] Build fullscreen image viewer.
+- [x] Build fullscreen image viewer.
 - [ ] Build fullscreen video playback flow.
-- [ ] Add next/previous asset navigation with remote, keyboard, and pointer support.
+- [x] Add next/previous asset navigation with remote, keyboard, and pointer support.
 - [ ] Add slideshow playback controls, duration settings, and pause/resume.
 - [ ] Add screen-safe overlays for metadata and transport controls.
 

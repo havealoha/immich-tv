@@ -3,12 +3,14 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'src/core/network/immich_dio_factory.dart';
 import 'src/core/repositories/auth_repository.dart';
+import 'src/core/repositories/asset_image_repository.dart';
 import 'src/core/repositories/media_repository.dart';
 import 'src/core/repositories/server_repository.dart';
 import 'src/core/services/server_url_normalizer.dart';
 import 'src/features/auth/data/immich_auth_repository.dart';
 import 'src/app_shell.dart';
 import 'src/features/app_flow/cubit/app_flow_cubit.dart';
+import 'src/features/library/data/immich_asset_image_repository.dart';
 import 'src/features/library/data/immich_media_repository.dart';
 import 'src/features/onboarding/data/immich_server_repository.dart';
 import 'src/platform/storage/platform_session_storage.dart';
@@ -23,6 +25,7 @@ class ImmichTvApp extends StatelessWidget {
   ImmichTvApp({
     super.key,
     AuthRepository? authRepository,
+    AssetImageRepository? assetImageRepository,
     ServerRepository? serverRepository,
     MediaRepository? mediaRepository,
   }) : _authRepository =
@@ -37,11 +40,15 @@ class ImmichTvApp extends StatelessWidget {
              dio: ImmichDioFactory.create(),
              normalizer: const ServerUrlNormalizer(),
            ),
+       _assetImageRepository =
+           assetImageRepository ??
+           ImmichAssetImageRepository(dio: ImmichDioFactory.create()),
        _mediaRepository =
            mediaRepository ??
            ImmichMediaRepository(dio: ImmichDioFactory.create());
 
   final AuthRepository _authRepository;
+  final AssetImageRepository _assetImageRepository;
   final ServerRepository _serverRepository;
   final MediaRepository _mediaRepository;
 
@@ -59,6 +66,9 @@ class ImmichTvApp extends StatelessWidget {
     return MultiRepositoryProvider(
       providers: [
         RepositoryProvider<AuthRepository>.value(value: _authRepository),
+        RepositoryProvider<AssetImageRepository>.value(
+          value: _assetImageRepository,
+        ),
         RepositoryProvider<ServerRepository>.value(value: _serverRepository),
         RepositoryProvider<MediaRepository>.value(value: _mediaRepository),
       ],

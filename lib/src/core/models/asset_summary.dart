@@ -3,16 +3,24 @@ import 'package:equatable/equatable.dart';
 class AssetSummary extends Equatable {
   const AssetSummary({
     required this.id,
-    required this.thumbnailUrl,
+    required this.thumbnailUrls,
+    required this.displayUrls,
     required this.type,
     required this.createdAt,
   });
 
   final String id;
-  final String thumbnailUrl;
+  final List<String> thumbnailUrls;
+  final List<String> displayUrls;
   final String type;
   final DateTime createdAt;
 
+  bool get isVideo => type.toUpperCase().contains('VIDEO');
+
+  String get thumbnailUrl => thumbnailUrls.first;
+
+  String get displayUrl => displayUrls.first;
+
   @override
-  List<Object?> get props => [id, thumbnailUrl, type, createdAt];
+  List<Object?> get props => [id, thumbnailUrls, displayUrls, type, createdAt];
 }

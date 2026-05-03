@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 
+import '../../../core/logging/app_logger.dart';
 import '../../../core/models/album_summary.dart';
 import '../../../core/models/authenticated_session.dart';
 import '../../../core/models/asset_summary.dart';
@@ -32,6 +33,7 @@ class ImmichMediaRepository implements MediaRepository {
   Future<List<AssetSummary>> fetchFavoritesPage(
     AuthenticatedSession session,
   ) async {
+    logger.info('Fetching favorite assets for ${session.user.email}');
     final response = await _dio.post<dynamic>(
       session.serverConfig.apiEndpoint('search/metadata').toString(),
       data: {'isFavorite': true},
@@ -44,6 +46,7 @@ class ImmichMediaRepository implements MediaRepository {
     );
 
     final items = _extractAssetMaps(response.data);
+    logger.info('Favorite assets payload returned ${items.length} items');
     return items
         .map((item) => _mapAsset(item, session))
         .whereType<AssetSummary>()
@@ -54,6 +57,18 @@ class ImmichMediaRepository implements MediaRepository {
   Future<List<AssetSummary>> fetchTimelinePage(
     AuthenticatedSession session,
   ) async {
+    logger.info('Fetching timeline photos for ${session.user.email}');
+    final searchTimeline = await _fetchTimelineViaSearchMetadata(session);
+    if (searchTimeline.isNotEmpty) {
+      logger.info(
+        'Timeline photo search returned ${searchTimeline.length} assets',
+      );
+      return searchTimeline;
+    }
+
+    logger.warning(
+      'Timeline search returned no assets, falling back to timeline bucket API',
+    );
     final headers = ImmichHeaders.sessionToken(session.accessToken);
 
     final bucketCandidates = [
@@ -94,6 +109,7 @@ class ImmichMediaRepository implements MediaRepository {
     }
 
     if (chosenQuery == null || buckets.isEmpty) {
+      logger.warning('Timeline bucket API returned no buckets');
       return const [];
     }
 
@@ -109,10 +125,40 @@ class ImmichMediaRepository implements MediaRepository {
     );
 
     final items = _extractAssetMaps(detailResponse.data);
+    logger.info('Timeline bucket API returned ${items.length} assets');
     return items
         .map((item) => _mapAsset(item, session))
         .whereType<AssetSummary>()
         .toList(growable: false);
+  }
+
+  Future<List<AssetSummary>> _fetchTimelineViaSearchMetadata(
+    AuthenticatedSession session,
+  ) async {
+    try {
+      final response = await _dio.post<dynamic>(
+        session.serverConfig.apiEndpoint('search/metadata').toString(),
+        data: const {'size': 120, 'withArchived': false},
+        options: Options(
+          headers: {
+            ...ImmichHeaders.sessionToken(session.accessToken),
+            'Content-Type': 'application/json',
+          },
+        ),
+      );
+
+      final items = _extractAssetMaps(response.data);
+      return items
+          .map((item) => _mapAsset(item, session))
+          .whereType<AssetSummary>()
+          .where((asset) => !asset.isVideo)
+          .toList(growable: false);
+    } on DioException catch (error) {
+      logger.warning(
+        'Timeline photo search failed with ${error.response?.statusCode ?? error.type.name}',
+      );
+      return const [];
+    }
   }
 
   String? _extractTimeBucket(dynamic bucket) {
@@ -138,16 +184,32 @@ class ImmichMediaRepository implements MediaRepository {
     }
 
     if (payload is Map<String, dynamic>) {
-      final candidates = [
+      final directItems = payload['items'];
+      if (directItems is List) {
+        return directItems.whereType<Map<String, dynamic>>().toList(
+          growable: false,
+        );
+      }
+
+      final candidates = <dynamic>[
         payload['assets'],
         payload['items'],
         payload['results'],
+        payload['data'],
       ];
+
       for (final nested in candidates) {
         if (nested is List) {
           return nested.whereType<Map<String, dynamic>>().toList(
             growable: false,
           );
+        }
+
+        if (nested is Map<String, dynamic>) {
+          final nestedItems = _extractAssetMaps(nested);
+          if (nestedItems.isNotEmpty) {
+            return nestedItems;
+          }
         }
       }
     }
@@ -190,11 +252,66 @@ class ImmichMediaRepository implements MediaRepository {
 
     return AssetSummary(
       id: id,
-      thumbnailUrl: session.serverConfig
-          .apiEndpoint('assets/$id/thumbnail')
-          .toString(),
+      thumbnailUrls: _buildThumbnailUrls(session, id, type),
+      displayUrls: _buildDisplayUrls(session, id, type),
       type: type,
       createdAt: createdAt ?? DateTime.fromMillisecondsSinceEpoch(0),
     );
+  }
+
+  List<String> _buildThumbnailUrls(
+    AuthenticatedSession session,
+    String id,
+    String type,
+  ) {
+    final baseThumbnail = session.serverConfig.apiEndpoint(
+      'assets/$id/thumbnail',
+    );
+    final urls = <String>[
+      baseThumbnail
+          .replace(queryParameters: const {'size': 'preview'})
+          .toString(),
+      baseThumbnail
+          .replace(queryParameters: const {'size': 'thumbnail'})
+          .toString(),
+    ];
+
+    if (!type.toUpperCase().contains('VIDEO')) {
+      urls.add(
+        session.serverConfig.apiEndpoint('assets/$id/original').toString(),
+      );
+    }
+
+    return urls;
+  }
+
+  List<String> _buildDisplayUrls(
+    AuthenticatedSession session,
+    String id,
+    String type,
+  ) {
+    if (type.toUpperCase().contains('VIDEO')) {
+      return [
+        session.serverConfig
+            .apiEndpoint('assets/$id/thumbnail')
+            .replace(queryParameters: const {'size': 'preview'})
+            .toString(),
+        session.serverConfig
+            .apiEndpoint('assets/$id/video/playback')
+            .toString(),
+      ];
+    }
+
+    return [
+      session.serverConfig.apiEndpoint('assets/$id/original').toString(),
+      session.serverConfig
+          .apiEndpoint('assets/$id/thumbnail')
+          .replace(queryParameters: const {'size': 'preview'})
+          .toString(),
+      session.serverConfig
+          .apiEndpoint('assets/$id/thumbnail')
+          .replace(queryParameters: const {'size': 'thumbnail'})
+          .toString(),
+    ];
   }
 }
