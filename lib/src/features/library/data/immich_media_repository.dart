@@ -54,7 +54,7 @@ class ImmichMediaRepository implements MediaRepository {
   Future<MediaPage<AssetSummary>> fetchFavoritesPage(
     AuthenticatedSession session, {
     String? page,
-    int pageSize = 60,
+    int pageSize = 30,
   }) async {
     logger.info(
       'Fetching favorite assets for ${session.user.email} page ${page ?? '1'}',
@@ -92,7 +92,7 @@ class ImmichMediaRepository implements MediaRepository {
   Future<MediaPage<AssetSummary>> fetchTimelinePage(
     AuthenticatedSession session, {
     String? page,
-    int pageSize = 60,
+    int pageSize = 30,
   }) async {
     logger.info(
       'Fetching timeline photos for ${session.user.email} page ${page ?? '1'}',
@@ -345,7 +345,7 @@ class ImmichMediaRepository implements MediaRepository {
     final baseThumbnail = session.serverConfig.apiEndpoint(
       'assets/$id/thumbnail',
     );
-    final urls = <String>[
+    return <String>[
       baseThumbnail
           .replace(queryParameters: const {'size': 'preview'})
           .toString(),
@@ -353,14 +353,6 @@ class ImmichMediaRepository implements MediaRepository {
           .replace(queryParameters: const {'size': 'thumbnail'})
           .toString(),
     ];
-
-    if (!type.toUpperCase().contains('VIDEO')) {
-      urls.add(
-        session.serverConfig.apiEndpoint('assets/$id/original').toString(),
-      );
-    }
-
-    return urls;
   }
 
   List<String> _buildDisplayUrls(

@@ -33,37 +33,42 @@ class ImmichTvApp extends StatelessWidget {
     ServerRepository? serverRepository,
     MediaRepository? mediaRepository,
     bool? useMockServices,
-  }) : _environment = AppEnvironment(useMockServices: useMockServices ?? false),
-       _authRepository =
-           authRepository ??
-           ((useMockServices ?? false)
-               ? MockAuthRepository(sessionStorage: PlatformSessionStorage())
-               : ImmichAuthRepository(
-                   dio: ImmichDioFactory.create(),
-                   sessionStorage: PlatformSessionStorage(),
-                 )),
-       _serverRepository =
-           serverRepository ??
-           ((useMockServices ?? false)
-               ? MockServerRepository(normalizer: const ServerUrlNormalizer())
-               : ImmichServerRepository(
-                   dio: ImmichDioFactory.create(),
-                   normalizer: const ServerUrlNormalizer(),
-                 )),
-       _assetImageRepository =
-           assetImageRepository ??
-           ImmichAssetImageRepository(dio: ImmichDioFactory.create()),
-       _mediaRepository =
-           mediaRepository ??
-           ((useMockServices ?? false)
-               ? MockMediaRepository()
-               : ImmichMediaRepository(dio: ImmichDioFactory.create()));
+  }) : _environment = AppEnvironment(useMockServices: useMockServices ?? false) {
+    final useMocks = useMockServices ?? false;
+    final sessionStorage = PlatformSessionStorage();
+    final sharedDio = useMocks ? null : ImmichDioFactory.create();
+
+    _authRepository =
+        authRepository ??
+        (useMocks
+            ? MockAuthRepository(sessionStorage: sessionStorage)
+            : ImmichAuthRepository(
+                dio: sharedDio!,
+                sessionStorage: sessionStorage,
+              ));
+    _serverRepository =
+        serverRepository ??
+        (useMocks
+            ? MockServerRepository(normalizer: const ServerUrlNormalizer())
+            : ImmichServerRepository(
+                dio: sharedDio!,
+                normalizer: const ServerUrlNormalizer(),
+              ));
+    _assetImageRepository =
+        assetImageRepository ??
+        (useMocks
+            ? ImmichAssetImageRepository(dio: ImmichDioFactory.create())
+            : ImmichAssetImageRepository(dio: sharedDio!));
+    _mediaRepository =
+        mediaRepository ??
+        (useMocks ? MockMediaRepository() : ImmichMediaRepository(dio: sharedDio!));
+  }
 
   final AppEnvironment _environment;
-  final AuthRepository _authRepository;
-  final AssetImageRepository _assetImageRepository;
-  final ServerRepository _serverRepository;
-  final MediaRepository _mediaRepository;
+  late final AuthRepository _authRepository;
+  late final AssetImageRepository _assetImageRepository;
+  late final ServerRepository _serverRepository;
+  late final MediaRepository _mediaRepository;
 
   @override
   Widget build(BuildContext context) {

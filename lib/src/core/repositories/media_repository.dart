@@ -14,12 +14,12 @@ abstract class MediaRepository {
   Future<MediaPage<AssetSummary>> fetchTimelinePage(
     AuthenticatedSession session, {
     String? page,
-    int pageSize = 60,
+    int pageSize = 30,
   });
 
   Future<MediaPage<AssetSummary>> fetchFavoritesPage(
     AuthenticatedSession session, {
     String? page,
-    int pageSize = 60,
+    int pageSize = 30,
   });
 }

@@ -37,8 +37,8 @@ class HomeScreen extends StatelessWidget {
               }
 
               final urls = switch (state.selectedTab) {
-                LibraryTab.timeline => state.timeline.map((asset) => asset.thumbnailUrls).toList(growable: false),
-                LibraryTab.favorites => state.favorites.map((asset) => asset.thumbnailUrls).toList(growable: false),
+                LibraryTab.timeline => state.timeline.take(4).map((asset) => asset.thumbnailUrls).toList(growable: false),
+                LibraryTab.favorites => state.favorites.take(4).map((asset) => asset.thumbnailUrls).toList(growable: false),
                 LibraryTab.albums || LibraryTab.slideshow => const <List<String>>[],
               };
 
