@@ -45,7 +45,7 @@ This checklist is phase-based so we can move in deliberate slices while keeping 
 - [x] Fetch and display the main timeline feed.
 - [x] Fetch and display albums.
 - [x] Fetch and display favorites.
-- [ ] Add asset grid virtualization and pagination.
+- [x] Add asset grid virtualization and pagination.
 - [x] Add thumbnail loading and caching.
 - [x] Build loading, empty, and error states for each tab.
 - [x] Add high-level navigation between Timeline, Albums, Favorites, and Slideshow.

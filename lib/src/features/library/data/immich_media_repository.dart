@@ -4,6 +4,7 @@ import '../../../core/logging/app_logger.dart';
 import '../../../core/models/album_summary.dart';
 import '../../../core/models/authenticated_session.dart';
 import '../../../core/models/asset_summary.dart';
+import '../../../core/models/media_page.dart';
 import '../../../core/network/immich_headers.dart';
 import '../../../core/repositories/media_repository.dart';
 
@@ -30,13 +31,24 @@ class ImmichMediaRepository implements MediaRepository {
   }
 
   @override
-  Future<List<AssetSummary>> fetchFavoritesPage(
-    AuthenticatedSession session,
-  ) async {
-    logger.info('Fetching favorite assets for ${session.user.email}');
+  Future<MediaPage<AssetSummary>> fetchFavoritesPage(
+    AuthenticatedSession session, {
+    String? page,
+    int pageSize = 60,
+  }) async {
+    logger.info(
+      'Fetching favorite assets for ${session.user.email} page ${page ?? '1'}',
+    );
+    final Map<String, dynamic> requestBody = {
+      'isFavorite': true,
+      'size': pageSize,
+    };
+    if (page != null) {
+      requestBody['page'] = page;
+    }
     final response = await _dio.post<dynamic>(
       session.serverConfig.apiEndpoint('search/metadata').toString(),
-      data: {'isFavorite': true},
+      data: requestBody,
       options: Options(
         headers: {
           ...ImmichHeaders.sessionToken(session.accessToken),
@@ -47,21 +59,32 @@ class ImmichMediaRepository implements MediaRepository {
 
     final items = _extractAssetMaps(response.data);
     logger.info('Favorite assets payload returned ${items.length} items');
-    return items
-        .map((item) => _mapAsset(item, session))
-        .whereType<AssetSummary>()
-        .toList(growable: false);
+    return MediaPage(
+      items: items
+          .map((item) => _mapAsset(item, session))
+          .whereType<AssetSummary>()
+          .toList(growable: false),
+      nextPage: _extractNextPage(response.data),
+    );
   }
 
   @override
-  Future<List<AssetSummary>> fetchTimelinePage(
-    AuthenticatedSession session,
-  ) async {
-    logger.info('Fetching timeline photos for ${session.user.email}');
-    final searchTimeline = await _fetchTimelineViaSearchMetadata(session);
-    if (searchTimeline.isNotEmpty) {
+  Future<MediaPage<AssetSummary>> fetchTimelinePage(
+    AuthenticatedSession session, {
+    String? page,
+    int pageSize = 60,
+  }) async {
+    logger.info(
+      'Fetching timeline photos for ${session.user.email} page ${page ?? '1'}',
+    );
+    final searchTimeline = await _fetchTimelineViaSearchMetadata(
+      session,
+      page: page,
+      pageSize: pageSize,
+    );
+    if (searchTimeline.items.isNotEmpty || page != null) {
       logger.info(
-        'Timeline photo search returned ${searchTimeline.length} assets',
+        'Timeline photo search returned ${searchTimeline.items.length} assets',
       );
       return searchTimeline;
     }
@@ -110,12 +133,12 @@ class ImmichMediaRepository implements MediaRepository {
 
     if (chosenQuery == null || buckets.isEmpty) {
       logger.warning('Timeline bucket API returned no buckets');
-      return const [];
+      return const MediaPage(items: []);
     }
 
     final timeBucket = _extractTimeBucket(buckets.first);
     if (timeBucket == null || timeBucket.isEmpty) {
-      return const [];
+      return const MediaPage(items: []);
     }
 
     final detailResponse = await _dio.get<dynamic>(
@@ -126,19 +149,30 @@ class ImmichMediaRepository implements MediaRepository {
 
     final items = _extractAssetMaps(detailResponse.data);
     logger.info('Timeline bucket API returned ${items.length} assets');
-    return items
-        .map((item) => _mapAsset(item, session))
-        .whereType<AssetSummary>()
-        .toList(growable: false);
+    return MediaPage(
+      items: items
+          .map((item) => _mapAsset(item, session))
+          .whereType<AssetSummary>()
+          .toList(growable: false),
+    );
   }
 
-  Future<List<AssetSummary>> _fetchTimelineViaSearchMetadata(
-    AuthenticatedSession session,
-  ) async {
+  Future<MediaPage<AssetSummary>> _fetchTimelineViaSearchMetadata(
+    AuthenticatedSession session, {
+    String? page,
+    required int pageSize,
+  }) async {
     try {
+      final Map<String, dynamic> requestBody = {
+        'size': pageSize,
+        'withArchived': false,
+      };
+      if (page != null) {
+        requestBody['page'] = page;
+      }
       final response = await _dio.post<dynamic>(
         session.serverConfig.apiEndpoint('search/metadata').toString(),
-        data: const {'size': 120, 'withArchived': false},
+        data: requestBody,
         options: Options(
           headers: {
             ...ImmichHeaders.sessionToken(session.accessToken),
@@ -148,17 +182,41 @@ class ImmichMediaRepository implements MediaRepository {
       );
 
       final items = _extractAssetMaps(response.data);
-      return items
-          .map((item) => _mapAsset(item, session))
-          .whereType<AssetSummary>()
-          .where((asset) => !asset.isVideo)
-          .toList(growable: false);
+      return MediaPage(
+        items: items
+            .map((item) => _mapAsset(item, session))
+            .whereType<AssetSummary>()
+            .where((asset) => !asset.isVideo)
+            .toList(growable: false),
+        nextPage: _extractNextPage(response.data),
+      );
     } on DioException catch (error) {
       logger.warning(
         'Timeline photo search failed with ${error.response?.statusCode ?? error.type.name}',
       );
-      return const [];
+      return const MediaPage(items: []);
     }
+  }
+
+  String? _extractNextPage(dynamic payload) {
+    if (payload is Map<String, dynamic>) {
+      final directNextPage = payload['nextPage'];
+      if (directNextPage != null && directNextPage.toString().isNotEmpty) {
+        return directNextPage.toString();
+      }
+
+      for (final key in const ['assets', 'items', 'results', 'data']) {
+        final nested = payload[key];
+        if (nested is Map<String, dynamic>) {
+          final nestedNextPage = _extractNextPage(nested);
+          if (nestedNextPage != null && nestedNextPage.isNotEmpty) {
+            return nestedNextPage;
+          }
+        }
+      }
+    }
+
+    return null;
   }
 
   String? _extractTimeBucket(dynamic bucket) {

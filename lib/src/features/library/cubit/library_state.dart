@@ -14,6 +14,9 @@ class LibraryState extends Equatable {
     this.timeline = const [],
     this.albums = const [],
     this.favorites = const [],
+    this.timelineNextPage,
+    this.favoritesNextPage,
+    this.isLoadingMore = false,
     this.errorMessage,
   });
 
@@ -22,9 +25,26 @@ class LibraryState extends Equatable {
   final List<AssetSummary> timeline;
   final List<AlbumSummary> albums;
   final List<AssetSummary> favorites;
+  final String? timelineNextPage;
+  final String? favoritesNextPage;
+  final bool isLoadingMore;
   final String? errorMessage;
 
   bool get isLoading => status == LibraryLoadStatus.loading;
+
+  bool get hasMoreTimeline =>
+      timelineNextPage != null && timelineNextPage!.isNotEmpty;
+
+  bool get hasMoreFavorites =>
+      favoritesNextPage != null && favoritesNextPage!.isNotEmpty;
+
+  bool get hasMoreForSelectedTab {
+    return switch (selectedTab) {
+      LibraryTab.timeline => hasMoreTimeline,
+      LibraryTab.favorites => hasMoreFavorites,
+      LibraryTab.albums || LibraryTab.slideshow => false,
+    };
+  }
 
   List<Object> get activeItems {
     return switch (selectedTab) {
@@ -41,8 +61,13 @@ class LibraryState extends Equatable {
     List<AssetSummary>? timeline,
     List<AlbumSummary>? albums,
     List<AssetSummary>? favorites,
+    String? timelineNextPage,
+    String? favoritesNextPage,
+    bool? isLoadingMore,
     String? errorMessage,
     bool clearError = false,
+    bool clearTimelineNextPage = false,
+    bool clearFavoritesNextPage = false,
   }) {
     return LibraryState(
       selectedTab: selectedTab ?? this.selectedTab,
@@ -50,6 +75,13 @@ class LibraryState extends Equatable {
       timeline: timeline ?? this.timeline,
       albums: albums ?? this.albums,
       favorites: favorites ?? this.favorites,
+      timelineNextPage: clearTimelineNextPage
+          ? null
+          : (timelineNextPage ?? this.timelineNextPage),
+      favoritesNextPage: clearFavoritesNextPage
+          ? null
+          : (favoritesNextPage ?? this.favoritesNextPage),
+      isLoadingMore: isLoadingMore ?? this.isLoadingMore,
       errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
     );
   }
@@ -61,6 +93,9 @@ class LibraryState extends Equatable {
     timeline,
     albums,
     favorites,
+    timelineNextPage,
+    favoritesNextPage,
+    isLoadingMore,
     errorMessage,
   ];
 }

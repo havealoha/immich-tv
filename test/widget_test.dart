@@ -5,6 +5,7 @@ import 'package:immichtv/app.dart';
 import 'package:immichtv/src/core/models/album_summary.dart';
 import 'package:immichtv/src/core/models/authenticated_session.dart';
 import 'package:immichtv/src/core/models/asset_summary.dart';
+import 'package:immichtv/src/core/models/media_page.dart';
 import 'package:immichtv/src/core/models/server_config.dart';
 import 'package:immichtv/src/core/models/server_validation_result.dart';
 import 'package:immichtv/src/core/models/user_profile.dart';
@@ -171,6 +172,33 @@ void main() {
     expect(find.text('Slideshow mode is queued next'), findsOneWidget);
   });
 
+  testWidgets('loads the next timeline page as the grid scrolls', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1280, 720);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(
+      ImmichTvApp(
+        authRepository: FakeAuthRepository(restoredSession: _demoSession()),
+        assetImageRepository: FakeAssetImageRepository(),
+        serverRepository: FakeServerRepository(),
+        mediaRepository: FakeMediaRepository(paginatedTimeline: true),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Asset asset-1'), findsOneWidget);
+    expect(find.text('Asset asset-3'), findsNothing);
+
+    await tester.drag(find.byType(GridView).first, const Offset(0, -1200));
+    await tester.pump();
+    await tester.pumpAndSettle();
+
+    expect(find.text('Asset asset-3'), findsOneWidget);
+  });
+
   testWidgets('opens the fullscreen asset viewer and navigates forward', (
     tester,
   ) async {
@@ -249,57 +277,52 @@ class FakeServerRepository implements ServerRepository {
 }
 
 class FakeMediaRepository implements MediaRepository {
+  FakeMediaRepository({this.paginatedTimeline = false});
+
+  final bool paginatedTimeline;
+
   @override
   Future<List<AlbumSummary>> fetchAlbums(AuthenticatedSession session) async =>
       [const AlbumSummary(id: 'album-1', name: 'Summer Trip', assetCount: 42)];
 
   @override
-  Future<List<AssetSummary>> fetchFavoritesPage(
-    AuthenticatedSession session,
-  ) async => [
-    AssetSummary(
-      id: 'favorite-1',
-      thumbnailUrls: const [
-        'https://photos.example.com/api/assets/favorite-1/thumbnail?size=preview',
-        'https://photos.example.com/api/assets/favorite-1/thumbnail?size=thumbnail',
-      ],
-      displayUrls: const [
-        'https://photos.example.com/api/assets/favorite-1/original',
-      ],
-      type: 'IMAGE',
-      createdAt: DateTime(2024, 10, 2),
-    ),
-  ];
+  Future<MediaPage<AssetSummary>> fetchFavoritesPage(
+    AuthenticatedSession session, {
+    String? page,
+    int pageSize = 60,
+  }) async => MediaPage(
+    items: [
+      AssetSummary(
+        id: 'favorite-1',
+        thumbnailUrls: const [
+          'https://photos.example.com/api/assets/favorite-1/thumbnail?size=preview',
+          'https://photos.example.com/api/assets/favorite-1/thumbnail?size=thumbnail',
+        ],
+        displayUrls: const [
+          'https://photos.example.com/api/assets/favorite-1/original',
+        ],
+        type: 'IMAGE',
+        createdAt: DateTime(2024, 10, 2),
+      ),
+    ],
+  );
 
   @override
-  Future<List<AssetSummary>> fetchTimelinePage(
-    AuthenticatedSession session,
-  ) async => [
-    AssetSummary(
-      id: 'asset-1',
-      thumbnailUrls: const [
-        'https://photos.example.com/api/assets/asset-1/thumbnail?size=preview',
-        'https://photos.example.com/api/assets/asset-1/thumbnail?size=thumbnail',
-      ],
-      displayUrls: const [
-        'https://photos.example.com/api/assets/asset-1/original',
-      ],
-      type: 'IMAGE',
-      createdAt: DateTime(2024, 11, 9),
-    ),
-    AssetSummary(
-      id: 'asset-2',
-      thumbnailUrls: const [
-        'https://photos.example.com/api/assets/asset-2/thumbnail?size=preview',
-        'https://photos.example.com/api/assets/asset-2/thumbnail?size=thumbnail',
-      ],
-      displayUrls: const [
-        'https://photos.example.com/api/assets/asset-2/original',
-      ],
-      type: 'IMAGE',
-      createdAt: DateTime(2024, 11, 10),
-    ),
-  ];
+  Future<MediaPage<AssetSummary>> fetchTimelinePage(
+    AuthenticatedSession session, {
+    String? page,
+    int pageSize = 60,
+  }) async {
+    if (!paginatedTimeline) {
+      return MediaPage(items: _timelinePageOne);
+    }
+
+    return switch (page) {
+      null => MediaPage(items: _timelinePageOne, nextPage: '2'),
+      '2' => MediaPage(items: _timelinePageTwo),
+      _ => const MediaPage(items: []),
+    };
+  }
 }
 
 class FakeAssetImageRepository implements AssetImageRepository {
@@ -404,4 +427,46 @@ const List<int> _transparentImageBytes = <int>[
   0x42,
   0x60,
   0x82,
+];
+
+final List<AssetSummary> _timelinePageOne = [
+  AssetSummary(
+    id: 'asset-1',
+    thumbnailUrls: const [
+      'https://photos.example.com/api/assets/asset-1/thumbnail?size=preview',
+      'https://photos.example.com/api/assets/asset-1/thumbnail?size=thumbnail',
+    ],
+    displayUrls: const [
+      'https://photos.example.com/api/assets/asset-1/original',
+    ],
+    type: 'IMAGE',
+    createdAt: DateTime(2024, 11, 9),
+  ),
+  AssetSummary(
+    id: 'asset-2',
+    thumbnailUrls: const [
+      'https://photos.example.com/api/assets/asset-2/thumbnail?size=preview',
+      'https://photos.example.com/api/assets/asset-2/thumbnail?size=thumbnail',
+    ],
+    displayUrls: const [
+      'https://photos.example.com/api/assets/asset-2/original',
+    ],
+    type: 'IMAGE',
+    createdAt: DateTime(2024, 11, 10),
+  ),
+];
+
+final List<AssetSummary> _timelinePageTwo = [
+  AssetSummary(
+    id: 'asset-3',
+    thumbnailUrls: const [
+      'https://photos.example.com/api/assets/asset-3/thumbnail?size=preview',
+      'https://photos.example.com/api/assets/asset-3/thumbnail?size=thumbnail',
+    ],
+    displayUrls: const [
+      'https://photos.example.com/api/assets/asset-3/original',
+    ],
+    type: 'IMAGE',
+    createdAt: DateTime(2024, 11, 11),
+  ),
 ];

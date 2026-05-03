@@ -283,6 +283,8 @@ class _LibraryContent extends StatelessWidget {
         status: state.status,
         errorMessage: state.errorMessage,
         assets: state.timeline,
+        hasMore: state.hasMoreTimeline,
+        isLoadingMore: state.isLoadingMore,
         emptyMessage:
             'No timeline assets are available yet. Once the media API is wired, this section will stream your library in chronological order.',
       ),
@@ -299,6 +301,8 @@ class _LibraryContent extends StatelessWidget {
         status: state.status,
         errorMessage: state.errorMessage,
         assets: state.favorites,
+        hasMore: state.hasMoreFavorites,
+        isLoadingMore: state.isLoadingMore,
         emptyMessage:
             'No favorite assets are available yet. Favorited photos and videos will appear here.',
       ),
@@ -315,6 +319,8 @@ class _AssetSectionView extends StatelessWidget {
     required this.status,
     required this.errorMessage,
     required this.assets,
+    required this.hasMore,
+    required this.isLoadingMore,
     required this.emptyMessage,
   });
 
@@ -324,6 +330,8 @@ class _AssetSectionView extends StatelessWidget {
   final LibraryLoadStatus status;
   final String? errorMessage;
   final List<AssetSummary> assets;
+  final bool hasMore;
+  final bool isLoadingMore;
   final String emptyMessage;
 
   @override
@@ -356,29 +364,47 @@ class _AssetSectionView extends StatelessWidget {
       );
     }
 
-    return GridView.builder(
-      cacheExtent: 1200,
-      gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-        maxCrossAxisExtent: 260,
-        mainAxisSpacing: 18,
-        crossAxisSpacing: 18,
-        childAspectRatio: 0.82,
-      ),
-      itemCount: assets.length,
-      itemBuilder: (context, index) {
-        final asset = assets[index];
-        return _AssetCard(
-          session: session,
-          asset: asset,
-          autofocus: index == 0,
-          onPressed: () => AssetViewerScreen.show(
-            context,
-            assets: assets,
-            initialIndex: index,
-            accessToken: session.accessToken,
-          ),
-        );
+    return NotificationListener<ScrollNotification>(
+      onNotification: (notification) {
+        if (!hasMore || isLoadingMore) {
+          return false;
+        }
+
+        final metrics = notification.metrics;
+        if (metrics.pixels >= metrics.maxScrollExtent - 600) {
+          context.read<LibraryCubit>().loadMore();
+        }
+
+        return false;
       },
+      child: GridView.builder(
+        cacheExtent: 1200,
+        gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+          maxCrossAxisExtent: 260,
+          mainAxisSpacing: 18,
+          crossAxisSpacing: 18,
+          childAspectRatio: 0.82,
+        ),
+        itemCount: assets.length + (hasMore || isLoadingMore ? 1 : 0),
+        itemBuilder: (context, index) {
+          if (index >= assets.length) {
+            return _LoadMoreCard(isLoading: isLoadingMore, hasMore: hasMore);
+          }
+
+          final asset = assets[index];
+          return _AssetCard(
+            session: session,
+            asset: asset,
+            autofocus: index == 0,
+            onPressed: () => AssetViewerScreen.show(
+              context,
+              assets: assets,
+              initialIndex: index,
+              accessToken: session.accessToken,
+            ),
+          );
+        },
+      ),
     );
   }
 }
@@ -489,6 +515,66 @@ class _AssetCard extends StatelessWidget {
     final month = value.month.toString().padLeft(2, '0');
     final day = value.day.toString().padLeft(2, '0');
     return '$year-$month-$day';
+  }
+}
+
+class _LoadMoreCard extends StatelessWidget {
+  const _LoadMoreCard({required this.isLoading, required this.hasMore});
+
+  final bool isLoading;
+  final bool hasMore;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(AppRadii.lg),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Center(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(AppSpacing.lg),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (isLoading)
+                const SizedBox(
+                  width: 28,
+                  height: 28,
+                  child: CircularProgressIndicator(strokeWidth: 2.6),
+                )
+              else
+                const Icon(
+                  Icons.photo_library_outlined,
+                  color: AppColors.textMuted,
+                  size: 30,
+                ),
+              const SizedBox(height: AppSpacing.md),
+              Text(
+                isLoading ? 'Loading more photos' : 'More photos are ready',
+                textAlign: TextAlign.center,
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: AppSpacing.xs),
+              Text(
+                hasMore
+                    ? 'Scroll a little further and the next page will load automatically.'
+                    : 'You have reached the end of this section.',
+                textAlign: TextAlign.center,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: AppColors.textSecondary,
+                  height: 1.5,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }
 
