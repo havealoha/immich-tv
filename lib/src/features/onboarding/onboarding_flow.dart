@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../core/repositories/auth_repository.dart';
+import '../../core/repositories/server_repository.dart';
+import '../../shared/presentation/app_breakpoints.dart';
 import '../app_flow/cubit/app_flow_cubit.dart';
 import 'cubit/onboarding_cubit.dart';
 import 'cubit/onboarding_state.dart';
@@ -27,14 +30,14 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
     super.dispose();
   }
 
-  String get _normalizedServerUrl =>
-      _serverController.text.trim().replaceAll(RegExp(r'/$'), '');
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return BlocProvider(
-      create: (_) => OnboardingCubit(),
+      create: (_) => OnboardingCubit(
+        authRepository: context.read<AuthRepository>(),
+        serverRepository: context.read<ServerRepository>(),
+      ),
       child: BlocBuilder<OnboardingCubit, OnboardingState>(
         builder: (context, state) {
           return Scaffold(
@@ -50,7 +53,7 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
                 child: LayoutBuilder(
                   builder: (context, viewportConstraints) {
                     final useCompactLayout =
-                        viewportConstraints.maxWidth < 900 ||
+                        viewportConstraints.maxWidth < AppBreakpoints.tablet ||
                         viewportConstraints.maxHeight < 700;
 
                     final form = _buildForm(context, theme, state);
@@ -135,7 +138,7 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
     OnboardingState state,
   ) {
     final isSubmitting = state.isBusy;
-    final serverValidated = state.step == OnboardingStep.credentials;
+    final serverValidated = state.hasValidatedServer;
 
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -150,7 +153,7 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
         const SizedBox(height: 12),
         Text(
           serverValidated
-              ? 'We found your server. The next step is a secure sign in for the TV session.'
+              ? 'We found a compatible Immich API. Sign in securely to continue.'
               : 'Start with the URL of your Immich instance. We will validate it before asking for credentials.',
           style: theme.textTheme.bodyLarge?.copyWith(
             color: const Color(0xFFB8C8CF),
@@ -166,8 +169,23 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
             hintText: 'https://photos.example.com',
           ),
         ),
+        if (state.errorMessage case final message?) ...[
+          const SizedBox(height: 18),
+          _StatusBanner(
+            icon: Icons.error_outline,
+            color: const Color(0xFFFF907C),
+            message: message,
+          ),
+        ],
         const SizedBox(height: 18),
         if (serverValidated) ...[
+          _StatusBanner(
+            icon: Icons.verified_outlined,
+            color: const Color(0xFF6FE0DB),
+            message:
+                'API detected at ${state.serverConfig!.apiUrl}. Your session will be stored without saving the password.',
+          ),
+          const SizedBox(height: 18),
           TextField(
             controller: _emailController,
             enabled: !isSubmitting,
@@ -218,16 +236,18 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
                     final appFlowCubit = context.read<AppFlowCubit>();
 
                     if (!serverValidated) {
-                      await onboardingCubit.validateServer();
+                      await onboardingCubit.validateServer(
+                        _serverController.text,
+                      );
                       return;
                     }
 
                     final session = await onboardingCubit.signIn(
-                      serverUrl: _normalizedServerUrl,
                       email: _emailController.text.trim(),
+                      password: _passwordController.text,
                     );
 
-                    if (!mounted) {
+                    if (!mounted || session == null) {
                       return;
                     }
 
@@ -248,6 +268,44 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
           ),
         ),
       ],
+    );
+  }
+}
+
+class _StatusBanner extends StatelessWidget {
+  const _StatusBanner({
+    required this.icon,
+    required this.color,
+    required this.message,
+  });
+
+  final IconData icon;
+  final Color color;
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFF0D1B22),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFF1E3947)),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, color: color),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              message,
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(color: const Color(0xFFB8C8CF)),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

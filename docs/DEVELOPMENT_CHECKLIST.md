@@ -9,24 +9,24 @@ This checklist is phase-based so we can move in deliberate slices while keeping 
 - [x] Add responsive layout behavior for TV-sized and smaller screens.
 - [x] Add baseline widget coverage for first-launch flow.
 - [x] Standardize on `flutter_bloc` for presentation state management.
-- [ ] Finalize folder conventions for `core`, `features`, `shared`, and `platform`.
+- [x] Finalize folder conventions for `core`, `features`, `shared`, and `platform`.
 
 ## Phase 1: App Architecture and Session Flow
 
-- [ ] Introduce domain models for server config, authenticated session, user profile, album summary, and asset summary.
-- [ ] Implement repository interfaces for auth, server validation, and media browsing.
-- [ ] Add environment-safe configuration for API base URL handling and request headers.
-- [ ] Wire secure session persistence with platform-aware fallbacks.
-- [ ] Define global app flow BLoCs/Cubits for bootstrap, auth, and session restoration.
-- [ ] Add failure states and recovery paths for invalid server, auth failure, and expired session.
+- [x] Introduce domain models for server config, authenticated session, user profile, album summary, and asset summary.
+- [x] Implement repository interfaces for auth, server validation, and media browsing.
+- [x] Add environment-safe configuration for API base URL handling and request headers.
+- [x] Wire secure session persistence with platform-aware fallbacks.
+- [x] Define global app flow BLoCs/Cubits for bootstrap, auth, and session restoration.
+- [x] Add failure states and recovery paths for invalid server, auth failure, and expired session.
 
 ## Phase 2: Server Connection and Authentication
 
-- [ ] Normalize user-entered server URLs.
-- [ ] Validate server reachability and Immich compatibility before sign-in.
-- [ ] Implement real login against the Immich API.
-- [ ] Persist the authenticated session without storing the password.
-- [ ] Add sign-out and forced re-authentication flows.
+- [x] Normalize user-entered server URLs.
+- [x] Validate server reachability and Immich compatibility before sign-in.
+- [x] Implement real login against the Immich API.
+- [x] Persist the authenticated session without storing the password.
+- [x] Add sign-out and forced re-authentication flows.
 - [ ] Add platform-aware input UX:
   TV: remote-friendly focus targets and large keyboard prompts.
   Mobile/Web/Desktop: standard form interactions and keyboard shortcuts.
@@ -77,7 +77,7 @@ This checklist is phase-based so we can move in deliberate slices while keeping 
 
 ## Immediate Next Slice
 
-- [ ] Add concrete auth and server-validation repositories.
-- [ ] Replace mock bootstrap and sign-in behavior with real Immich API calls.
-- [ ] Persist session state across launches.
+- [x] Add concrete auth and server-validation repositories.
+- [x] Replace mock bootstrap and sign-in behavior with real Immich API calls.
+- [x] Persist session state across launches.
 - [ ] Start the first TV-specific focus/navigation primitives.

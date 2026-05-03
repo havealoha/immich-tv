@@ -1,48 +1,161 @@
-import 'dart:ui';
-
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:immichtv/app.dart';
+import 'package:immichtv/src/core/models/album_summary.dart';
+import 'package:immichtv/src/core/models/authenticated_session.dart';
+import 'package:immichtv/src/core/models/asset_summary.dart';
+import 'package:immichtv/src/core/models/server_config.dart';
+import 'package:immichtv/src/core/models/server_validation_result.dart';
+import 'package:immichtv/src/core/models/user_profile.dart';
+import 'package:immichtv/src/core/repositories/auth_repository.dart';
+import 'package:immichtv/src/core/repositories/media_repository.dart';
+import 'package:immichtv/src/core/repositories/server_repository.dart';
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
   testWidgets('shows onboarding after bootstrap completes', (tester) async {
     tester.view.physicalSize = const Size(1280, 720);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.reset);
 
-    await tester.pumpWidget(const ImmichTvApp());
+    await tester.pumpWidget(
+      ImmichTvApp(
+        authRepository: FakeAuthRepository(),
+        serverRepository: FakeServerRepository(),
+        mediaRepository: FakeMediaRepository(),
+      ),
+    );
 
-    expect(find.text('ImmichTV'), findsOneWidget);
-
-    await tester.pump(const Duration(milliseconds: 700));
+    await tester.pumpAndSettle();
 
     expect(find.text('Connect your server'), findsOneWidget);
     expect(find.text('Validate server'), findsOneWidget);
   });
 
-  testWidgets('walks through the first-time flow into home shell', (
+  testWidgets('restores a persisted session into the home shell', (
     tester,
   ) async {
     tester.view.physicalSize = const Size(1280, 720);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.reset);
 
-    await tester.pumpWidget(const ImmichTvApp());
-    await tester.pump(const Duration(milliseconds: 700));
+    final restoredSession = _demoSession();
+    await tester.pumpWidget(
+      ImmichTvApp(
+        authRepository: FakeAuthRepository(restoredSession: restoredSession),
+        serverRepository: FakeServerRepository(),
+        mediaRepository: FakeMediaRepository(),
+      ),
+    );
 
-    await tester.tap(find.text('Validate server'));
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 500));
-
-    expect(find.text('Sign in to Immich'), findsOneWidget);
-
-    await tester.tap(find.text('Continue to library shell'));
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 500));
+    await tester.pumpAndSettle();
 
     expect(find.text('Welcome to ImmichTV'), findsOneWidget);
+    expect(find.textContaining(restoredSession.user.email), findsOneWidget);
+  });
+
+  testWidgets('walks through validation and sign-in into home shell', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1280, 720);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(
+      ImmichTvApp(
+        authRepository: FakeAuthRepository(),
+        serverRepository: FakeServerRepository(),
+        mediaRepository: FakeMediaRepository(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Connect your server'), findsOneWidget);
+
+    await tester.tap(find.text('Validate server'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Sign in to Immich'), findsOneWidget);
     expect(
-      find.textContaining('Connected to https://photos.example.com'),
+      find.textContaining('API detected at https://photos.example.com/api'),
       findsOneWidget,
     );
+
+    await tester.enterText(find.byType(TextField).at(1), 'family@example.com');
+    await tester.enterText(find.byType(TextField).at(2), 'demo-password');
+    await tester.ensureVisible(find.text('Continue to library shell'));
+    await tester.tap(find.text('Continue to library shell'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Welcome to ImmichTV'), findsOneWidget);
+    expect(find.textContaining('family@example.com'), findsOneWidget);
   });
+}
+
+class FakeAuthRepository implements AuthRepository {
+  FakeAuthRepository({this.restoredSession});
+
+  final AuthenticatedSession? restoredSession;
+
+  @override
+  Future<AuthenticatedSession> signIn({
+    required ServerConfig serverConfig,
+    required String email,
+    required String password,
+  }) async {
+    return AuthenticatedSession(
+      serverConfig: serverConfig,
+      accessToken: 'token',
+      user: UserProfile(id: '1', email: email, name: 'Living Room'),
+    );
+  }
+
+  @override
+  Future<AuthenticatedSession?> restoreSession() async => restoredSession;
+
+  @override
+  Future<void> signOut() async {}
+}
+
+class FakeServerRepository implements ServerRepository {
+  @override
+  Future<ServerValidationResult> validateServer(String rawInput) async {
+    final serverConfig = ServerConfig(
+      rawInput: rawInput,
+      serverUrl: Uri.parse('https://photos.example.com'),
+      apiUrl: Uri.parse('https://photos.example.com/api'),
+    );
+    return ServerValidationResult(
+      serverConfig: serverConfig,
+      pingPath: 'server/ping',
+    );
+  }
+}
+
+class FakeMediaRepository implements MediaRepository {
+  @override
+  Future<List<AlbumSummary>> fetchAlbums() async => const [];
+
+  @override
+  Future<List<AssetSummary>> fetchFavoritesPage() async => const [];
+
+  @override
+  Future<List<AssetSummary>> fetchTimelinePage() async => const [];
+}
+
+AuthenticatedSession _demoSession() {
+  return AuthenticatedSession(
+    serverConfig: ServerConfig(
+      rawInput: 'https://photos.example.com',
+      serverUrl: Uri.parse('https://photos.example.com'),
+      apiUrl: Uri.parse('https://photos.example.com/api'),
+    ),
+    accessToken: 'token',
+    user: const UserProfile(
+      id: '1',
+      email: 'family@example.com',
+      name: 'Living Room',
+    ),
+  );
 }

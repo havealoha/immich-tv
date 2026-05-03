@@ -1,34 +1,84 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../app_flow/cubit/app_flow_state.dart';
+import '../../../core/errors/app_exception.dart';
+import '../../../core/models/authenticated_session.dart';
+import '../../../core/repositories/auth_repository.dart';
+import '../../../core/repositories/server_repository.dart';
 import 'onboarding_state.dart';
 
 class OnboardingCubit extends Cubit<OnboardingState> {
-  OnboardingCubit() : super(const OnboardingState());
+  OnboardingCubit({
+    required AuthRepository authRepository,
+    required ServerRepository serverRepository,
+  }) : _authRepository = authRepository,
+       _serverRepository = serverRepository,
+       super(const OnboardingState());
 
-  Future<void> validateServer() async {
-    emit(state.copyWith(status: OnboardingStatus.validatingServer));
-    await Future<void>.delayed(const Duration(milliseconds: 400));
+  final AuthRepository _authRepository;
+  final ServerRepository _serverRepository;
+
+  Future<void> validateServer(String rawUrl) async {
     emit(
       state.copyWith(
-        step: OnboardingStep.credentials,
-        status: OnboardingStatus.idle,
+        status: OnboardingStatus.validatingServer,
+        clearError: true,
       ),
     );
+
+    try {
+      final result = await _serverRepository.validateServer(rawUrl);
+      emit(
+        state.copyWith(
+          step: OnboardingStep.credentials,
+          status: OnboardingStatus.idle,
+          serverConfig: result.serverConfig,
+          clearError: true,
+        ),
+      );
+    } catch (error) {
+      emit(
+        state.copyWith(
+          status: OnboardingStatus.idle,
+          errorMessage: error is AppException
+              ? error.message
+              : 'We could not validate that server right now.',
+        ),
+      );
+    }
   }
 
-  Future<AppSession> signIn({
-    required String serverUrl,
+  Future<AuthenticatedSession?> signIn({
     required String email,
+    required String password,
   }) async {
-    emit(state.copyWith(status: OnboardingStatus.signingIn));
-    await Future<void>.delayed(const Duration(milliseconds: 400));
-    emit(state.copyWith(status: OnboardingStatus.idle));
+    final serverConfig = state.serverConfig;
+    if (serverConfig == null) {
+      emit(
+        state.copyWith(errorMessage: 'Validate your server before signing in.'),
+      );
+      return null;
+    }
 
-    return AppSession(
-      serverUrl: serverUrl,
-      userEmail: email,
-      displayName: 'Living Room',
-    );
+    emit(state.copyWith(status: OnboardingStatus.signingIn, clearError: true));
+
+    try {
+      final session = await _authRepository.signIn(
+        serverConfig: serverConfig,
+        email: email,
+        password: password,
+      );
+      emit(state.copyWith(status: OnboardingStatus.idle, clearError: true));
+      return session;
+    } catch (error) {
+      emit(
+        state.copyWith(
+          status: OnboardingStatus.idle,
+          errorMessage: error is AppException
+              ? error.message
+              : 'We could not complete sign-in right now.',
+        ),
+      );
+      return null;
+    }
   }
 }

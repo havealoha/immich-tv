@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../core/models/authenticated_session.dart';
 import '../app_flow/cubit/app_flow_cubit.dart';
-import '../app_flow/cubit/app_flow_state.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key, required this.session});
 
-  final AppSession session;
+  final AuthenticatedSession session;
 
   @override
   Widget build(BuildContext context) {
@@ -42,7 +42,7 @@ class HomeScreen extends StatelessWidget {
                           ),
                           const SizedBox(height: 8),
                           Text(
-                            'Connected to ${session.serverUrl} as ${session.userEmail}',
+                            'Connected to ${session.serverConfig.serverUrl} as ${session.user.email}',
                             style: theme.textTheme.bodyLarge?.copyWith(
                               color: const Color(0xFFB8C8CF),
                             ),
@@ -51,7 +51,9 @@ class HomeScreen extends StatelessWidget {
                       ),
                     ),
                     OutlinedButton(
-                      onPressed: () => context.read<AppFlowCubit>().signOut(),
+                      onPressed: () {
+                        context.read<AppFlowCubit>().signOut();
+                      },
                       child: const Text('Sign out'),
                     ),
                   ],

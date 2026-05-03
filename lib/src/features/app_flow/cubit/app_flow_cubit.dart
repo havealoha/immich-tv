@@ -1,20 +1,30 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../core/models/authenticated_session.dart';
+import '../../../core/repositories/auth_repository.dart';
 import 'app_flow_state.dart';
 
 class AppFlowCubit extends Cubit<AppFlowState> {
-  AppFlowCubit() : super(const AppFlowState.bootstrap());
+  AppFlowCubit(this._authRepository) : super(const AppFlowState.bootstrap());
+
+  final AuthRepository _authRepository;
 
   Future<void> initialize() async {
-    await Future<void>.delayed(const Duration(milliseconds: 600));
-    emit(const AppFlowState.onboarding());
+    final restoredSession = await _authRepository.restoreSession();
+    if (restoredSession == null) {
+      emit(const AppFlowState.onboarding());
+      return;
+    }
+
+    emit(AppFlowState.home(restoredSession));
   }
 
-  void completeSignIn(AppSession session) {
+  void completeSignIn(AuthenticatedSession session) {
     emit(AppFlowState.home(session));
   }
 
-  void signOut() {
+  Future<void> signOut() async {
+    await _authRepository.signOut();
     emit(const AppFlowState.onboarding());
   }
 }
