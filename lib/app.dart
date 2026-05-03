@@ -33,19 +33,10 @@ class ImmichTvApp extends StatelessWidget {
     ServerRepository? serverRepository,
     MediaRepository? mediaRepository,
     bool? useMockServices,
-  }) : _environment = AppEnvironment(
-         useMockServices:
-             useMockServices ??
-             (authRepository == null &&
-                 serverRepository == null &&
-                 mediaRepository == null),
-       ),
+  }) : _environment = AppEnvironment(useMockServices: useMockServices ?? false),
        _authRepository =
            authRepository ??
-           ((useMockServices ??
-                   (authRepository == null &&
-                       serverRepository == null &&
-                       mediaRepository == null))
+           ((useMockServices ?? false)
                ? MockAuthRepository(sessionStorage: PlatformSessionStorage())
                : ImmichAuthRepository(
                    dio: ImmichDioFactory.create(),
@@ -53,10 +44,7 @@ class ImmichTvApp extends StatelessWidget {
                  )),
        _serverRepository =
            serverRepository ??
-           ((useMockServices ??
-                   (authRepository == null &&
-                       serverRepository == null &&
-                       mediaRepository == null))
+           ((useMockServices ?? false)
                ? MockServerRepository(normalizer: const ServerUrlNormalizer())
                : ImmichServerRepository(
                    dio: ImmichDioFactory.create(),
@@ -67,10 +55,7 @@ class ImmichTvApp extends StatelessWidget {
            ImmichAssetImageRepository(dio: ImmichDioFactory.create()),
        _mediaRepository =
            mediaRepository ??
-           ((useMockServices ??
-                   (authRepository == null &&
-                       serverRepository == null &&
-                       mediaRepository == null))
+           ((useMockServices ?? false)
                ? MockMediaRepository()
                : ImmichMediaRepository(dio: ImmichDioFactory.create()));
 

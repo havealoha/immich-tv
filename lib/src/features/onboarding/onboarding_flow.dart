@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -22,9 +21,9 @@ class OnboardingFlow extends StatefulWidget {
 }
 
 class _OnboardingFlowState extends State<OnboardingFlow> {
-  final _serverController = TextEditingController();
-  final _emailController = TextEditingController();
-  final _passwordController = TextEditingController();
+  final _serverController = TextEditingController(text: "http://192.168.0.243:2283");
+  final _emailController = TextEditingController(text: "afridi.khondakar@gmail.com");
+  final _passwordController = TextEditingController(text: "#Noobshit911");
   final _serverFieldFocusNode = FocusNode(debugLabel: 'serverField');
   final _emailFieldFocusNode = FocusNode(debugLabel: 'emailField');
   final _passwordFieldFocusNode = FocusNode(debugLabel: 'passwordField');
@@ -41,15 +40,9 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
     final environment = context.read<AppEnvironment>();
     final useMockServices = environment.useMockServices;
 
-    _serverController.text = useMockServices
-        ? 'https://demo.immichtv.local'
-        : 'http://192.168.0.243:2283';
-    _emailController.text = useMockServices
-        ? 'livingroom@demo.immichtv'
-        : (kDebugMode ? 'afridi.khondakar@gmail.com' : '');
-    _passwordController.text = useMockServices
-        ? 'demo-password'
-        : (kDebugMode ? '#Noobshit911' : '');
+    _serverController.text = useMockServices ? 'https://demo.immichtv.local' : '';
+    _emailController.text = useMockServices ? 'livingroom@demo.immichtv' : '';
+    _passwordController.text = useMockServices ? 'demo-password' : '';
     _hasAppliedInitialValues = true;
   }
 
@@ -69,27 +62,18 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return BlocProvider(
-      create: (_) => OnboardingCubit(
-        authRepository: context.read<AuthRepository>(),
-        serverRepository: context.read<ServerRepository>(),
-      ),
+      create: (_) => OnboardingCubit(authRepository: context.read<AuthRepository>(), serverRepository: context.read<ServerRepository>()),
       child: BlocBuilder<OnboardingCubit, OnboardingState>(
         builder: (context, state) {
           return Scaffold(
             body: Container(
               decoration: const BoxDecoration(
-                gradient: RadialGradient(
-                  colors: [Color(0xFF1A4E58), Color(0xFF08131A)],
-                  center: Alignment.topLeft,
-                  radius: 1.4,
-                ),
+                gradient: RadialGradient(colors: [Color(0xFF1A4E58), Color(0xFF08131A)], center: Alignment.topLeft, radius: 1.4),
               ),
               child: SafeArea(
                 child: LayoutBuilder(
                   builder: (context, viewportConstraints) {
-                    final useCompactLayout =
-                        viewportConstraints.maxWidth < AppBreakpoints.tablet ||
-                        viewportConstraints.maxHeight < 700;
+                    final useCompactLayout = viewportConstraints.maxWidth < AppBreakpoints.tablet || viewportConstraints.maxHeight < 700;
 
                     final form = _buildForm(context, theme, state);
 
@@ -102,9 +86,7 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
                             Card(
                               child: Padding(
                                 padding: const EdgeInsets.all(32),
-                                child: SingleChildScrollView(
-                                  child: _IntroPanel(theme: theme),
-                                ),
+                                child: SingleChildScrollView(child: _IntroPanel(theme: theme)),
                               ),
                             ),
                             const SizedBox(height: 24),
@@ -119,8 +101,7 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
                       );
                     }
 
-                    final panelHeight = (viewportConstraints.maxHeight - 64)
-                        .clamp(560.0, 720.0);
+                    final panelHeight = (viewportConstraints.maxHeight - 64).clamp(560.0, 720.0);
 
                     return Center(
                       child: ConstrainedBox(
@@ -136,9 +117,7 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
                                   child: Card(
                                     child: Padding(
                                       padding: const EdgeInsets.all(32),
-                                      child: SingleChildScrollView(
-                                        child: _IntroPanel(theme: theme),
-                                      ),
+                                      child: SingleChildScrollView(child: _IntroPanel(theme: theme)),
                                     ),
                                   ),
                                 ),
@@ -167,28 +146,17 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
     );
   }
 
-  Widget _buildForm(
-    BuildContext context,
-    ThemeData theme,
-    OnboardingState state,
-  ) {
+  Widget _buildForm(BuildContext context, ThemeData theme, OnboardingState state) {
     final useMockServices = context.read<AppEnvironment>().useMockServices;
     final isSubmitting = state.isBusy;
     final serverValidated = state.hasValidatedServer;
-    final helperText = serverValidated
-        ? 'Press Enter to sign in after entering your credentials.'
-        : 'Press Enter to validate your server URL.';
+    final helperText = serverValidated ? 'Press Enter to sign in after entering your credentials.' : 'Press Enter to validate your server URL.';
 
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          serverValidated ? 'Sign in to Immich' : 'Connect your server',
-          style: theme.textTheme.headlineMedium?.copyWith(
-            fontWeight: FontWeight.w700,
-          ),
-        ),
+        Text(serverValidated ? 'Sign in to Immich' : 'Connect your server', style: theme.textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w700)),
         const SizedBox(height: 12),
         Text(
           serverValidated
@@ -198,10 +166,7 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
               : (useMockServices
                     ? 'Start with the demo server URL. We will validate it and load a polished mock library so we can shape the full TV experience first.'
                     : 'Start with the URL of your Immich instance. We will validate it before asking for credentials.'),
-          style: theme.textTheme.bodyLarge?.copyWith(
-            color: const Color(0xFFB8C8CF),
-            height: 1.5,
-          ),
+          style: theme.textTheme.bodyLarge?.copyWith(color: const Color(0xFFB8C8CF), height: 1.5),
         ),
         const SizedBox(height: 28),
         if (useMockServices) ...[
@@ -218,21 +183,12 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
           focusNode: _serverFieldFocusNode,
           enabled: !serverValidated && !isSubmitting,
           textInputAction: TextInputAction.done,
-          onSubmitted: !serverValidated && !isSubmitting
-              ? (_) => _handlePrimaryAction(context, state)
-              : null,
-          decoration: const InputDecoration(
-            labelText: 'Immich server URL',
-            hintText: 'https://photos.example.com',
-          ),
+          onSubmitted: !serverValidated && !isSubmitting ? (_) => _handlePrimaryAction(context, state) : null,
+          decoration: const InputDecoration(labelText: 'Immich server URL', hintText: 'https://photos.example.com'),
         ),
         if (state.errorMessage case final message?) ...[
           const SizedBox(height: 18),
-          _StatusBanner(
-            icon: Icons.error_outline,
-            color: const Color(0xFFFF907C),
-            message: message,
-          ),
+          _StatusBanner(icon: Icons.error_outline, color: const Color(0xFFFF907C), message: message),
         ],
         const SizedBox(height: 18),
         if (serverValidated) ...[
@@ -259,9 +215,7 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
             enabled: !isSubmitting,
             obscureText: true,
             textInputAction: TextInputAction.done,
-            onSubmitted: !isSubmitting
-                ? (_) => _handlePrimaryAction(context, state)
-                : null,
+            onSubmitted: !isSubmitting ? (_) => _handlePrimaryAction(context, state) : null,
             decoration: const InputDecoration(labelText: 'Password'),
           ),
           const SizedBox(height: 18),
@@ -274,19 +228,14 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
             ),
             child: Row(
               children: [
-                const Icon(
-                  Icons.verified_user_outlined,
-                  color: Color(0xFF6FE0DB),
-                ),
+                const Icon(Icons.verified_user_outlined, color: Color(0xFF6FE0DB)),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
                     useMockServices
                         ? 'Next up: continue with the mock-first showcase flow, then swap these repositories for real Immich APIs.'
                         : 'Next up: real API validation, secure storage, and persisted sessions.',
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: const Color(0xFFB8C8CF),
-                    ),
+                    style: theme.textTheme.bodyMedium?.copyWith(color: const Color(0xFFB8C8CF)),
                   ),
                 ),
               ],
@@ -299,12 +248,7 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
             const ShortcutHint(label: 'Enter'),
             const SizedBox(width: AppSpacing.sm),
             Expanded(
-              child: Text(
-                helperText,
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: AppColors.textMuted,
-                ),
-              ),
+              child: Text(helperText, style: theme.textTheme.bodyMedium?.copyWith(color: AppColors.textMuted)),
             ),
           ],
         ),
@@ -313,26 +257,15 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
           width: double.infinity,
           child: FilledButton(
             focusNode: _actionButtonFocusNode,
-            onPressed: isSubmitting
-                ? null
-                : () => _handlePrimaryAction(context, state),
-            child: Text(
-              isSubmitting
-                  ? 'Working...'
-                  : (serverValidated
-                        ? 'Continue to library shell'
-                        : 'Validate server'),
-            ),
+            onPressed: isSubmitting ? null : () => _handlePrimaryAction(context, state),
+            child: Text(isSubmitting ? 'Working...' : (serverValidated ? 'Continue to library shell' : 'Validate server')),
           ),
         ),
       ],
     );
   }
 
-  Future<void> _handlePrimaryAction(
-    BuildContext context,
-    OnboardingState state,
-  ) async {
+  Future<void> _handlePrimaryAction(BuildContext context, OnboardingState state) async {
     final onboardingCubit = context.read<OnboardingCubit>();
     final appFlowCubit = context.read<AppFlowCubit>();
 
@@ -344,10 +277,7 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
       return;
     }
 
-    final session = await onboardingCubit.signIn(
-      email: _emailController.text.trim(),
-      password: _passwordController.text,
-    );
+    final session = await onboardingCubit.signIn(email: _emailController.text.trim(), password: _passwordController.text);
 
     if (!mounted || session == null) {
       return;
@@ -358,11 +288,7 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
 }
 
 class _StatusBanner extends StatelessWidget {
-  const _StatusBanner({
-    required this.icon,
-    required this.color,
-    required this.message,
-  });
+  const _StatusBanner({required this.icon, required this.color, required this.message});
 
   final IconData icon;
   final Color color;
@@ -382,12 +308,7 @@ class _StatusBanner extends StatelessWidget {
           Icon(icon, color: color),
           const SizedBox(width: 12),
           Expanded(
-            child: Text(
-              message,
-              style: Theme.of(
-                context,
-              ).textTheme.bodyMedium?.copyWith(color: AppColors.textSecondary),
-            ),
+            child: Text(message, style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppColors.textSecondary)),
           ),
         ],
       ),
@@ -415,55 +336,34 @@ class _IntroPanel extends StatelessWidget {
           ),
           child: const Text(
             'MVP foundation',
-            style: TextStyle(
-              color: AppColors.focus,
-              fontWeight: FontWeight.w600,
-              letterSpacing: 0.3,
-            ),
+            style: TextStyle(color: AppColors.focus, fontWeight: FontWeight.w600, letterSpacing: 0.3),
           ),
         ),
         const SizedBox(height: 24),
-        Text(
-          'A TV-first Immich client for the living room.',
-          style: theme.textTheme.displaySmall?.copyWith(
-            fontWeight: FontWeight.w700,
-            height: 1.1,
-          ),
-        ),
+        Text('A TV-first Immich client for the living room.', style: theme.textTheme.displaySmall?.copyWith(fontWeight: FontWeight.w700, height: 1.1)),
         const SizedBox(height: 18),
         Text(
           'This first milestone focuses on the core path: app bootstrap, server entry, authentication handoff, and a library shell ready for albums, timeline, favorites, and slideshow work.',
-          style: theme.textTheme.bodyLarge?.copyWith(
-            color: AppColors.textSecondary,
-            height: 1.6,
-          ),
+          style: theme.textTheme.bodyLarge?.copyWith(color: AppColors.textSecondary, height: 1.6),
         ),
         const SizedBox(height: 28),
-        const _FeatureCallout(
-          icon: Icons.dns_outlined,
-          title: 'Server-first onboarding',
-          body: 'Validate the user server before asking for credentials.',
-        ),
+        const _FeatureCallout(icon: Icons.dns_outlined, title: 'Server-first onboarding', body: 'Validate the user server before asking for credentials.'),
         const SizedBox(height: 16),
         const _FeatureCallout(
           icon: Icons.settings_remote_outlined,
           title: 'TV-friendly navigation',
-          body:
-              'Large cards, calm contrast, and layouts that translate well to remote input.',
+          body: 'Large cards, calm contrast, and layouts that translate well to remote input.',
         ),
         const SizedBox(height: 16),
         const _FeatureCallout(
           icon: Icons.photo_library_outlined,
           title: 'Library-focused roadmap',
-          body:
-              'Timeline, albums, favorites, slideshow, caching, and session persistence come next.',
+          body: 'Timeline, albums, favorites, slideshow, caching, and session persistence come next.',
         ),
         const SizedBox(height: 24),
         Text(
           'Today we are replacing the starter app with product-shaped structure so feature work has a clean home.',
-          style: theme.textTheme.bodyMedium?.copyWith(
-            color: AppColors.textMuted,
-          ),
+          style: theme.textTheme.bodyMedium?.copyWith(color: AppColors.textMuted),
         ),
       ],
     );
@@ -471,11 +371,7 @@ class _IntroPanel extends StatelessWidget {
 }
 
 class _FeatureCallout extends StatelessWidget {
-  const _FeatureCallout({
-    required this.icon,
-    required this.title,
-    required this.body,
-  });
+  const _FeatureCallout({required this.icon, required this.title, required this.body});
 
   final IconData icon;
   final String title;
@@ -500,20 +396,9 @@ class _FeatureCallout extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  title,
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
+                Text(title, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
                 const SizedBox(height: 6),
-                Text(
-                  body,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: AppColors.textSecondary,
-                    height: 1.5,
-                  ),
-                ),
+                Text(body, style: theme.textTheme.bodyMedium?.copyWith(color: AppColors.textSecondary, height: 1.5)),
               ],
             ),
           ),
