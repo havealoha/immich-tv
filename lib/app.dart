@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:dio/dio.dart';
 
+import 'src/core/network/immich_dio_factory.dart';
 import 'src/core/repositories/auth_repository.dart';
 import 'src/core/repositories/media_repository.dart';
 import 'src/core/repositories/server_repository.dart';
@@ -28,38 +28,18 @@ class ImmichTvApp extends StatelessWidget {
   }) : _authRepository =
            authRepository ??
            ImmichAuthRepository(
-             dio: Dio(
-               BaseOptions(
-                 connectTimeout: const Duration(seconds: 8),
-                 receiveTimeout: const Duration(seconds: 8),
-                 sendTimeout: const Duration(seconds: 8),
-               ),
-             ),
+             dio: ImmichDioFactory.create(),
              sessionStorage: PlatformSessionStorage(),
            ),
        _serverRepository =
            serverRepository ??
            ImmichServerRepository(
-             dio: Dio(
-               BaseOptions(
-                 connectTimeout: const Duration(seconds: 8),
-                 receiveTimeout: const Duration(seconds: 8),
-                 sendTimeout: const Duration(seconds: 8),
-               ),
-             ),
+             dio: ImmichDioFactory.create(),
              normalizer: const ServerUrlNormalizer(),
            ),
        _mediaRepository =
            mediaRepository ??
-           ImmichMediaRepository(
-             dio: Dio(
-               BaseOptions(
-                 connectTimeout: const Duration(seconds: 8),
-                 receiveTimeout: const Duration(seconds: 8),
-                 sendTimeout: const Duration(seconds: 8),
-               ),
-             ),
-           );
+           ImmichMediaRepository(dio: ImmichDioFactory.create());
 
   final AuthRepository _authRepository;
   final ServerRepository _serverRepository;

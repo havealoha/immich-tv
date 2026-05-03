@@ -1,10 +1,11 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../core/repositories/auth_repository.dart';
 import '../../core/repositories/server_repository.dart';
-import '../../shared/presentation/app_colors.dart';
 import '../../shared/presentation/app_breakpoints.dart';
+import '../../shared/presentation/app_colors.dart';
 import '../../shared/presentation/app_radii.dart';
 import '../../shared/presentation/app_spacing.dart';
 import '../../shared/presentation/widgets/shortcut_hint.dart';
@@ -21,10 +22,14 @@ class OnboardingFlow extends StatefulWidget {
 
 class _OnboardingFlowState extends State<OnboardingFlow> {
   final _serverController = TextEditingController(
-    text: 'https://photos.example.com',
+    text: 'http://192.168.0.243:2283',
   );
-  final _emailController = TextEditingController(text: 'family@example.com');
-  final _passwordController = TextEditingController();
+  final _emailController = TextEditingController(
+    text: kDebugMode ? 'afridi.khondakar@gmail.com' : '',
+  );
+  final _passwordController = TextEditingController(
+    text: kDebugMode ? "#Noobshit911" : '',
+  );
   final _serverFieldFocusNode = FocusNode(debugLabel: 'serverField');
   final _emailFieldFocusNode = FocusNode(debugLabel: 'emailField');
   final _passwordFieldFocusNode = FocusNode(debugLabel: 'passwordField');
