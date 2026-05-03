@@ -138,6 +138,31 @@ void main() {
     expect(find.textContaining('keyboard@example.com'), findsOneWidget);
   });
 
+  testWidgets('supports remote-style navigation in the sidebar', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1280, 720);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(
+      ImmichTvApp(
+        authRepository: FakeAuthRepository(restoredSession: _demoSession()),
+        assetImageRepository: FakeAssetImageRepository(),
+        serverRepository: FakeServerRepository(),
+        mediaRepository: FakeMediaRepository(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+    await tester.pumpAndSettle();
+    await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+    await tester.pumpAndSettle();
+
+    expect(find.text('2 photos'), findsOneWidget);
+  });
+
   testWidgets('switches between library sections and shows empty states', (
     tester,
   ) async {
