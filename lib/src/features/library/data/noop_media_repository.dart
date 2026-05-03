@@ -12,6 +12,15 @@ class NoopMediaRepository implements MediaRepository {
   }
 
   @override
+  Future<List<AssetSummary>> fetchAlbumAssets(
+    AuthenticatedSession session, {
+    required String albumId,
+  }) async {
+    await Future<void>.delayed(const Duration(milliseconds: 220));
+    return const [];
+  }
+
+  @override
   Future<MediaPage<AssetSummary>> fetchFavoritesPage(
     AuthenticatedSession session, {
     String? page,

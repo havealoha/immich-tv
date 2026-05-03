@@ -53,10 +53,10 @@ This checklist is phase-based so we can move in deliberate slices while keeping 
 ## Phase 5: Asset Viewer and Playback
 
 - [x] Build fullscreen image viewer.
-- [ ] Build fullscreen video playback flow.
+- [x] Build fullscreen video playback flow.
 - [x] Add next/previous asset navigation with remote, keyboard, and pointer support.
-- [ ] Add slideshow playback controls, duration settings, and pause/resume.
-- [ ] Add screen-safe overlays for metadata and transport controls.
+- [x] Add slideshow playback controls, duration settings, and pause/resume.
+- [x] Add screen-safe overlays for metadata and transport controls.
 
 ## Phase 6: Performance and Reliability
 
@@ -77,7 +77,7 @@ This checklist is phase-based so we can move in deliberate slices while keeping 
 
 ## Immediate Next Slice
 
-- [x] Add concrete auth and server-validation repositories.
-- [x] Replace mock bootstrap and sign-in behavior with real Immich API calls.
-- [x] Persist session state across launches.
-- [x] Start the first TV-specific focus/navigation primitives.
+- [ ] Measure image memory behavior and scroll smoothness on real TV-class hardware.
+- [ ] Refine thumbnail cache sizing and smarter prefetch windows for large libraries.
+- [ ] Add retry and degraded-network handling for image and media playback failures.
+- [ ] Configure Android TV launcher metadata and packaging details.

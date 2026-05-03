@@ -31,6 +31,26 @@ class ImmichMediaRepository implements MediaRepository {
   }
 
   @override
+  Future<List<AssetSummary>> fetchAlbumAssets(
+    AuthenticatedSession session, {
+    required String albumId,
+  }) async {
+    final response = await _dio.get<dynamic>(
+      session.serverConfig.apiEndpoint('albums/$albumId').toString(),
+      options: Options(
+        headers: ImmichHeaders.sessionToken(session.accessToken),
+      ),
+    );
+
+    final items = _extractAssetMaps(response.data);
+    return items
+        .map((item) => _mapAsset(item, session))
+        .whereType<AssetSummary>()
+        .where((asset) => !asset.isVideo)
+        .toList(growable: false);
+  }
+
+  @override
   Future<MediaPage<AssetSummary>> fetchFavoritesPage(
     AuthenticatedSession session, {
     String? page,

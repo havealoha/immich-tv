@@ -12,6 +12,7 @@ import '../../shared/presentation/widgets/authenticated_asset_image.dart';
 import '../app_flow/cubit/app_flow_cubit.dart';
 import '../library/cubit/library_cubit.dart';
 import '../library/cubit/library_state.dart';
+import '../slideshow/slideshow_player_screen.dart';
 import '../viewer/asset_viewer_screen.dart';
 
 class HomeScreen extends StatelessWidget {
@@ -102,7 +103,7 @@ class _Sidebar extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'ImmichTV',
+            'Immich TV',
             style: theme.textTheme.headlineSmall?.copyWith(
               fontWeight: FontWeight.w800,
               letterSpacing: 0.3,
@@ -381,7 +382,10 @@ class _LibraryContent extends StatelessWidget {
         isLoadingMore: state.isLoadingMore,
         emptyMessage: 'No favorite assets are available yet.',
       ),
-      LibraryTab.slideshow => const _SlideshowSectionView(),
+      LibraryTab.slideshow => _SlideshowSectionView(
+        session: session,
+        state: state,
+      ),
     };
   }
 }
@@ -755,20 +759,409 @@ class _AlbumSectionView extends StatelessWidget {
   }
 }
 
-class _SlideshowSectionView extends StatelessWidget {
-  const _SlideshowSectionView();
+enum _SlideshowSource { timeline, favorites, albums }
+
+class _SlideshowSectionView extends StatefulWidget {
+  const _SlideshowSectionView({required this.session, required this.state});
+
+  final AuthenticatedSession session;
+  final LibraryState state;
+
+  @override
+  State<_SlideshowSectionView> createState() => _SlideshowSectionViewState();
+}
+
+class _SlideshowSectionViewState extends State<_SlideshowSectionView> {
+  _SlideshowSource _source = _SlideshowSource.timeline;
+  int _durationSeconds = 5;
+  bool _shuffle = false;
+  Future<List<AlbumSummary>>? _albumsFuture;
+  Future<List<AssetSummary>>? _albumAssetsFuture;
+  AlbumSummary? _selectedAlbum;
+
+  @override
+  void initState() {
+    super.initState();
+    _albumsFuture = context.read<MediaRepository>().fetchAlbums(widget.session);
+  }
 
   @override
   Widget build(BuildContext context) {
-    return const _SectionFrame(
+    final theme = Theme.of(context);
+    final timelinePhotos = widget.state.timeline
+        .where((asset) => !asset.isVideo)
+        .toList(growable: false);
+    final favoritePhotos = widget.state.favorites
+        .where((asset) => !asset.isVideo)
+        .toList(growable: false);
+    final sourceAssets = _source == _SlideshowSource.timeline
+        ? timelinePhotos
+        : _source == _SlideshowSource.favorites
+        ? favoritePhotos
+        : const <AssetSummary>[];
+
+    return _SectionFrame(
       title: 'Slideshow',
-      description: 'Ambient playback controls will live here next.',
-      child: _InfoPanel(
-        title: 'Slideshow mode is queued next',
-        body:
-            'The left-nav shell is ready. The next pass can build playback on top of it.',
-        accent: AppColors.focus,
+      description:
+          'Start an ambient playback session from your photo stream with screen-safe controls.',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Wrap(
+            spacing: AppSpacing.sm,
+            runSpacing: AppSpacing.sm,
+            children: [
+              _SlideshowSourceChip(
+                label: 'Timeline',
+                count: timelinePhotos.length,
+                isSelected: _source == _SlideshowSource.timeline,
+                onPressed: () {
+                  setState(() => _source = _SlideshowSource.timeline);
+                },
+              ),
+              _SlideshowSourceChip(
+                label: 'Favorites',
+                count: favoritePhotos.length,
+                isSelected: _source == _SlideshowSource.favorites,
+                isEnabled: favoritePhotos.isNotEmpty,
+                onPressed: () {
+                  setState(() => _source = _SlideshowSource.favorites);
+                },
+              ),
+              _SlideshowSourceChip(
+                label: 'Albums',
+                count: widget.state.albums.length,
+                isSelected: _source == _SlideshowSource.albums,
+                onPressed: () {
+                  setState(() => _source = _SlideshowSource.albums);
+                },
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.lg),
+          Wrap(
+            spacing: AppSpacing.sm,
+            runSpacing: AppSpacing.sm,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              Text(
+                'Duration',
+                style: theme.textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              for (final seconds in const [3, 5, 8, 12])
+                ChoiceChip(
+                  label: Text('${seconds}s'),
+                  selected: seconds == _durationSeconds,
+                  onSelected: (_) {
+                    setState(() => _durationSeconds = seconds);
+                  },
+                  showCheckmark: false,
+                ),
+              FilterChip(
+                label: const Text('Shuffle'),
+                selected: _shuffle,
+                onSelected: (value) {
+                  setState(() => _shuffle = value);
+                },
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.lg),
+          if (_source == _SlideshowSource.albums)
+            Expanded(
+              child: _AlbumSlideshowSourceView(
+                session: widget.session,
+                albumsFuture: _albumsFuture!,
+                selectedAlbum: _selectedAlbum,
+                albumAssetsFuture: _albumAssetsFuture,
+                durationSeconds: _durationSeconds,
+                shuffle: _shuffle,
+                accessToken: widget.session.accessToken,
+                onAlbumSelected: _selectAlbum,
+                onStart: (assets) {
+                  SlideshowPlayerScreen.show(
+                    context,
+                    assets: assets,
+                    accessToken: widget.session.accessToken,
+                    initialDurationSeconds: _durationSeconds,
+                    shuffle: _shuffle,
+                  );
+                },
+              ),
+            )
+          else if (sourceAssets.isEmpty)
+            const Expanded(
+              child: _InfoPanel(
+                title: 'No photos ready for slideshow',
+                body:
+                    'Slideshow currently uses photo assets only. Open Timeline or Favorites first if you want to load more sources.',
+                accent: AppColors.textMuted,
+              ),
+            )
+          else
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '${sourceAssets.length} photos ready',
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.xs),
+                  Text(
+                    _shuffle
+                        ? 'Playback starts in a shuffled order.'
+                        : 'Playback starts in your current library order.',
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.lg),
+                  SizedBox(
+                    height: 132,
+                    child: ListView.separated(
+                      scrollDirection: Axis.horizontal,
+                      itemCount: sourceAssets.length > 8
+                          ? 8
+                          : sourceAssets.length,
+                      separatorBuilder: (_, _) =>
+                          const SizedBox(width: AppSpacing.sm),
+                      itemBuilder: (context, index) {
+                        final asset = sourceAssets[index];
+                        return SizedBox(
+                          width: 132,
+                          child: AuthenticatedAssetImage(
+                            imageUrls: asset.thumbnailUrls,
+                            accessToken: widget.session.accessToken,
+                            requiresAuth: asset.requiresAuth,
+                            borderRadius: 20,
+                            filterQuality: FilterQuality.low,
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.xl),
+                  FilledButton.icon(
+                    onPressed: () {
+                      SlideshowPlayerScreen.show(
+                        context,
+                        assets: sourceAssets,
+                        accessToken: widget.session.accessToken,
+                        initialDurationSeconds: _durationSeconds,
+                        shuffle: _shuffle,
+                      );
+                    },
+                    icon: const Icon(Icons.play_arrow_rounded),
+                    label: const Text('Start slideshow'),
+                  ),
+                ],
+              ),
+            ),
+        ],
       ),
+    );
+  }
+
+  Future<void> _selectAlbum(AlbumSummary album) async {
+    setState(() {
+      _selectedAlbum = album;
+      _albumAssetsFuture = context.read<MediaRepository>().fetchAlbumAssets(
+        widget.session,
+        albumId: album.id,
+      );
+    });
+  }
+}
+
+class _SlideshowSourceChip extends StatelessWidget {
+  const _SlideshowSourceChip({
+    required this.label,
+    required this.count,
+    required this.isSelected,
+    required this.onPressed,
+    this.isEnabled = true,
+  });
+
+  final String label;
+  final int count;
+  final bool isSelected;
+  final bool isEnabled;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return ChoiceChip(
+      label: Text('$label • $count'),
+      selected: isSelected,
+      onSelected: isEnabled ? (_) => onPressed() : null,
+      showCheckmark: false,
+    );
+  }
+}
+
+class _AlbumSlideshowSourceView extends StatelessWidget {
+  const _AlbumSlideshowSourceView({
+    required this.session,
+    required this.albumsFuture,
+    required this.selectedAlbum,
+    required this.albumAssetsFuture,
+    required this.durationSeconds,
+    required this.shuffle,
+    required this.accessToken,
+    required this.onAlbumSelected,
+    required this.onStart,
+  });
+
+  final AuthenticatedSession session;
+  final Future<List<AlbumSummary>> albumsFuture;
+  final AlbumSummary? selectedAlbum;
+  final Future<List<AssetSummary>>? albumAssetsFuture;
+  final int durationSeconds;
+  final bool shuffle;
+  final String accessToken;
+  final ValueChanged<AlbumSummary> onAlbumSelected;
+  final ValueChanged<List<AssetSummary>> onStart;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return FutureBuilder<List<AlbumSummary>>(
+      future: albumsFuture,
+      builder: (context, albumSnapshot) {
+        if (albumSnapshot.connectionState != ConnectionState.done) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        final albums = albumSnapshot.data ?? const <AlbumSummary>[];
+        if (albums.isEmpty) {
+          return const _InfoPanel(
+            title: 'No albums available',
+            body: 'Albums will appear here once they are available.',
+            accent: AppColors.textMuted,
+          );
+        }
+
+        final selectedAlbumValue = selectedAlbum ?? albums.first;
+        final selectedFuture =
+            albumAssetsFuture ??
+            context.read<MediaRepository>().fetchAlbumAssets(
+              session,
+              albumId: selectedAlbumValue.id,
+            );
+
+        if (selectedAlbum == null) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (context.mounted) {
+              onAlbumSelected(selectedAlbumValue);
+            }
+          });
+        }
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SizedBox(
+              height: 46,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                itemCount: albums.length,
+                separatorBuilder: (_, _) =>
+                    const SizedBox(width: AppSpacing.sm),
+                itemBuilder: (context, index) {
+                  final album = albums[index];
+                  return ChoiceChip(
+                    label: Text('${album.name} • ${album.assetCount}'),
+                    selected: album.id == selectedAlbumValue.id,
+                    onSelected: (_) => onAlbumSelected(album),
+                    showCheckmark: false,
+                  );
+                },
+              ),
+            ),
+            const SizedBox(height: AppSpacing.lg),
+            FutureBuilder<List<AssetSummary>>(
+              future: selectedFuture,
+              builder: (context, assetSnapshot) {
+                if (assetSnapshot.connectionState != ConnectionState.done) {
+                  return const Expanded(
+                    child: Center(child: CircularProgressIndicator()),
+                  );
+                }
+
+                final assets = assetSnapshot.data ?? const <AssetSummary>[];
+                if (assets.isEmpty) {
+                  return const Expanded(
+                    child: _InfoPanel(
+                      title: 'This album has no photos for slideshow',
+                      body:
+                          'Only photo assets are included in slideshow playback right now.',
+                      accent: AppColors.textMuted,
+                    ),
+                  );
+                }
+
+                return Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '${selectedAlbumValue.name} • ${assets.length} photos ready',
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      const SizedBox(height: AppSpacing.xs),
+                      Text(
+                        shuffle
+                            ? 'Playback starts in a shuffled order.'
+                            : 'Playback starts in the album order.',
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                      const SizedBox(height: AppSpacing.lg),
+                      SizedBox(
+                        height: 132,
+                        child: ListView.separated(
+                          scrollDirection: Axis.horizontal,
+                          itemCount: assets.length > 8 ? 8 : assets.length,
+                          separatorBuilder: (_, _) =>
+                              const SizedBox(width: AppSpacing.sm),
+                          itemBuilder: (context, index) {
+                            final asset = assets[index];
+                            return SizedBox(
+                              width: 132,
+                              child: AuthenticatedAssetImage(
+                                imageUrls: asset.thumbnailUrls,
+                                accessToken: accessToken,
+                                requiresAuth: asset.requiresAuth,
+                                borderRadius: 20,
+                                filterQuality: FilterQuality.low,
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                      const SizedBox(height: AppSpacing.xl),
+                      FilledButton.icon(
+                        onPressed: () => onStart(assets),
+                        icon: const Icon(Icons.play_arrow_rounded),
+                        label: Text('Start ${selectedAlbumValue.name}'),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+          ],
+        );
+      },
     );
   }
 }

@@ -168,7 +168,8 @@ void main() {
     await tester.ensureVisible(find.text('Slideshow').first);
     await tester.tap(find.text('Slideshow').first, warnIfMissed: false);
     await tester.pumpAndSettle();
-    expect(find.text('Slideshow mode is queued next'), findsOneWidget);
+    expect(find.text('Start slideshow'), findsOneWidget);
+    expect(find.text('Timeline • 2'), findsOneWidget);
   });
 
   testWidgets('loads the next timeline page as the grid scrolls', (
@@ -228,6 +229,61 @@ void main() {
 
     expect(find.text('2024-11-10'), findsOneWidget);
   });
+
+  testWidgets('starts a slideshow with playback controls', (tester) async {
+    tester.view.physicalSize = const Size(1280, 720);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(
+      ImmichTvApp(
+        authRepository: FakeAuthRepository(restoredSession: _demoSession()),
+        assetImageRepository: FakeAssetImageRepository(),
+        serverRepository: FakeServerRepository(),
+        mediaRepository: FakeMediaRepository(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.ensureVisible(find.text('Slideshow').first);
+    await tester.tap(find.text('Slideshow').first, warnIfMissed: false);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Start slideshow'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Photo 1 of 2'), findsOneWidget);
+    expect(find.text('Pause'), findsOneWidget);
+    expect(find.text('Close'), findsOneWidget);
+  });
+
+  testWidgets('starts a slideshow from an album', (tester) async {
+    tester.view.physicalSize = const Size(1280, 720);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(
+      ImmichTvApp(
+        authRepository: FakeAuthRepository(restoredSession: _demoSession()),
+        assetImageRepository: FakeAssetImageRepository(),
+        serverRepository: FakeServerRepository(),
+        mediaRepository: FakeMediaRepository(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.ensureVisible(find.text('Slideshow').first);
+    await tester.tap(find.text('Slideshow').first, warnIfMissed: false);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.textContaining('Albums •'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.textContaining('Start Summer Trip'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Photo 1 of 2'), findsOneWidget);
+  });
 }
 
 class FakeAuthRepository implements AuthRepository {
@@ -278,6 +334,12 @@ class FakeMediaRepository implements MediaRepository {
   @override
   Future<List<AlbumSummary>> fetchAlbums(AuthenticatedSession session) async =>
       [const AlbumSummary(id: 'album-1', name: 'Summer Trip', assetCount: 42)];
+
+  @override
+  Future<List<AssetSummary>> fetchAlbumAssets(
+    AuthenticatedSession session, {
+    required String albumId,
+  }) async => _timelinePageOne;
 
   @override
   Future<MediaPage<AssetSummary>> fetchFavoritesPage(

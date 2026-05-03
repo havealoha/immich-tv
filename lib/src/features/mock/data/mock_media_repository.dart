@@ -7,17 +7,28 @@ import '../../../core/repositories/media_repository.dart';
 class MockMediaRepository implements MediaRepository {
   MockMediaRepository()
     : _timeline = _buildTimeline(),
-      _favorites = _buildFavorites();
+      _favorites = _buildFavorites(),
+      _albums = _buildAlbums();
 
   final List<AssetSummary> _timeline;
   final List<AssetSummary> _favorites;
+  final List<AlbumSummary> _albums;
 
   static const _pageSizeDefault = 60;
 
   @override
   Future<List<AlbumSummary>> fetchAlbums(AuthenticatedSession session) async {
     await Future<void>.delayed(const Duration(milliseconds: 320));
-    return _buildAlbums();
+    return _albums;
+  }
+
+  @override
+  Future<List<AssetSummary>> fetchAlbumAssets(
+    AuthenticatedSession session, {
+    required String albumId,
+  }) async {
+    await Future<void>.delayed(const Duration(milliseconds: 280));
+    return _buildAlbumAssets(albumId);
   }
 
   @override
@@ -129,4 +140,27 @@ List<AlbumSummary> _buildAlbums() {
     AlbumSummary(id: 'album-5', name: 'Mountains and Cabins', assetCount: 73),
     AlbumSummary(id: 'album-6', name: 'Portrait Favorites', assetCount: 41),
   ];
+}
+
+List<AssetSummary> _buildAlbumAssets(String albumId) {
+  final timeline = _buildTimeline()
+      .where((asset) => !asset.isVideo)
+      .toList(growable: false);
+
+  final albumOffsets = <String, int>{
+    'album-1': 0,
+    'album-2': 8,
+    'album-3': 16,
+    'album-4': 24,
+    'album-5': 32,
+    'album-6': 40,
+  };
+
+  final start = albumOffsets[albumId] ?? 0;
+  final end = (start + 18).clamp(0, timeline.length);
+  if (start >= end) {
+    return const [];
+  }
+
+  return timeline.sublist(start, end);
 }

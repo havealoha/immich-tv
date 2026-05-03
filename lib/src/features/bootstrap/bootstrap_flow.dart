@@ -114,7 +114,7 @@ class _BootstrapFlowState extends State<BootstrapFlow>
                               _BrandMark(glowPulse: _glowPulse.value),
                               const SizedBox(height: AppSpacing.lg),
                               Text(
-                                'ImmichTV',
+                                'Immich TV',
                                 style: theme.textTheme.displaySmall?.copyWith(
                                   fontWeight: FontWeight.w800,
                                   letterSpacing: 0.4,
