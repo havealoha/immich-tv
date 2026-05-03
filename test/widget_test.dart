@@ -13,7 +13,6 @@ import 'package:immichtv/src/core/repositories/auth_repository.dart';
 import 'package:immichtv/src/core/repositories/asset_image_repository.dart';
 import 'package:immichtv/src/core/repositories/media_repository.dart';
 import 'package:immichtv/src/core/repositories/server_repository.dart';
-import 'package:immichtv/src/shared/presentation/widgets/focusable_surface.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -167,7 +166,8 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Asset favorite-1'), findsOneWidget);
 
-    await tester.tap(find.text('Slideshow').first);
+    await tester.ensureVisible(find.text('Slideshow').first);
+    await tester.tap(find.text('Slideshow').first, warnIfMissed: false);
     await tester.pumpAndSettle();
     expect(find.text('Slideshow mode is queued next'), findsOneWidget);
   });
@@ -216,13 +216,9 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    final firstAssetCard = find.ancestor(
-      of: find.text('Asset asset-1').first,
-      matching: find.byType(FocusableSurface),
-    );
-    await tester.ensureVisible(firstAssetCard);
-    tester.widget<FocusableSurface>(firstAssetCard).onPressed?.call();
-    await tester.pump();
+    final firstAssetLabel = find.text('Asset asset-1').first;
+    await tester.ensureVisible(firstAssetLabel);
+    await tester.tap(firstAssetLabel, warnIfMissed: false);
     await tester.pumpAndSettle();
 
     expect(find.text('Photo asset-1'), findsOneWidget);

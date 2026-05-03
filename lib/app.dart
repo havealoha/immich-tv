@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import 'src/core/config/app_environment.dart';
 import 'src/core/network/immich_dio_factory.dart';
 import 'src/core/repositories/auth_repository.dart';
 import 'src/core/repositories/asset_image_repository.dart';
@@ -12,6 +13,9 @@ import 'src/app_shell.dart';
 import 'src/features/app_flow/cubit/app_flow_cubit.dart';
 import 'src/features/library/data/immich_asset_image_repository.dart';
 import 'src/features/library/data/immich_media_repository.dart';
+import 'src/features/mock/data/mock_auth_repository.dart';
+import 'src/features/mock/data/mock_media_repository.dart';
+import 'src/features/mock/data/mock_server_repository.dart';
 import 'src/features/onboarding/data/immich_server_repository.dart';
 import 'src/platform/storage/platform_session_storage.dart';
 import 'src/shared/presentation/app_colors.dart';
@@ -28,25 +32,49 @@ class ImmichTvApp extends StatelessWidget {
     AssetImageRepository? assetImageRepository,
     ServerRepository? serverRepository,
     MediaRepository? mediaRepository,
-  }) : _authRepository =
+    bool? useMockServices,
+  }) : _environment = AppEnvironment(
+         useMockServices:
+             useMockServices ??
+             (authRepository == null &&
+                 serverRepository == null &&
+                 mediaRepository == null),
+       ),
+       _authRepository =
            authRepository ??
-           ImmichAuthRepository(
-             dio: ImmichDioFactory.create(),
-             sessionStorage: PlatformSessionStorage(),
-           ),
+           ((useMockServices ??
+                   (authRepository == null &&
+                       serverRepository == null &&
+                       mediaRepository == null))
+               ? MockAuthRepository(sessionStorage: PlatformSessionStorage())
+               : ImmichAuthRepository(
+                   dio: ImmichDioFactory.create(),
+                   sessionStorage: PlatformSessionStorage(),
+                 )),
        _serverRepository =
            serverRepository ??
-           ImmichServerRepository(
-             dio: ImmichDioFactory.create(),
-             normalizer: const ServerUrlNormalizer(),
-           ),
+           ((useMockServices ??
+                   (authRepository == null &&
+                       serverRepository == null &&
+                       mediaRepository == null))
+               ? MockServerRepository(normalizer: const ServerUrlNormalizer())
+               : ImmichServerRepository(
+                   dio: ImmichDioFactory.create(),
+                   normalizer: const ServerUrlNormalizer(),
+                 )),
        _assetImageRepository =
            assetImageRepository ??
            ImmichAssetImageRepository(dio: ImmichDioFactory.create()),
        _mediaRepository =
            mediaRepository ??
-           ImmichMediaRepository(dio: ImmichDioFactory.create());
+           ((useMockServices ??
+                   (authRepository == null &&
+                       serverRepository == null &&
+                       mediaRepository == null))
+               ? MockMediaRepository()
+               : ImmichMediaRepository(dio: ImmichDioFactory.create()));
 
+  final AppEnvironment _environment;
   final AuthRepository _authRepository;
   final AssetImageRepository _assetImageRepository;
   final ServerRepository _serverRepository;
@@ -56,15 +84,25 @@ class ImmichTvApp extends StatelessWidget {
   Widget build(BuildContext context) {
     final baseTheme = ThemeData(
       useMaterial3: true,
-      colorScheme: ColorScheme.fromSeed(
-        seedColor: AppColors.focus,
+      colorScheme: const ColorScheme(
         brightness: Brightness.dark,
+        primary: AppColors.immichBlue,
+        onPrimary: AppColors.darkTextPrimary,
+        secondary: AppColors.immichPink,
+        onSecondary: AppColors.darkTextPrimary,
+        error: AppColors.immichRed,
+        onError: AppColors.darkTextPrimary,
+        surface: AppColors.darkSurface,
+        onSurface: AppColors.darkTextPrimary,
       ),
       scaffoldBackgroundColor: AppColors.background,
+      dividerColor: AppColors.border,
+      canvasColor: AppColors.background,
     );
 
     return MultiRepositoryProvider(
       providers: [
+        RepositoryProvider<AppEnvironment>.value(value: _environment),
         RepositoryProvider<AuthRepository>.value(value: _authRepository),
         RepositoryProvider<AssetImageRepository>.value(
           value: _assetImageRepository,
@@ -77,8 +115,8 @@ class ImmichTvApp extends StatelessWidget {
         debugShowCheckedModeBanner: false,
         theme: baseTheme.copyWith(
           textTheme: baseTheme.textTheme.apply(
-            bodyColor: Colors.white,
-            displayColor: Colors.white,
+            bodyColor: AppColors.textPrimary,
+            displayColor: AppColors.textPrimary,
           ),
           cardTheme: baseTheme.cardTheme.copyWith(
             color: AppColors.surface,
@@ -103,7 +141,8 @@ class ImmichTvApp extends StatelessWidget {
               borderRadius: BorderRadius.circular(AppRadii.md),
               borderSide: const BorderSide(color: AppColors.focus, width: 2),
             ),
-            labelStyle: const TextStyle(color: Color(0xFFB6D6D4)),
+            labelStyle: const TextStyle(color: AppColors.textSecondary),
+            hintStyle: const TextStyle(color: AppColors.textMuted),
           ),
           outlinedButtonTheme: OutlinedButtonThemeData(
             style: OutlinedButton.styleFrom(
@@ -118,12 +157,19 @@ class ImmichTvApp extends StatelessWidget {
           filledButtonTheme: FilledButtonThemeData(
             style: FilledButton.styleFrom(
               padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 18),
-              backgroundColor: AppColors.focus,
+              backgroundColor: AppColors.immichBlue,
               foregroundColor: AppColors.actionForeground,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(AppRadii.md),
               ),
             ),
+          ),
+          progressIndicatorTheme: const ProgressIndicatorThemeData(
+            color: AppColors.immichBlue,
+            linearTrackColor: AppColors.darkSurfaceSoft,
+          ),
+          textButtonTheme: TextButtonThemeData(
+            style: TextButton.styleFrom(foregroundColor: AppColors.textPrimary),
           ),
         ),
         home: BlocProvider(

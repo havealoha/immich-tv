@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../core/config/app_environment.dart';
 import '../../core/repositories/auth_repository.dart';
 import '../../core/repositories/server_repository.dart';
 import '../../shared/presentation/app_breakpoints.dart';
@@ -21,19 +22,36 @@ class OnboardingFlow extends StatefulWidget {
 }
 
 class _OnboardingFlowState extends State<OnboardingFlow> {
-  final _serverController = TextEditingController(
-    text: 'http://192.168.0.243:2283',
-  );
-  final _emailController = TextEditingController(
-    text: kDebugMode ? 'afridi.khondakar@gmail.com' : '',
-  );
-  final _passwordController = TextEditingController(
-    text: kDebugMode ? "#Noobshit911" : '',
-  );
+  final _serverController = TextEditingController();
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
   final _serverFieldFocusNode = FocusNode(debugLabel: 'serverField');
   final _emailFieldFocusNode = FocusNode(debugLabel: 'emailField');
   final _passwordFieldFocusNode = FocusNode(debugLabel: 'passwordField');
   final _actionButtonFocusNode = FocusNode(debugLabel: 'primaryAction');
+  bool _hasAppliedInitialValues = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_hasAppliedInitialValues) {
+      return;
+    }
+
+    final environment = context.read<AppEnvironment>();
+    final useMockServices = environment.useMockServices;
+
+    _serverController.text = useMockServices
+        ? 'https://demo.immichtv.local'
+        : 'http://192.168.0.243:2283';
+    _emailController.text = useMockServices
+        ? 'livingroom@demo.immichtv'
+        : (kDebugMode ? 'afridi.khondakar@gmail.com' : '');
+    _passwordController.text = useMockServices
+        ? 'demo-password'
+        : (kDebugMode ? '#Noobshit911' : '');
+    _hasAppliedInitialValues = true;
+  }
 
   @override
   void dispose() {
@@ -154,6 +172,7 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
     ThemeData theme,
     OnboardingState state,
   ) {
+    final useMockServices = context.read<AppEnvironment>().useMockServices;
     final isSubmitting = state.isBusy;
     final serverValidated = state.hasValidatedServer;
     final helperText = serverValidated
@@ -173,14 +192,27 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
         const SizedBox(height: 12),
         Text(
           serverValidated
-              ? 'We found a compatible Immich API. Sign in securely to continue.'
-              : 'Start with the URL of your Immich instance. We will validate it before asking for credentials.',
+              ? (useMockServices
+                    ? 'Demo mode is active. Sign in to explore the curated TV experience with mock content.'
+                    : 'We found a compatible Immich API. Sign in securely to continue.')
+              : (useMockServices
+                    ? 'Start with the demo server URL. We will validate it and load a polished mock library so we can shape the full TV experience first.'
+                    : 'Start with the URL of your Immich instance. We will validate it before asking for credentials.'),
           style: theme.textTheme.bodyLarge?.copyWith(
             color: const Color(0xFFB8C8CF),
             height: 1.5,
           ),
         ),
         const SizedBox(height: 28),
+        if (useMockServices) ...[
+          const _StatusBanner(
+            icon: Icons.auto_awesome_outlined,
+            color: Color(0xFF6FE0DB),
+            message:
+                'Demo mode is on. Authentication, library browsing, pagination, and fullscreen viewing are currently backed by mock data so we can polish the UI before real API rollout.',
+          ),
+          const SizedBox(height: 18),
+        ],
         TextField(
           controller: _serverController,
           focusNode: _serverFieldFocusNode,
@@ -207,8 +239,9 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
           _StatusBanner(
             icon: Icons.verified_outlined,
             color: const Color(0xFF6FE0DB),
-            message:
-                'API detected at ${state.serverConfig!.apiUrl}. Your session will be stored without saving the password.',
+            message: useMockServices
+                ? 'Demo server ready at ${state.serverConfig!.apiUrl}. Your mock session will restore like a real TV app flow.'
+                : 'API detected at ${state.serverConfig!.apiUrl}. Your session will be stored without saving the password.',
           ),
           const SizedBox(height: 18),
           TextField(
@@ -248,7 +281,9 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
-                    'Next up: real API validation, secure storage, and persisted sessions.',
+                    useMockServices
+                        ? 'Next up: continue with the mock-first showcase flow, then swap these repositories for real Immich APIs.'
+                        : 'Next up: real API validation, secure storage, and persisted sessions.',
                     style: theme.textTheme.bodyMedium?.copyWith(
                       color: const Color(0xFFB8C8CF),
                     ),
