@@ -6,6 +6,7 @@ import 'package:immichtv/src/core/models/album_summary.dart';
 import 'package:immichtv/src/core/models/authenticated_session.dart';
 import 'package:immichtv/src/core/models/asset_summary.dart';
 import 'package:immichtv/src/core/models/media_page.dart';
+import 'package:immichtv/src/core/models/saved_profile.dart';
 import 'package:immichtv/src/core/models/server_config.dart';
 import 'package:immichtv/src/core/models/server_validation_result.dart';
 import 'package:immichtv/src/core/models/user_profile.dart';
@@ -37,7 +38,7 @@ void main() {
     expect(find.text('Validate server'), findsOneWidget);
   });
 
-  testWidgets('restores a persisted session into the home shell', (
+  testWidgets('shows the saved profile picker when profiles exist', (
     tester,
   ) async {
     tester.view.physicalSize = const Size(1280, 720);
@@ -56,9 +57,9 @@ void main() {
 
     await tester.pumpAndSettle();
 
-    expect(find.text('Timeline'), findsWidgets);
+    expect(find.text(restoredSession.user.name), findsOneWidget);
     expect(find.textContaining(restoredSession.user.email), findsOneWidget);
-    expect(find.text('Asset asset-1'), findsOneWidget);
+    expect(find.text('Add profile'), findsOneWidget);
   });
 
   testWidgets('walks through validation and sign-in into home shell', (
@@ -83,7 +84,7 @@ void main() {
     await tester.tap(find.text('Validate server'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Sign in to Immich'), findsOneWidget);
+    expect(find.text('Create a saved profile'), findsOneWidget);
     expect(
       find.textContaining('API detected at https://photos.example.com/api'),
       findsOneWidget,
@@ -91,8 +92,10 @@ void main() {
 
     await tester.enterText(find.byType(TextField).at(1), 'family@example.com');
     await tester.enterText(find.byType(TextField).at(2), 'demo-password');
-    await tester.ensureVisible(find.text('Continue to library shell'));
-    await tester.tap(find.text('Continue to library shell'));
+    await tester.enterText(find.byType(TextField).at(3), '1234');
+    await tester.enterText(find.byType(TextField).at(4), '1234');
+    await tester.ensureVisible(find.text('Save profile and continue'));
+    await tester.tap(find.text('Save profile and continue'));
     await tester.pumpAndSettle();
 
     expect(find.text('Timeline'), findsWidgets);
@@ -121,15 +124,15 @@ void main() {
     await tester.testTextInput.receiveAction(TextInputAction.done);
     await tester.pumpAndSettle();
 
-    expect(find.text('Sign in to Immich'), findsOneWidget);
+    expect(find.text('Create a saved profile'), findsOneWidget);
 
-    await tester.tap(find.byType(TextField).at(2));
     await tester.enterText(
       find.byType(TextField).at(1),
       'keyboard@example.com',
     );
     await tester.enterText(find.byType(TextField).at(2), 'secret-password');
-    await tester.tap(find.byType(TextField).at(2));
+    await tester.enterText(find.byType(TextField).at(3), '2468');
+    await tester.enterText(find.byType(TextField).at(4), '2468');
     await tester.pump();
     await tester.testTextInput.receiveAction(TextInputAction.done);
     await tester.pumpAndSettle();
@@ -145,15 +148,7 @@ void main() {
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.reset);
 
-    await tester.pumpWidget(
-      ImmichTvApp(
-        authRepository: FakeAuthRepository(restoredSession: _demoSession()),
-        assetImageRepository: FakeAssetImageRepository(),
-        serverRepository: FakeServerRepository(),
-        mediaRepository: FakeMediaRepository(),
-      ),
-    );
-    await tester.pumpAndSettle();
+    await _pumpSignedInApp(tester, mediaRepository: FakeMediaRepository());
 
     await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
     await tester.pumpAndSettle();
@@ -170,15 +165,7 @@ void main() {
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.reset);
 
-    await tester.pumpWidget(
-      ImmichTvApp(
-        authRepository: FakeAuthRepository(restoredSession: _demoSession()),
-        assetImageRepository: FakeAssetImageRepository(),
-        serverRepository: FakeServerRepository(),
-        mediaRepository: FakeMediaRepository(),
-      ),
-    );
-    await tester.pumpAndSettle();
+    await _pumpSignedInApp(tester, mediaRepository: FakeMediaRepository());
 
     expect(find.text('Asset asset-1'), findsOneWidget);
 
@@ -188,7 +175,8 @@ void main() {
     expect(find.text('2 photos'), findsOneWidget);
     expect(find.text('Asset asset-1'), findsOneWidget);
 
-    await tester.tap(find.text('Favorites').first);
+    await tester.ensureVisible(find.text('Favorites').first);
+    await tester.tap(find.text('Favorites').first, warnIfMissed: false);
     await tester.pumpAndSettle();
     expect(find.text('Asset favorite-1'), findsOneWidget);
 
@@ -206,15 +194,10 @@ void main() {
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.reset);
 
-    await tester.pumpWidget(
-      ImmichTvApp(
-        authRepository: FakeAuthRepository(restoredSession: _demoSession()),
-        assetImageRepository: FakeAssetImageRepository(),
-        serverRepository: FakeServerRepository(),
-        mediaRepository: FakeMediaRepository(paginatedTimeline: true),
-      ),
+    await _pumpSignedInApp(
+      tester,
+      mediaRepository: FakeMediaRepository(paginatedTimeline: true),
     );
-    await tester.pumpAndSettle();
 
     expect(find.text('Asset asset-1'), findsOneWidget);
     expect(find.text('Asset asset-3'), findsNothing);
@@ -233,15 +216,7 @@ void main() {
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.reset);
 
-    await tester.pumpWidget(
-      ImmichTvApp(
-        authRepository: FakeAuthRepository(restoredSession: _demoSession()),
-        assetImageRepository: FakeAssetImageRepository(),
-        serverRepository: FakeServerRepository(),
-        mediaRepository: FakeMediaRepository(),
-      ),
-    );
-    await tester.pumpAndSettle();
+    await _pumpSignedInApp(tester, mediaRepository: FakeMediaRepository());
 
     final firstAssetLabel = find.text('Asset asset-1').first;
     await tester.ensureVisible(firstAssetLabel);
@@ -262,15 +237,7 @@ void main() {
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.reset);
 
-    await tester.pumpWidget(
-      ImmichTvApp(
-        authRepository: FakeAuthRepository(restoredSession: _demoSession()),
-        assetImageRepository: FakeAssetImageRepository(),
-        serverRepository: FakeServerRepository(),
-        mediaRepository: FakeMediaRepository(),
-      ),
-    );
-    await tester.pumpAndSettle();
+    await _pumpSignedInApp(tester, mediaRepository: FakeMediaRepository());
 
     await tester.ensureVisible(find.text('Slideshow').first);
     await tester.tap(find.text('Slideshow').first, warnIfMissed: false);
@@ -289,15 +256,7 @@ void main() {
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.reset);
 
-    await tester.pumpWidget(
-      ImmichTvApp(
-        authRepository: FakeAuthRepository(restoredSession: _demoSession()),
-        assetImageRepository: FakeAssetImageRepository(),
-        serverRepository: FakeServerRepository(),
-        mediaRepository: FakeMediaRepository(),
-      ),
-    );
-    await tester.pumpAndSettle();
+    await _pumpSignedInApp(tester, mediaRepository: FakeMediaRepository());
 
     await tester.ensureVisible(find.text('Slideshow').first);
     await tester.tap(find.text('Slideshow').first, warnIfMissed: false);
@@ -311,6 +270,32 @@ void main() {
 
     expect(find.text('Photo 1 of 2'), findsOneWidget);
   });
+}
+
+Future<void> _pumpSignedInApp(
+  WidgetTester tester, {
+  required MediaRepository mediaRepository,
+}) async {
+  await tester.pumpWidget(
+    ImmichTvApp(
+      authRepository: FakeAuthRepository(),
+      assetImageRepository: FakeAssetImageRepository(),
+      serverRepository: FakeServerRepository(),
+      mediaRepository: mediaRepository,
+    ),
+  );
+  await tester.pumpAndSettle();
+
+  await tester.tap(find.text('Validate server'));
+  await tester.pumpAndSettle();
+
+  await tester.enterText(find.byType(TextField).at(1), 'family@example.com');
+  await tester.enterText(find.byType(TextField).at(2), 'demo-password');
+  await tester.enterText(find.byType(TextField).at(3), '1234');
+  await tester.enterText(find.byType(TextField).at(4), '1234');
+  await tester.ensureVisible(find.text('Save profile and continue'));
+  await tester.tap(find.text('Save profile and continue'));
+  await tester.pumpAndSettle();
 }
 
 class FakeAuthRepository implements AuthRepository {
@@ -332,7 +317,36 @@ class FakeAuthRepository implements AuthRepository {
   }
 
   @override
-  Future<AuthenticatedSession?> restoreSession() async => restoredSession;
+  Future<List<SavedProfile>> getSavedProfiles() async {
+    if (restoredSession == null) {
+      return const <SavedProfile>[];
+    }
+
+    return [
+      SavedProfile(
+        id: 'saved-profile',
+        name: restoredSession!.user.name,
+        email: restoredSession!.user.email,
+        serverConfig: restoredSession!.serverConfig,
+        lastUsedAt: DateTime(2025),
+      ),
+    ];
+  }
+
+  @override
+  Future<void> saveProfile({
+    required AuthenticatedSession session,
+    required String password,
+    required String pin,
+  }) async {}
+
+  @override
+  Future<AuthenticatedSession> signInWithSavedProfile({
+    required String profileId,
+    required String pin,
+  }) async {
+    return restoredSession ?? _demoSession();
+  }
 
   @override
   Future<void> signOut() async {}

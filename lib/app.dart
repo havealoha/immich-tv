@@ -17,7 +17,7 @@ import 'src/features/mock/data/mock_auth_repository.dart';
 import 'src/features/mock/data/mock_media_repository.dart';
 import 'src/features/mock/data/mock_server_repository.dart';
 import 'src/features/onboarding/data/immich_server_repository.dart';
-import 'src/platform/storage/platform_session_storage.dart';
+import 'src/platform/storage/platform_profile_storage.dart';
 import 'src/shared/presentation/app_colors.dart';
 import 'src/shared/presentation/app_radii.dart';
 
@@ -37,10 +37,10 @@ class ImmichTvApp extends StatelessWidget {
        _authRepository =
            authRepository ??
            ((useMockServices ?? false)
-               ? MockAuthRepository(sessionStorage: PlatformSessionStorage())
+               ? MockAuthRepository(profileStorage: PlatformProfileStorage())
                : ImmichAuthRepository(
                    dio: ImmichDioFactory.create(),
-                   sessionStorage: PlatformSessionStorage(),
+                   profileStorage: PlatformProfileStorage(),
                  )),
        _serverRepository =
            serverRepository ??
