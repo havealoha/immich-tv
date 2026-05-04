@@ -8,7 +8,7 @@ import '../../../core/repositories/auth_repository.dart';
 import '../../../shared/presentation/app_colors.dart';
 import '../../../shared/presentation/app_radii.dart';
 import '../../../shared/presentation/app_spacing.dart';
-import 'pin_pad_button.dart';
+import '../../../shared/presentation/widgets/tv_focusable.dart';
 import 'profile_avatar_color.dart';
 
 class PinUnlockDialog extends StatefulWidget {
@@ -21,29 +21,19 @@ class PinUnlockDialog extends StatefulWidget {
 }
 
 class _PinUnlockDialogState extends State<PinUnlockDialog> {
-  static const _digitLayout = <String>[
-    '1',
-    '2',
-    '3',
-    '4',
-    '5',
-    '6',
-    '7',
-    '8',
-    '9',
-    'clear',
-    '0',
-    'back',
-  ];
-
-  final FocusNode _dialogFocusNode = FocusNode(debugLabel: 'pinDialog');
-  String _pin = '';
+  final TextEditingController _pinController = TextEditingController();
+  final FocusNode _pinFieldFocusNode = FocusNode(debugLabel: 'pin.field');
+  final FocusNode _cancelButtonFocusNode = FocusNode(debugLabel: 'pin.cancel');
+  final FocusNode _unlockButtonFocusNode = FocusNode(debugLabel: 'pin.unlock');
   bool _isSubmitting = false;
   String? _errorMessage;
 
   @override
   void dispose() {
-    _dialogFocusNode.dispose();
+    _pinController.dispose();
+    _pinFieldFocusNode.dispose();
+    _cancelButtonFocusNode.dispose();
+    _unlockButtonFocusNode.dispose();
     super.dispose();
   }
 
@@ -53,27 +43,8 @@ class _PinUnlockDialogState extends State<PinUnlockDialog> {
 
     return Dialog(
       backgroundColor: Colors.transparent,
-      child: Focus(
-        autofocus: true,
-        focusNode: _dialogFocusNode,
-        onKeyEvent: (node, event) {
-          if (event is! KeyDownEvent) {
-            return KeyEventResult.ignored;
-          }
-
-          final keyLabel = event.logicalKey.keyLabel;
-          if (RegExp(r'^\d$').hasMatch(keyLabel)) {
-            _addDigit(keyLabel);
-            return KeyEventResult.handled;
-          }
-
-          if (event.logicalKey == LogicalKeyboardKey.backspace) {
-            _removeDigit();
-            return KeyEventResult.handled;
-          }
-
-          return KeyEventResult.ignored;
-        },
+      child: FocusTraversalGroup(
+        policy: ReadingOrderTraversalPolicy(),
         child: Container(
           constraints: const BoxConstraints(maxWidth: 620),
           padding: const EdgeInsets.all(AppSpacing.xxl),
@@ -130,34 +101,29 @@ class _PinUnlockDialogState extends State<PinUnlockDialog> {
                 ],
               ),
               const SizedBox(height: AppSpacing.xl),
-              Row(
-                children: List.generate(
-                  4,
-                  (index) => Expanded(
-                    child: Container(
-                      height: 72,
-                      margin: EdgeInsets.only(
-                        right: index == 3 ? 0 : AppSpacing.sm,
-                      ),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF11202A),
-                        borderRadius: BorderRadius.circular(AppRadii.lg),
-                        border: Border.all(
-                          color: index < _pin.length
-                              ? AppColors.focus
-                              : AppColors.border,
-                        ),
-                      ),
-                      child: Center(
-                        child: Text(
-                          index < _pin.length ? '•' : '',
-                          style: theme.textTheme.displaySmall?.copyWith(
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
+              TextField(
+                controller: _pinController,
+                focusNode: _pinFieldFocusNode,
+                autofocus: true,
+                enabled: !_isSubmitting,
+                obscureText: true,
+                keyboardType: TextInputType.number,
+                textInputAction: TextInputAction.done,
+                inputFormatters: [
+                  FilteringTextInputFormatter.digitsOnly,
+                  LengthLimitingTextInputFormatter(4),
+                ],
+                onChanged: (_) {
+                  if (_errorMessage != null) {
+                    setState(() => _errorMessage = null);
+                  } else {
+                    setState(() {});
+                  }
+                },
+                onSubmitted: !_isSubmitting ? (_) => _submit() : null,
+                decoration: const InputDecoration(
+                  labelText: '4-digit PIN',
+                  hintText: 'Enter PIN',
                 ),
               ),
               if (_errorMessage != null) ...[
@@ -169,44 +135,30 @@ class _PinUnlockDialogState extends State<PinUnlockDialog> {
                   ),
                 ),
               ],
-              const SizedBox(height: AppSpacing.xl),
-              GridView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 3,
-                  mainAxisSpacing: AppSpacing.sm,
-                  crossAxisSpacing: AppSpacing.sm,
-                  childAspectRatio: 1.8,
-                ),
-                itemCount: _digitLayout.length,
-                itemBuilder: (context, index) {
-                  final value = _digitLayout[index];
-                  return PinPadButton(
-                    label: _labelForKey(value),
-                    autofocus: index == 0,
-                    onPressed: _isSubmitting ? null : () => _handleKey(value),
-                  );
-                },
-              ),
               const SizedBox(height: AppSpacing.lg),
               Row(
                 children: [
                   Expanded(
-                    child: OutlinedButton(
+                    child: _DialogActionButton(
+                      label: 'Cancel',
+                      focusNode: _cancelButtonFocusNode,
                       onPressed: _isSubmitting
                           ? null
                           : () => Navigator.of(context).pop(),
-                      child: const Text('Cancel'),
+                      isPrimary: false,
                     ),
                   ),
                   const SizedBox(width: AppSpacing.md),
                   Expanded(
-                    child: FilledButton(
-                      onPressed: _isSubmitting || _pin.length != 4
+                    child: _DialogActionButton(
+                      label: _isSubmitting ? 'Unlocking...' : 'Unlock',
+                      focusNode: _unlockButtonFocusNode,
+                      onPressed:
+                          _isSubmitting ||
+                              _pinController.text.trim().length != 4
                           ? null
                           : _submit,
-                      child: Text(_isSubmitting ? 'Unlocking...' : 'Unlock'),
+                      isPrimary: true,
                     ),
                   ),
                 ],
@@ -218,46 +170,9 @@ class _PinUnlockDialogState extends State<PinUnlockDialog> {
     );
   }
 
-  void _handleKey(String value) {
-    switch (value) {
-      case 'clear':
-        setState(() {
-          _pin = '';
-          _errorMessage = null;
-        });
-        return;
-      case 'back':
-        _removeDigit();
-        return;
-      default:
-        _addDigit(value);
-    }
-  }
-
-  void _addDigit(String digit) {
-    if (_pin.length >= 4 || _isSubmitting) {
-      return;
-    }
-
-    setState(() {
-      _pin += digit;
-      _errorMessage = null;
-    });
-  }
-
-  void _removeDigit() {
-    if (_pin.isEmpty || _isSubmitting) {
-      return;
-    }
-
-    setState(() {
-      _pin = _pin.substring(0, _pin.length - 1);
-      _errorMessage = null;
-    });
-  }
-
   Future<void> _submit() async {
-    if (_pin.length != 4 || _isSubmitting) {
+    final pin = _pinController.text.trim();
+    if (pin.length != 4 || _isSubmitting) {
       return;
     }
 
@@ -269,7 +184,7 @@ class _PinUnlockDialogState extends State<PinUnlockDialog> {
     try {
       final session = await context
           .read<AuthRepository>()
-          .signInWithSavedProfile(profileId: widget.profile.id, pin: _pin);
+          .signInWithSavedProfile(profileId: widget.profile.id, pin: pin);
       if (!mounted) {
         return;
       }
@@ -278,19 +193,72 @@ class _PinUnlockDialogState extends State<PinUnlockDialog> {
     } catch (error) {
       setState(() {
         _isSubmitting = false;
-        _pin = '';
+        _pinController.clear();
         _errorMessage = error is AppException
             ? error.message
             : 'We could not unlock that profile right now.';
       });
+      _pinFieldFocusNode.requestFocus();
     }
   }
+}
 
-  String _labelForKey(String value) {
-    return switch (value) {
-      'clear' => 'Clear',
-      'back' => 'Back',
-      _ => value,
-    };
+class _DialogActionButton extends StatelessWidget {
+  const _DialogActionButton({
+    required this.label,
+    required this.focusNode,
+    required this.onPressed,
+    required this.isPrimary,
+  });
+
+  final String label;
+  final FocusNode focusNode;
+  final VoidCallback? onPressed;
+  final bool isPrimary;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return TvFocusable(
+      focusNode: focusNode,
+      onPressed: onPressed,
+      enabled: onPressed != null,
+      builder: (context, focusState) {
+        final isActive = focusState.isActive;
+
+        return AnimatedContainer(
+          duration: const Duration(milliseconds: 160),
+          height: 56,
+          decoration: BoxDecoration(
+            color: isPrimary
+                ? (onPressed == null
+                      ? AppColors.surfaceMuted
+                      : (isActive
+                            ? const Color(0xFF3997FF)
+                            : AppColors.immichBlue))
+                : (isActive
+                      ? const Color(0xFF17303E)
+                      : const Color(0xFF10202A)),
+            borderRadius: BorderRadius.circular(AppRadii.md),
+            border: Border.all(
+              color: focusState.isFocused ? AppColors.focus : AppColors.border,
+              width: focusState.isFocused ? 2 : 1,
+            ),
+          ),
+          child: Center(
+            child: Text(
+              label,
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w800,
+                color: onPressed == null
+                    ? AppColors.textMuted
+                    : AppColors.actionForeground,
+              ),
+            ),
+          ),
+        );
+      },
+    );
   }
 }

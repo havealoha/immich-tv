@@ -1799,6 +1799,15 @@ double _responsiveAlbumRailWidth(double contentWidth) {
 
 SliverGridDelegate _buildAssetGridDelegate(double availableWidth) {
   const spacing = 8.0;
+  if (availableWidth >= AppBreakpoints.tv - 280) {
+    return const SliverGridDelegateWithFixedCrossAxisCount(
+      crossAxisCount: 6,
+      mainAxisSpacing: spacing,
+      crossAxisSpacing: spacing,
+      childAspectRatio: 1,
+    );
+  }
+
   const targetTileWidth = 320.0;
   final crossAxisCount = (availableWidth / targetTileWidth).floor().clamp(2, 6);
 

@@ -15,10 +15,11 @@ class ProfilePickerHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         Text(
           'Immich TV',
+          textAlign: TextAlign.center,
           style:
               (isTvLayout
                       ? theme.textTheme.displayMedium
@@ -28,6 +29,7 @@ class ProfilePickerHeader extends StatelessWidget {
         const SizedBox(height: 12),
         Text(
           'Choose a profile to unlock your library, or add a new one for this TV.',
+          textAlign: TextAlign.center,
           style:
               (isTvLayout
                       ? theme.textTheme.headlineSmall

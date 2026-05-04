@@ -10,11 +10,13 @@ class PinPadButton extends StatelessWidget {
     required this.label,
     required this.onPressed,
     this.autofocus = false,
+    this.focusNode,
   });
 
   final String label;
   final VoidCallback? onPressed;
   final bool autofocus;
+  final FocusNode? focusNode;
 
   @override
   Widget build(BuildContext context) {
@@ -22,6 +24,7 @@ class PinPadButton extends StatelessWidget {
 
     return TvFocusable(
       autofocus: autofocus,
+      focusNode: focusNode,
       onPressed: onPressed,
       enabled: onPressed != null,
       builder: (context, focusState) {

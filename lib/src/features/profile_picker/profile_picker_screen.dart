@@ -43,30 +43,41 @@ class ProfilePickerScreen extends StatelessWidget {
                   28,
                 ),
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     ProfilePickerHeader(theme: theme, isTvLayout: isTvLayout),
                     SizedBox(height: isTvLayout ? 36 : 28),
                     Expanded(
-                      child: GridView.builder(
-                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: crossAxisCount,
-                          mainAxisSpacing: isTvLayout ? 24 : 18,
-                          crossAxisSpacing: isTvLayout ? 24 : 18,
-                          childAspectRatio: isTvLayout ? 0.98 : 0.92,
-                        ),
-                        itemCount: profiles.length + 1,
-                        itemBuilder: (context, index) {
-                          if (index == profiles.length) {
-                            return AddProfileCard(isTvLayout: isTvLayout);
-                          }
+                      child: Center(
+                        child: ConstrainedBox(
+                          constraints: BoxConstraints(
+                            maxWidth:
+                                (crossAxisCount * tileWidth) +
+                                ((crossAxisCount - 1) * (isTvLayout ? 24 : 18)),
+                          ),
+                          child: GridView.builder(
+                            shrinkWrap: true,
+                            gridDelegate:
+                                SliverGridDelegateWithFixedCrossAxisCount(
+                                  crossAxisCount: crossAxisCount,
+                                  mainAxisSpacing: isTvLayout ? 24 : 18,
+                                  crossAxisSpacing: isTvLayout ? 24 : 18,
+                                  childAspectRatio: isTvLayout ? 0.9 : 0.84,
+                                ),
+                            itemCount: profiles.length + 1,
+                            itemBuilder: (context, index) {
+                              if (index == profiles.length) {
+                                return AddProfileCard(isTvLayout: isTvLayout);
+                              }
 
-                          return SavedProfileCard(
-                            profile: profiles[index],
-                            autofocus: index == 0,
-                            isTvLayout: isTvLayout,
-                          );
-                        },
+                              return SavedProfileCard(
+                                profile: profiles[index],
+                                autofocus: index == 0,
+                                isTvLayout: isTvLayout,
+                              );
+                            },
+                          ),
+                        ),
                       ),
                     ),
                   ],
