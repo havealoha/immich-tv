@@ -4,7 +4,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../core/models/album_summary.dart';
 import '../../core/models/asset_summary.dart';
 import '../../core/models/authenticated_session.dart';
-import '../../core/repositories/asset_image_repository.dart';
 import '../../core/repositories/media_repository.dart';
 import '../../shared/presentation/app_breakpoints.dart';
 import '../../shared/presentation/app_colors.dart';
@@ -31,61 +30,29 @@ class HomeScreen extends StatelessWidget {
       child: Scaffold(
         backgroundColor: AppColors.background,
         body: SafeArea(
-          child: BlocListener<LibraryCubit, LibraryState>(
-            listenWhen: (previous, current) =>
-                previous.selectedTab != current.selectedTab ||
-                previous.status != current.status,
-            listener: (context, state) {
-              if (state.status != LibraryLoadStatus.success) {
-                return;
-              }
+          child: BlocBuilder<LibraryCubit, LibraryState>(
+            builder: (context, state) {
+              return LayoutBuilder(
+                builder: (context, constraints) {
+                  final sidebarWidth = _responsiveSidebarWidth(
+                    constraints.maxWidth,
+                  );
 
-              final urls = switch (state.selectedTab) {
-                LibraryTab.timeline =>
-                  state.timeline
-                      .map((asset) => asset.thumbnailUrls)
-                      .toList(growable: false),
-                LibraryTab.favorites =>
-                  state.favorites
-                      .map((asset) => asset.thumbnailUrls)
-                      .toList(growable: false),
-                LibraryTab.albums ||
-                LibraryTab.slideshow => const <List<String>>[],
-              };
-
-              if (urls.isEmpty) {
-                return;
-              }
-
-              context.read<AssetImageRepository>().prefetchImages(
-                urls: urls,
-                accessToken: session.accessToken,
+                  return Row(
+                    children: [
+                      _Sidebar(
+                        session: session,
+                        state: state,
+                        width: sidebarWidth,
+                      ),
+                      Expanded(
+                        child: _ContentPane(session: session, state: state),
+                      ),
+                    ],
+                  );
+                },
               );
             },
-            child: BlocBuilder<LibraryCubit, LibraryState>(
-              builder: (context, state) {
-                return LayoutBuilder(
-                  builder: (context, constraints) {
-                    final sidebarWidth = _responsiveSidebarWidth(
-                      constraints.maxWidth,
-                    );
-
-                    return Row(
-                      children: [
-                        _Sidebar(
-                          session: session,
-                          state: state,
-                          width: sidebarWidth,
-                        ),
-                        Expanded(
-                          child: _ContentPane(session: session, state: state),
-                        ),
-                      ],
-                    );
-                  },
-                );
-              },
-            ),
           ),
         ),
       ),
@@ -486,7 +453,7 @@ class _AssetSectionView extends StatelessWidget {
       child: LayoutBuilder(
         builder: (context, constraints) {
           return GridView.builder(
-            cacheExtent: 720,
+            cacheExtent: 240,
             gridDelegate: _buildAssetGridDelegate(constraints.maxWidth),
             itemCount: assets.length + (hasMore || isLoadingMore ? 1 : 0),
             itemBuilder: (context, index) {
@@ -559,7 +526,7 @@ class _AssetTileState extends State<_AssetTile> {
                   placeholderIcon: widget.asset.isVideo
                       ? Icons.smart_display_outlined
                       : Icons.photo_outlined,
-                  filterQuality: FilterQuality.low,
+                  filterQuality: FilterQuality.none,
                 ),
                 DecoratedBox(
                   decoration: BoxDecoration(
@@ -1011,7 +978,7 @@ class _AlbumAssetGrid extends StatelessWidget {
           child: LayoutBuilder(
             builder: (context, constraints) {
               return GridView.builder(
-                cacheExtent: 720,
+                cacheExtent: 240,
                 gridDelegate: _buildAssetGridDelegate(constraints.maxWidth),
                 itemCount: assets.length,
                 itemBuilder: (context, index) {

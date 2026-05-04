@@ -51,8 +51,7 @@ class ImmichTvApp extends StatelessWidget {
                    normalizer: const ServerUrlNormalizer(),
                  )),
        _assetImageRepository =
-           assetImageRepository ??
-           ImmichAssetImageRepository(dio: ImmichDioFactory.create()),
+           assetImageRepository ?? const ImmichAssetImageRepository(),
        _mediaRepository =
            mediaRepository ??
            ((useMockServices ?? false)
