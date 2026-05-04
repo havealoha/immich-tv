@@ -97,8 +97,8 @@ class _AuthenticatedAssetImageState extends State<AuthenticatedAssetImage> {
             fit: widget.fit,
             gaplessPlayback: true,
             filterQuality: widget.filterQuality,
-            cacheWidth: targetSize.width,
-            cacheHeight: targetSize.height,
+            cacheWidth: targetSize.cacheWidth,
+            cacheHeight: targetSize.cacheHeight,
             frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
               if (wasSynchronouslyLoaded || frame != null) {
                 return child;
@@ -184,10 +184,24 @@ class _AuthenticatedAssetImageState extends State<AuthenticatedAssetImage> {
         ? constraints.maxHeight
         : mediaQuery?.size.height ?? 0;
 
-    return _DecodeTargetSize(
-      width: _scaledDimension(width, effectivePixelRatio),
-      height: _scaledDimension(height, effectivePixelRatio),
-    );
+    final scaledWidth = _scaledDimension(width, effectivePixelRatio);
+    final scaledHeight = _scaledDimension(height, effectivePixelRatio);
+
+    if (scaledWidth == null && scaledHeight == null) {
+      return const _DecodeTargetSize();
+    }
+
+    if (scaledWidth == null) {
+      return _DecodeTargetSize(cacheHeight: scaledHeight);
+    }
+
+    if (scaledHeight == null) {
+      return _DecodeTargetSize(cacheWidth: scaledWidth);
+    }
+
+    return scaledWidth >= scaledHeight
+        ? _DecodeTargetSize(cacheWidth: scaledWidth)
+        : _DecodeTargetSize(cacheHeight: scaledHeight);
   }
 
   int? _scaledDimension(double logicalDimension, double pixelRatio) {
@@ -200,10 +214,10 @@ class _AuthenticatedAssetImageState extends State<AuthenticatedAssetImage> {
 }
 
 class _DecodeTargetSize {
-  const _DecodeTargetSize({required this.width, required this.height});
+  const _DecodeTargetSize({this.cacheWidth, this.cacheHeight});
 
-  final int? width;
-  final int? height;
+  final int? cacheWidth;
+  final int? cacheHeight;
 }
 
 class _ImagePlaceholder extends StatelessWidget {
