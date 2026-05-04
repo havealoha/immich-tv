@@ -21,8 +21,12 @@ class OnboardingFlow extends StatefulWidget {
 }
 
 class _OnboardingFlowState extends State<OnboardingFlow> {
-  final _serverController = TextEditingController(text: "http://192.168.0.243:2283");
-  final _emailController = TextEditingController(text: "afridi.khondakar@gmail.com");
+  final _serverController = TextEditingController(
+    text: "http://192.168.0.243:2283",
+  );
+  final _emailController = TextEditingController(
+    text: "afridi.khondakar@gmail.com",
+  );
   final _passwordController = TextEditingController(text: "#Noobshit911");
   final _serverFieldFocusNode = FocusNode(debugLabel: 'serverField');
   final _emailFieldFocusNode = FocusNode(debugLabel: 'emailField');
@@ -40,9 +44,15 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
     final environment = context.read<AppEnvironment>();
     final useMockServices = environment.useMockServices;
 
-    _serverController.text = useMockServices ? 'https://demo.immichtv.local' : 'http://192.168.0.243:2283';
-    _emailController.text = useMockServices ? 'livingroom@demo.immichtv' : 'afridi.khondakar@gmail.com';
-    _passwordController.text = useMockServices ? 'demo-password' : '#Noobshit911';
+    _serverController.text = useMockServices
+        ? 'https://demo.immichtv.local'
+        : 'http://192.168.0.243:2283';
+    _emailController.text = useMockServices
+        ? 'livingroom@demo.immichtv'
+        : 'afridi.khondakar@gmail.com';
+    _passwordController.text = useMockServices
+        ? 'demo-password'
+        : '#Noobshit911';
     _hasAppliedInitialValues = true;
   }
 
@@ -62,78 +72,70 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return BlocProvider(
-      create: (_) => OnboardingCubit(authRepository: context.read<AuthRepository>(), serverRepository: context.read<ServerRepository>()),
+      create: (_) => OnboardingCubit(
+        authRepository: context.read<AuthRepository>(),
+        serverRepository: context.read<ServerRepository>(),
+      ),
       child: BlocBuilder<OnboardingCubit, OnboardingState>(
         builder: (context, state) {
           return Scaffold(
             body: Container(
               decoration: const BoxDecoration(
-                gradient: RadialGradient(colors: [Color(0xFF1A4E58), Color(0xFF08131A)], center: Alignment.topLeft, radius: 1.4),
+                gradient: RadialGradient(
+                  colors: [Color(0xFF1A4E58), Color(0xFF08131A)],
+                  center: Alignment.topLeft,
+                  radius: 1.4,
+                ),
               ),
               child: SafeArea(
                 child: LayoutBuilder(
                   builder: (context, viewportConstraints) {
-                    final useCompactLayout = viewportConstraints.maxWidth < AppBreakpoints.tablet || viewportConstraints.maxHeight < 700;
+                    final isTvLayout =
+                        viewportConstraints.maxWidth >= AppBreakpoints.tv;
+                    final horizontalPadding = isTvLayout
+                        ? 56.0
+                        : viewportConstraints.maxWidth < AppBreakpoints.tablet
+                        ? 24.0
+                        : 32.0;
+                    final cardMaxWidth = isTvLayout ? 760.0 : 560.0;
+                    final cardPadding = isTvLayout ? 40.0 : 32.0;
 
-                    final form = _buildForm(context, theme, state);
-
-                    if (useCompactLayout) {
-                      return SingleChildScrollView(
-                        padding: const EdgeInsets.all(24),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            Card(
-                              child: Padding(
-                                padding: const EdgeInsets.all(32),
-                                child: SingleChildScrollView(child: _IntroPanel(theme: theme)),
-                              ),
-                            ),
-                            const SizedBox(height: 24),
-                            Card(
-                              child: Padding(
-                                padding: const EdgeInsets.all(32),
-                                child: SingleChildScrollView(child: form),
-                              ),
-                            ),
-                          ],
-                        ),
-                      );
-                    }
-
-                    final panelHeight = (viewportConstraints.maxHeight - 64).clamp(560.0, 720.0);
-
-                    return Center(
-                      child: ConstrainedBox(
-                        constraints: const BoxConstraints(maxWidth: 1180),
-                        child: Padding(
-                          padding: const EdgeInsets.all(32),
-                          child: SizedBox(
-                            height: panelHeight.toDouble(),
-                            child: Row(
-                              crossAxisAlignment: CrossAxisAlignment.stretch,
-                              children: [
-                                Expanded(
-                                  child: Card(
-                                    child: Padding(
-                                      padding: const EdgeInsets.all(32),
-                                      child: SingleChildScrollView(child: _IntroPanel(theme: theme)),
+                    return Padding(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: horizontalPadding,
+                        vertical: 24,
+                      ),
+                      child: Column(
+                        children: [
+                          _TopBranding(
+                            theme: theme,
+                            state: state,
+                            isTvLayout: isTvLayout,
+                          ),
+                          SizedBox(height: isTvLayout ? 48 : 32),
+                          Expanded(
+                            child: Center(
+                              child: ConstrainedBox(
+                                constraints: BoxConstraints(
+                                  maxWidth: cardMaxWidth,
+                                ),
+                                child: Card(
+                                  child: Padding(
+                                    padding: EdgeInsets.all(cardPadding),
+                                    child: SingleChildScrollView(
+                                      child: _buildForm(
+                                        context,
+                                        theme,
+                                        state,
+                                        isTvLayout: isTvLayout,
+                                      ),
                                     ),
                                   ),
                                 ),
-                                const SizedBox(width: 24),
-                                Expanded(
-                                  child: Card(
-                                    child: Padding(
-                                      padding: const EdgeInsets.all(32),
-                                      child: SingleChildScrollView(child: form),
-                                    ),
-                                  ),
-                                ),
-                              ],
+                              ),
                             ),
                           ),
-                        ),
+                        ],
                       ),
                     );
                   },
@@ -146,126 +148,199 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
     );
   }
 
-  Widget _buildForm(BuildContext context, ThemeData theme, OnboardingState state) {
+  Widget _buildForm(
+    BuildContext context,
+    ThemeData theme,
+    OnboardingState state, {
+    required bool isTvLayout,
+  }) {
     final useMockServices = context.read<AppEnvironment>().useMockServices;
     final isSubmitting = state.isBusy;
     final serverValidated = state.hasValidatedServer;
-    final helperText = serverValidated ? 'Press Enter to sign in after entering your credentials.' : 'Press Enter to validate your server URL.';
+    final helperText = serverValidated
+        ? 'Press Enter to sign in after entering your credentials.'
+        : 'Press Enter to validate your server URL.';
+    final titleStyle =
+        (isTvLayout
+                ? theme.textTheme.headlineLarge
+                : theme.textTheme.headlineMedium)
+            ?.copyWith(fontWeight: FontWeight.w700);
+    final bodyStyle =
+        (isTvLayout ? theme.textTheme.titleMedium : theme.textTheme.bodyLarge)
+            ?.copyWith(color: const Color(0xFFB8C8CF), height: 1.5);
+    final fieldSpacing = isTvLayout ? 24.0 : 18.0;
+    final contentGap = isTvLayout ? 36.0 : 28.0;
+    final buttonHeight = isTvLayout ? 64.0 : 52.0;
+    final statusPadding = isTvLayout ? 20.0 : 16.0;
 
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(serverValidated ? 'Sign in to Immich' : 'Connect your server', style: theme.textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w700)),
-        const SizedBox(height: 12),
-        Text(
-          serverValidated
-              ? (useMockServices
-                    ? 'Demo mode is active. Sign in to explore the curated TV experience with mock content.'
-                    : 'We found a compatible Immich API. Sign in securely to continue.')
-              : (useMockServices
-                    ? 'Start with the demo server URL. We will validate it and load a polished mock library so we can shape the full TV experience first.'
-                    : 'Start with the URL of your Immich instance. We will validate it before asking for credentials.'),
-          style: theme.textTheme.bodyLarge?.copyWith(color: const Color(0xFFB8C8CF), height: 1.5),
+    return Theme(
+      data: theme.copyWith(
+        inputDecorationTheme: theme.inputDecorationTheme.copyWith(
+          contentPadding: EdgeInsets.symmetric(
+            horizontal: isTvLayout ? 24 : 18,
+            vertical: isTvLayout ? 22 : 18,
+          ),
+          labelStyle: isTvLayout ? theme.textTheme.titleMedium : null,
+          hintStyle: isTvLayout
+              ? theme.textTheme.titleMedium?.copyWith(
+                  color: AppColors.textMuted,
+                )
+              : null,
         ),
-        const SizedBox(height: 28),
-        if (useMockServices) ...[
-          const _StatusBanner(
-            icon: Icons.auto_awesome_outlined,
-            color: Color(0xFF6FE0DB),
-            message:
-                'Demo mode is on. Authentication, library browsing, pagination, and fullscreen viewing are currently backed by mock data so we can polish the UI before real API rollout.',
-          ),
-          const SizedBox(height: 18),
-        ],
-        TextField(
-          controller: _serverController,
-          focusNode: _serverFieldFocusNode,
-          enabled: !serverValidated && !isSubmitting,
-          textInputAction: TextInputAction.done,
-          onSubmitted: !serverValidated && !isSubmitting ? (_) => _handlePrimaryAction(context, state) : null,
-          decoration: const InputDecoration(labelText: 'Immich server URL', hintText: 'https://photos.example.com'),
-        ),
-        if (state.errorMessage case final message?) ...[
-          const SizedBox(height: 18),
-          _StatusBanner(icon: Icons.error_outline, color: const Color(0xFFFF907C), message: message),
-        ],
-        const SizedBox(height: 18),
-        if (serverValidated) ...[
-          _StatusBanner(
-            icon: Icons.verified_outlined,
-            color: const Color(0xFF6FE0DB),
-            message: useMockServices
-                ? 'Demo server ready at ${state.serverConfig!.apiUrl}. Your mock session will restore like a real TV app flow.'
-                : 'API detected at ${state.serverConfig!.apiUrl}. Your session will be stored without saving the password.',
-          ),
-          const SizedBox(height: 18),
-          TextField(
-            controller: _emailController,
-            focusNode: _emailFieldFocusNode,
-            enabled: !isSubmitting,
-            textInputAction: TextInputAction.next,
-            onSubmitted: (_) => _passwordFieldFocusNode.requestFocus(),
-            decoration: const InputDecoration(labelText: 'Email'),
-          ),
-          const SizedBox(height: 18),
-          TextField(
-            controller: _passwordController,
-            focusNode: _passwordFieldFocusNode,
-            enabled: !isSubmitting,
-            obscureText: true,
-            textInputAction: TextInputAction.done,
-            onSubmitted: !isSubmitting ? (_) => _handlePrimaryAction(context, state) : null,
-            decoration: const InputDecoration(labelText: 'Password'),
-          ),
-          const SizedBox(height: 18),
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: const Color(0xFF0D1B22),
-              borderRadius: BorderRadius.circular(18),
-              border: Border.all(color: const Color(0xFF1E3947)),
+      ),
+      child: DefaultTextStyle.merge(
+        style: isTvLayout
+            ? theme.textTheme.titleMedium ?? const TextStyle()
+            : theme.textTheme.bodyLarge ?? const TextStyle(),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              serverValidated ? 'Sign in to Immich' : 'Connect your server',
+              style: titleStyle,
             ),
-            child: Row(
+            const SizedBox(height: 12),
+            Text(
+              serverValidated
+                  ? (useMockServices
+                        ? 'Demo mode is active. Sign in to explore the curated TV experience with mock content.'
+                        : 'We found a compatible Immich API. Sign in securely to continue.')
+                  : (useMockServices
+                        ? 'Start with the demo server URL. We will validate it and load a polished mock library so we can shape the full TV experience first.'
+                        : 'Start with the URL of your Immich instance. We will validate it before asking for credentials.'),
+              style: bodyStyle,
+            ),
+            SizedBox(height: contentGap),
+            if (useMockServices) ...[
+              _StatusBanner(
+                icon: Icons.auto_awesome_outlined,
+                color: const Color(0xFF6FE0DB),
+                message:
+                    'Demo mode is on. Authentication, library browsing, pagination, and fullscreen viewing are currently backed by mock data so we can polish the UI before real API rollout.',
+                padding: statusPadding,
+                isTvLayout: isTvLayout,
+              ),
+              SizedBox(height: fieldSpacing),
+            ],
+            TextField(
+              controller: _serverController,
+              focusNode: _serverFieldFocusNode,
+              enabled: !serverValidated && !isSubmitting,
+              textInputAction: TextInputAction.done,
+              style: isTvLayout ? theme.textTheme.titleLarge : null,
+              onSubmitted: !serverValidated && !isSubmitting
+                  ? (_) => _handlePrimaryAction(context, state)
+                  : null,
+              decoration: const InputDecoration(
+                labelText: 'Immich server URL',
+                hintText: 'https://photos.example.com',
+              ),
+            ),
+            if (state.errorMessage case final message?) ...[
+              SizedBox(height: fieldSpacing),
+              _StatusBanner(
+                icon: Icons.error_outline,
+                color: const Color(0xFFFF907C),
+                message: message,
+                padding: statusPadding,
+                isTvLayout: isTvLayout,
+              ),
+            ],
+            if (serverValidated) ...[
+              SizedBox(height: fieldSpacing),
+              _StatusBanner(
+                icon: Icons.verified_outlined,
+                color: const Color(0xFF6FE0DB),
+                message: useMockServices
+                    ? 'Demo server ready at ${state.serverConfig!.apiUrl}. Your mock session will restore like a real TV app flow.'
+                    : 'API detected at ${state.serverConfig!.apiUrl}. Your session will be stored without saving the password.',
+                padding: statusPadding,
+                isTvLayout: isTvLayout,
+              ),
+              SizedBox(height: fieldSpacing),
+              TextField(
+                controller: _emailController,
+                focusNode: _emailFieldFocusNode,
+                enabled: !isSubmitting,
+                textInputAction: TextInputAction.next,
+                style: isTvLayout ? theme.textTheme.titleLarge : null,
+                onSubmitted: (_) => _passwordFieldFocusNode.requestFocus(),
+                decoration: const InputDecoration(labelText: 'Email'),
+              ),
+              SizedBox(height: fieldSpacing),
+              TextField(
+                controller: _passwordController,
+                focusNode: _passwordFieldFocusNode,
+                enabled: !isSubmitting,
+                obscureText: true,
+                style: isTvLayout ? theme.textTheme.titleLarge : null,
+                textInputAction: TextInputAction.done,
+                onSubmitted: !isSubmitting
+                    ? (_) => _handlePrimaryAction(context, state)
+                    : null,
+                decoration: const InputDecoration(labelText: 'Password'),
+              ),
+            ],
+            SizedBox(height: isTvLayout ? 28 : 24),
+            Row(
               children: [
-                const Icon(Icons.verified_user_outlined, color: Color(0xFF6FE0DB)),
-                const SizedBox(width: 12),
+                ShortcutHint(
+                  label: 'Enter',
+                  size: isTvLayout
+                      ? ShortcutHintSize.large
+                      : ShortcutHintSize.medium,
+                ),
+                const SizedBox(width: AppSpacing.sm),
                 Expanded(
                   child: Text(
-                    useMockServices
-                        ? 'Next up: continue with the mock-first showcase flow, then swap these repositories for real Immich APIs.'
-                        : 'Next up: real API validation, secure storage, and persisted sessions.',
-                    style: theme.textTheme.bodyMedium?.copyWith(color: const Color(0xFFB8C8CF)),
+                    helperText,
+                    style:
+                        (isTvLayout
+                                ? theme.textTheme.titleMedium
+                                : theme.textTheme.bodyMedium)
+                            ?.copyWith(color: AppColors.textMuted),
                   ),
                 ),
               ],
             ),
-          ),
-        ],
-        const SizedBox(height: 24),
-        Row(
-          children: [
-            const ShortcutHint(label: 'Enter'),
-            const SizedBox(width: AppSpacing.sm),
-            Expanded(
-              child: Text(helperText, style: theme.textTheme.bodyMedium?.copyWith(color: AppColors.textMuted)),
+            SizedBox(height: isTvLayout ? 24 : 18),
+            SizedBox(
+              width: double.infinity,
+              height: buttonHeight,
+              child: FilledButton(
+                focusNode: _actionButtonFocusNode,
+                style: FilledButton.styleFrom(
+                  textStyle: isTvLayout
+                      ? theme.textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        )
+                      : theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
+                ),
+                onPressed: isSubmitting
+                    ? null
+                    : () => _handlePrimaryAction(context, state),
+                child: Text(
+                  isSubmitting
+                      ? 'Working...'
+                      : (serverValidated
+                            ? 'Continue to library shell'
+                            : 'Validate server'),
+                ),
+              ),
             ),
           ],
         ),
-        const SizedBox(height: 18),
-        SizedBox(
-          width: double.infinity,
-          child: FilledButton(
-            focusNode: _actionButtonFocusNode,
-            onPressed: isSubmitting ? null : () => _handlePrimaryAction(context, state),
-            child: Text(isSubmitting ? 'Working...' : (serverValidated ? 'Continue to library shell' : 'Validate server')),
-          ),
-        ),
-      ],
+      ),
     );
   }
 
-  Future<void> _handlePrimaryAction(BuildContext context, OnboardingState state) async {
+  Future<void> _handlePrimaryAction(
+    BuildContext context,
+    OnboardingState state,
+  ) async {
     final onboardingCubit = context.read<OnboardingCubit>();
     final appFlowCubit = context.read<AppFlowCubit>();
 
@@ -277,7 +352,10 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
       return;
     }
 
-    final session = await onboardingCubit.signIn(email: _emailController.text.trim(), password: _passwordController.text);
+    final session = await onboardingCubit.signIn(
+      email: _emailController.text.trim(),
+      password: _passwordController.text,
+    );
 
     if (!mounted || session == null) {
       return;
@@ -288,16 +366,24 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
 }
 
 class _StatusBanner extends StatelessWidget {
-  const _StatusBanner({required this.icon, required this.color, required this.message});
+  const _StatusBanner({
+    required this.icon,
+    required this.color,
+    required this.message,
+    required this.padding,
+    required this.isTvLayout,
+  });
 
   final IconData icon;
   final Color color;
   final String message;
+  final double padding;
+  final bool isTvLayout;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.all(padding),
       decoration: BoxDecoration(
         color: AppColors.backgroundElevated,
         borderRadius: BorderRadius.circular(AppRadii.md),
@@ -305,105 +391,67 @@ class _StatusBanner extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Icon(icon, color: color),
-          const SizedBox(width: 12),
+          Icon(icon, color: color, size: isTvLayout ? 28 : 24),
+          SizedBox(width: isTvLayout ? 16 : 12),
           Expanded(
-            child: Text(message, style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppColors.textSecondary)),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _IntroPanel extends StatelessWidget {
-  const _IntroPanel({required this.theme});
-
-  final ThemeData theme;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-          decoration: BoxDecoration(
-            color: AppColors.backgroundElevated,
-            borderRadius: BorderRadius.circular(AppRadii.pill),
-            border: Border.all(color: AppColors.border),
-          ),
-          child: const Text(
-            'MVP foundation',
-            style: TextStyle(color: AppColors.focus, fontWeight: FontWeight.w600, letterSpacing: 0.3),
-          ),
-        ),
-        const SizedBox(height: 24),
-        Text('A TV-first Immich client for the living room.', style: theme.textTheme.displaySmall?.copyWith(fontWeight: FontWeight.w700, height: 1.1)),
-        const SizedBox(height: 18),
-        Text(
-          'This first milestone focuses on the core path: app bootstrap, server entry, authentication handoff, and a library shell ready for albums, timeline, favorites, and slideshow work.',
-          style: theme.textTheme.bodyLarge?.copyWith(color: AppColors.textSecondary, height: 1.6),
-        ),
-        const SizedBox(height: 28),
-        const _FeatureCallout(icon: Icons.dns_outlined, title: 'Server-first onboarding', body: 'Validate the user server before asking for credentials.'),
-        const SizedBox(height: 16),
-        const _FeatureCallout(
-          icon: Icons.settings_remote_outlined,
-          title: 'TV-friendly navigation',
-          body: 'Large cards, calm contrast, and layouts that translate well to remote input.',
-        ),
-        const SizedBox(height: 16),
-        const _FeatureCallout(
-          icon: Icons.photo_library_outlined,
-          title: 'Library-focused roadmap',
-          body: 'Timeline, albums, favorites, slideshow, caching, and session persistence come next.',
-        ),
-        const SizedBox(height: 24),
-        Text(
-          'Today we are replacing the starter app with product-shaped structure so feature work has a clean home.',
-          style: theme.textTheme.bodyMedium?.copyWith(color: AppColors.textMuted),
-        ),
-      ],
-    );
-  }
-}
-
-class _FeatureCallout extends StatelessWidget {
-  const _FeatureCallout({required this.icon, required this.title, required this.body});
-
-  final IconData icon;
-  final String title;
-  final String body;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Container(
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: AppColors.backgroundElevated,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, color: AppColors.focus, size: 28),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(title, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
-                const SizedBox(height: 6),
-                Text(body, style: theme.textTheme.bodyMedium?.copyWith(color: AppColors.textSecondary, height: 1.5)),
-              ],
+            child: Text(
+              message,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: AppColors.textSecondary,
+                fontSize: isTvLayout ? 18 : null,
+                height: 1.5,
+              ),
             ),
           ),
         ],
       ),
+    );
+  }
+}
+
+class _TopBranding extends StatelessWidget {
+  const _TopBranding({
+    required this.theme,
+    required this.state,
+    required this.isTvLayout,
+  });
+
+  final ThemeData theme;
+  final OnboardingState state;
+  final bool isTvLayout;
+
+  @override
+  Widget build(BuildContext context) {
+    final serverValidated = state.hasValidatedServer;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Text(
+          'Immich TV',
+          textAlign: TextAlign.center,
+          style:
+              (isTvLayout
+                      ? theme.textTheme.displayMedium
+                      : theme.textTheme.displaySmall)
+                  ?.copyWith(fontWeight: FontWeight.w800, height: 1),
+        ),
+        SizedBox(height: isTvLayout ? 18 : 12),
+        ConstrainedBox(
+          constraints: BoxConstraints(maxWidth: isTvLayout ? 960 : 760),
+          child: Text(
+            serverValidated
+                ? 'Your server is ready. Enter your Immich account email and password to continue.'
+                : 'Enter your Immich Server URL to connect this TV and continue to sign in.',
+            textAlign: TextAlign.center,
+            style:
+                (isTvLayout
+                        ? theme.textTheme.headlineSmall
+                        : theme.textTheme.titleMedium)
+                    ?.copyWith(color: AppColors.textSecondary, height: 1.5),
+          ),
+        ),
+      ],
     );
   }
 }
