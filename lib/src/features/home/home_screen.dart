@@ -1076,9 +1076,6 @@ class _SlideshowSectionViewState extends State<_SlideshowSectionView> {
                   albumsFuture: _albumsFuture!,
                   selectedAlbum: _selectedAlbum,
                   albumAssetsFuture: _albumAssetsFuture,
-                  durationSeconds: _durationSeconds,
-                  shuffle: _shuffle,
-                  accessToken: widget.session.accessToken,
                   onAlbumSelected: _selectAlbum,
                   onStart: (assets) {
                     SlideshowPlayerScreen.show(
@@ -1090,13 +1087,18 @@ class _SlideshowSectionViewState extends State<_SlideshowSectionView> {
                     );
                   },
                 )
-              : _PhotoSlideshowPreview(
+              : _SlideshowLaunchPanel(
                   title: _source == _SlideshowSource.timeline
                       ? 'Timeline'
                       : 'Favorites',
-                  assets: sourceAssets,
-                  shuffle: _shuffle,
-                  accessToken: widget.session.accessToken,
+                  description: _source == _SlideshowSource.timeline
+                      ? 'Play your full photo timeline in sequence or shuffle.'
+                      : 'Play only your favorite photos as a dedicated slideshow.',
+                  assetCount: sourceAssets.length,
+                  emptyTitle: 'No photos ready for slideshow',
+                  emptyBody: _source == _SlideshowSource.timeline
+                      ? 'Timeline will become available here once your library has photos.'
+                      : 'Favorite some photos first, then start a favorites slideshow from here.',
                   onStart: () {
                     SlideshowPlayerScreen.show(
                       context,
@@ -1273,30 +1275,31 @@ class _SlideshowControlsPanel extends StatelessWidget {
   }
 }
 
-class _PhotoSlideshowPreview extends StatelessWidget {
-  const _PhotoSlideshowPreview({
+class _SlideshowLaunchPanel extends StatelessWidget {
+  const _SlideshowLaunchPanel({
     required this.title,
-    required this.assets,
-    required this.shuffle,
-    required this.accessToken,
+    required this.description,
+    required this.assetCount,
+    required this.emptyTitle,
+    required this.emptyBody,
     required this.onStart,
   });
 
   final String title;
-  final List<AssetSummary> assets;
-  final bool shuffle;
-  final String accessToken;
+  final String description;
+  final int assetCount;
+  final String emptyTitle;
+  final String emptyBody;
   final VoidCallback onStart;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    if (assets.isEmpty) {
-      return const _InfoPanel(
-        title: 'No photos ready for slideshow',
-        body:
-            'Slideshow currently uses photo assets only. Open Timeline or Favorites first if you want to load more sources.',
+    if (assetCount == 0) {
+      return _InfoPanel(
+        title: emptyTitle,
+        body: emptyBody,
         accent: AppColors.textMuted,
       );
     }
@@ -1313,60 +1316,32 @@ class _PhotoSlideshowPreview extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              '$title • ${assets.length} photos ready',
+              title,
               style: theme.textTheme.headlineSmall?.copyWith(
                 fontWeight: FontWeight.w800,
               ),
             ),
             const SizedBox(height: AppSpacing.xs),
             Text(
-              shuffle
-                  ? 'Playback starts in a shuffled order.'
-                  : 'Playback starts in your current library order.',
+              '$assetCount photos ready',
               style: theme.textTheme.bodyLarge?.copyWith(
                 color: AppColors.textSecondary,
               ),
             ),
-            const SizedBox(height: AppSpacing.xl),
+            const SizedBox(height: AppSpacing.lg),
             Expanded(
-              child: Row(
-                children: [
-                  Expanded(
-                    flex: 3,
-                    child: AuthenticatedAssetImage(
-                      imageUrls: assets.first.displayUrls,
-                      accessToken: accessToken,
-                      requiresAuth: assets.first.requiresAuth,
-                      borderRadius: AppRadii.xl,
-                      fit: BoxFit.cover,
-                      filterQuality: FilterQuality.low,
+              child: Align(
+                alignment: Alignment.topLeft,
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 560),
+                  child: Text(
+                    description,
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      color: AppColors.textSecondary,
+                      height: 1.6,
                     ),
                   ),
-                  const SizedBox(width: AppSpacing.lg),
-                  SizedBox(
-                    width: 160,
-                    child: Column(
-                      children: [
-                        for (final asset in assets.take(4))
-                          Expanded(
-                            child: Padding(
-                              padding: const EdgeInsets.only(
-                                bottom: AppSpacing.sm,
-                              ),
-                              child: AuthenticatedAssetImage(
-                                imageUrls: asset.thumbnailUrls,
-                                accessToken: accessToken,
-                                requiresAuth: asset.requiresAuth,
-                                borderRadius: 20,
-                                fit: BoxFit.cover,
-                                filterQuality: FilterQuality.low,
-                              ),
-                            ),
-                          ),
-                      ],
-                    ),
-                  ),
-                ],
+                ),
               ),
             ),
             const SizedBox(height: AppSpacing.xl),
@@ -1394,9 +1369,6 @@ class _AlbumSlideshowSourceView extends StatelessWidget {
     required this.albumsFuture,
     required this.selectedAlbum,
     required this.albumAssetsFuture,
-    required this.durationSeconds,
-    required this.shuffle,
-    required this.accessToken,
     required this.onAlbumSelected,
     required this.onStart,
   });
@@ -1405,9 +1377,6 @@ class _AlbumSlideshowSourceView extends StatelessWidget {
   final Future<List<AlbumSummary>> albumsFuture;
   final AlbumSummary? selectedAlbum;
   final Future<List<AssetSummary>>? albumAssetsFuture;
-  final int durationSeconds;
-  final bool shuffle;
-  final String accessToken;
   final ValueChanged<AlbumSummary> onAlbumSelected;
   final ValueChanged<List<AssetSummary>> onStart;
 
@@ -1494,20 +1463,23 @@ class _AlbumSlideshowSourceView extends StatelessWidget {
                 if (assets.isEmpty) {
                   return const Expanded(
                     child: _InfoPanel(
-                      title: 'This album has no photos for slideshow',
+                      title: 'This album has no photos ready',
                       body:
-                          'Only photo assets are included in slideshow playback right now.',
+                          'Choose another album or add photo assets to this one before starting a slideshow.',
                       accent: AppColors.textMuted,
                     ),
                   );
                 }
 
                 return Expanded(
-                  child: _PhotoSlideshowPreview(
+                  child: _SlideshowLaunchPanel(
                     title: selectedAlbumValue.name,
-                    assets: assets,
-                    shuffle: shuffle,
-                    accessToken: accessToken,
+                    description:
+                        'Start playback from this album using your selected duration and shuffle settings.',
+                    assetCount: assets.length,
+                    emptyTitle: 'This album has no photos ready',
+                    emptyBody:
+                        'Choose another album or add photo assets to this one before starting a slideshow.',
                     onStart: () => onStart(assets),
                   ),
                 );
