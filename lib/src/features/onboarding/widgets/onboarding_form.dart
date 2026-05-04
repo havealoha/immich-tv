@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../../shared/presentation/app_colors.dart';
-import '../../../shared/presentation/app_spacing.dart';
-import '../../../shared/presentation/widgets/shortcut_hint.dart';
 import '../cubit/onboarding_state.dart';
 import 'onboarding_status_banner.dart';
 
@@ -27,8 +25,7 @@ class OnboardingForm extends StatelessWidget {
     required this.confirmPinFieldFocusNode,
     required this.actionButtonFocusNode,
     required this.onPrimaryAction,
-    required this.onChangeServer,
-    required this.onShowProfiles,
+    required this.onSecondaryAction,
   });
 
   final ThemeData theme;
@@ -48,70 +45,73 @@ class OnboardingForm extends StatelessWidget {
   final FocusNode confirmPinFieldFocusNode;
   final FocusNode actionButtonFocusNode;
   final VoidCallback onPrimaryAction;
-  final VoidCallback onChangeServer;
-  final VoidCallback onShowProfiles;
+  final VoidCallback onSecondaryAction;
 
   @override
   Widget build(BuildContext context) {
     final isSubmitting = state.isBusy;
+    final isServerStep = state.step == OnboardingStep.server;
     final isCredentialsStep = state.step == OnboardingStep.credentials;
-    final helperText = isCredentialsStep
-        ? 'Press Enter to save this profile after entering credentials and a 4-digit PIN.'
-        : 'Press Enter to validate your server URL and continue.';
-    final titleStyle =
-        (isTvLayout
-                ? theme.textTheme.headlineLarge
-                : theme.textTheme.headlineMedium)
-            ?.copyWith(fontWeight: FontWeight.w700);
-    final bodyStyle =
-        (isTvLayout ? theme.textTheme.titleMedium : theme.textTheme.bodyLarge)
-            ?.copyWith(color: const Color(0xFFB8C8CF), height: 1.5);
-    final fieldSpacing = isTvLayout ? 24.0 : 18.0;
-    final contentGap = isTvLayout ? 36.0 : 28.0;
-    final buttonHeight = isTvLayout ? 64.0 : 52.0;
-    final statusPadding = isTvLayout ? 20.0 : 16.0;
+    final helperText = switch (state.step) {
+      OnboardingStep.server => 'Press Enter to validate your server URL and continue.',
+      OnboardingStep.credentials => 'Press Enter to sign in and continue to PIN setup.',
+      OnboardingStep.pin => 'Press Enter to save this profile after entering your 4-digit PIN.',
+    };
+    final title = switch (state.step) {
+      OnboardingStep.server => 'Connect your server',
+      OnboardingStep.credentials => 'Sign in to Immich',
+      OnboardingStep.pin => 'Create a profile PIN',
+    };
+    final description = switch (state.step) {
+      OnboardingStep.server =>
+        useMockServices
+            ? 'Start with the demo server URL. We will validate it and load a polished mock library so we can shape the full TV experience first.'
+            : 'Start with the URL of your Immich instance. We will validate it before asking for credentials.',
+      OnboardingStep.credentials =>
+        useMockServices
+            ? 'Demo mode is active. Enter your Immich account details to create a TV-ready mock session.'
+            : 'Your server is verified. Sign in with your Immich account to continue.',
+      OnboardingStep.pin =>
+        useMockServices
+            ? 'Your mock session is ready. Add a 4-digit PIN so this TV profile can be reopened quickly.'
+            : 'You are signed in. Add a 4-digit PIN so this TV profile can be reopened without entering your password again.',
+    };
+    final primaryButtonLabel = switch (state.step) {
+      OnboardingStep.server => 'Validate server',
+      OnboardingStep.credentials => 'Continue to PIN setup',
+      OnboardingStep.pin => 'Save profile and continue',
+    };
+    final secondaryButtonLabel = switch (state.step) {
+      OnboardingStep.server => 'Back to profiles',
+      OnboardingStep.credentials => 'Change server',
+      OnboardingStep.pin => 'Back to sign in',
+    };
+    final titleStyle = (isTvLayout ? theme.textTheme.headlineLarge : theme.textTheme.headlineMedium)?.copyWith(fontWeight: FontWeight.w700);
+    final bodyStyle = (isTvLayout ? theme.textTheme.titleMedium : theme.textTheme.bodyLarge)?.copyWith(color: const Color(0xFFB8C8CF), height: 1.5);
+    final fieldSpacing = isTvLayout ? 18.0 : 18.0;
+    final contentGap = isTvLayout ? 24.0 : 28.0;
+    final buttonHeight = isTvLayout ? 60.0 : 52.0;
+    final statusPadding = isTvLayout ? 16.0 : 16.0;
+    final buttonTextStyle = (isTvLayout ? theme.textTheme.titleSmall : theme.textTheme.titleMedium)?.copyWith(fontWeight: FontWeight.w700, height: 1.1);
 
     return Theme(
       data: theme.copyWith(
         inputDecorationTheme: theme.inputDecorationTheme.copyWith(
-          contentPadding: EdgeInsets.symmetric(
-            horizontal: isTvLayout ? 24 : 18,
-            vertical: isTvLayout ? 22 : 18,
-          ),
-          labelStyle: isTvLayout ? theme.textTheme.titleMedium : null,
-          hintStyle: isTvLayout
-              ? theme.textTheme.titleMedium?.copyWith(
-                  color: AppColors.textMuted,
-                )
-              : null,
+          contentPadding: EdgeInsets.symmetric(horizontal: isTvLayout ? 18 : 18, vertical: isTvLayout ? 16 : 18),
+          labelStyle: isTvLayout ? theme.textTheme.titleSmall : null,
+          hintStyle: isTvLayout ? theme.textTheme.titleSmall?.copyWith(color: AppColors.textMuted) : null,
         ),
       ),
       child: DefaultTextStyle.merge(
-        style: isTvLayout
-            ? theme.textTheme.titleMedium ?? const TextStyle()
-            : theme.textTheme.bodyLarge ?? const TextStyle(),
+        style: isTvLayout ? theme.textTheme.bodyLarge ?? const TextStyle() : theme.textTheme.bodyLarge ?? const TextStyle(),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              isCredentialsStep
-                  ? 'Create a saved profile'
-                  : 'Connect your server',
-              style: titleStyle,
-            ),
-            const SizedBox(height: 12),
-            Text(
-              isCredentialsStep
-                  ? (useMockServices
-                        ? 'Demo mode is active. Enter your profile details and PIN to save a TV-ready mock session.'
-                        : 'Your server is verified. Enter your Immich credentials and a 4-digit PIN to save this profile.')
-                  : (useMockServices
-                        ? 'Start with the demo server URL. We will validate it and load a polished mock library so we can shape the full TV experience first.'
-                        : 'Start with the URL of your Immich instance. We will validate it before asking for credentials.'),
-              style: bodyStyle,
-            ),
-            SizedBox(height: contentGap),
+            Text(title, style: titleStyle),
+            SizedBox(height: isTvLayout ? 8 : 12),
+            // Text(description, style: bodyStyle),
+            // SizedBox(height: contentGap),
             if (useMockServices) ...[
               OnboardingStatusBanner(
                 icon: Icons.auto_awesome_outlined,
@@ -133,37 +133,34 @@ class OnboardingForm extends StatelessWidget {
                 isTvLayout: isTvLayout,
               ),
             ],
-            if (!isCredentialsStep) ...[
+            if (isServerStep) ...[
               TextField(
                 controller: serverController,
                 focusNode: serverFieldFocusNode,
                 enabled: !isSubmitting,
                 textInputAction: TextInputAction.done,
-                style: isTvLayout ? theme.textTheme.titleLarge : null,
+                style: isTvLayout ? theme.textTheme.titleMedium : null,
                 onSubmitted: !isSubmitting ? (_) => onPrimaryAction() : null,
-                decoration: const InputDecoration(
-                  labelText: 'Immich server URL',
-                  hintText: 'https://photos.example.com',
-                ),
+                decoration: const InputDecoration(labelText: 'Immich server URL', hintText: 'https://photos.example.com'),
               ),
-            ] else ...[
-              SizedBox(height: fieldSpacing),
-              OnboardingStatusBanner(
-                icon: Icons.verified_outlined,
-                color: const Color(0xFF6FE0DB),
-                message: useMockServices
-                    ? 'Demo server ready at ${state.serverConfig!.apiUrl}. Your mock session will restore like a real TV app flow.'
-                    : 'API detected at ${state.serverConfig!.apiUrl}. Your session will be stored without saving the password.',
-                padding: statusPadding,
-                isTvLayout: isTvLayout,
-              ),
-              SizedBox(height: fieldSpacing),
+            ] else if (isCredentialsStep) ...[
+              // SizedBox(height: fieldSpacing),
+              // OnboardingStatusBanner(
+              //   icon: Icons.verified_outlined,
+              //   color: const Color(0xFF6FE0DB),
+              //   message: useMockServices
+              //       ? 'Demo server ready at ${state.serverConfig!.apiUrl}. Your mock session will restore like a real TV app flow.'
+              //       : 'API detected at ${state.serverConfig!.apiUrl}. Your session will be stored without saving the password.',
+              //   padding: statusPadding,
+              //   isTvLayout: isTvLayout,
+              // ),
+              // SizedBox(height: fieldSpacing),
               TextField(
                 controller: emailController,
                 focusNode: emailFieldFocusNode,
                 enabled: !isSubmitting,
                 textInputAction: TextInputAction.next,
-                style: isTvLayout ? theme.textTheme.titleLarge : null,
+                style: isTvLayout ? theme.textTheme.titleMedium : null,
                 onSubmitted: (_) => passwordFieldFocusNode.requestFocus(),
                 decoration: const InputDecoration(labelText: 'Email'),
               ),
@@ -173,14 +170,23 @@ class OnboardingForm extends StatelessWidget {
                 focusNode: passwordFieldFocusNode,
                 enabled: !isSubmitting,
                 obscureText: true,
-                style: isTvLayout ? theme.textTheme.titleLarge : null,
+                style: isTvLayout ? theme.textTheme.titleMedium : null,
                 textInputAction: TextInputAction.next,
-                onSubmitted: !isSubmitting
-                    ? (_) => pinFieldFocusNode.requestFocus()
-                    : null,
+                onSubmitted: !isSubmitting ? (_) => onPrimaryAction() : null,
                 decoration: const InputDecoration(labelText: 'Password'),
               ),
-              SizedBox(height: fieldSpacing),
+            ] else ...[
+              // SizedBox(height: fieldSpacing),
+              // OnboardingStatusBanner(
+              //   icon: Icons.lock_outline_rounded,
+              //   color: const Color(0xFF6FE0DB),
+              //   message: state.pendingSession == null
+              //       ? 'Complete sign-in before saving this TV profile.'
+              //       : 'Signed in as ${state.pendingSession!.user.email}. Choose a 4-digit PIN for quick access on this TV.',
+              //   padding: statusPadding,
+              //   isTvLayout: isTvLayout,
+              // ),
+              // SizedBox(height: fieldSpacing),
               Row(
                 children: [
                   Expanded(
@@ -189,18 +195,12 @@ class OnboardingForm extends StatelessWidget {
                       focusNode: pinFieldFocusNode,
                       enabled: !isSubmitting,
                       obscureText: true,
-                      style: isTvLayout ? theme.textTheme.titleLarge : null,
+                      style: isTvLayout ? theme.textTheme.titleMedium : null,
                       textInputAction: TextInputAction.next,
                       keyboardType: TextInputType.number,
-                      inputFormatters: [
-                        FilteringTextInputFormatter.digitsOnly,
-                        LengthLimitingTextInputFormatter(4),
-                      ],
-                      onSubmitted: (_) =>
-                          confirmPinFieldFocusNode.requestFocus(),
-                      decoration: const InputDecoration(
-                        labelText: '4-digit PIN',
-                      ),
+                      inputFormatters: [FilteringTextInputFormatter.digitsOnly, LengthLimitingTextInputFormatter(4)],
+                      onSubmitted: (_) => confirmPinFieldFocusNode.requestFocus(),
+                      decoration: const InputDecoration(labelText: '4-digit PIN'),
                     ),
                   ),
                   SizedBox(width: fieldSpacing),
@@ -210,105 +210,61 @@ class OnboardingForm extends StatelessWidget {
                       focusNode: confirmPinFieldFocusNode,
                       enabled: !isSubmitting,
                       obscureText: true,
-                      style: isTvLayout ? theme.textTheme.titleLarge : null,
+                      style: isTvLayout ? theme.textTheme.titleMedium : null,
                       textInputAction: TextInputAction.done,
                       keyboardType: TextInputType.number,
-                      inputFormatters: [
-                        FilteringTextInputFormatter.digitsOnly,
-                        LengthLimitingTextInputFormatter(4),
-                      ],
-                      onSubmitted: !isSubmitting
-                          ? (_) => onPrimaryAction()
-                          : null,
-                      decoration: const InputDecoration(
-                        labelText: 'Confirm PIN',
-                      ),
+                      inputFormatters: [FilteringTextInputFormatter.digitsOnly, LengthLimitingTextInputFormatter(4)],
+                      onSubmitted: !isSubmitting ? (_) => onPrimaryAction() : null,
+                      decoration: const InputDecoration(labelText: 'Confirm PIN'),
                     ),
                   ),
                 ],
               ),
-              SizedBox(height: fieldSpacing),
-              Text(
-                'This PIN unlocks the saved profile on future launches without re-entering your Immich email and password.',
-                style:
-                    (isTvLayout
-                            ? theme.textTheme.titleSmall
-                            : theme.textTheme.bodyMedium)
-                        ?.copyWith(color: AppColors.textMuted, height: 1.5),
-              ),
+              // SizedBox(height: fieldSpacing),
+              // Text(
+              //   'This PIN unlocks the saved profile on future launches without re-entering your Immich email and password.',
+              //   style: (isTvLayout ? theme.textTheme.titleSmall : theme.textTheme.bodyMedium)?.copyWith(color: AppColors.textMuted, height: 1.5),
+              // ),
             ],
-            SizedBox(height: isTvLayout ? 28 : 24),
-            Row(
-              children: [
-                ShortcutHint(
-                  label: 'Enter',
-                  size: isTvLayout
-                      ? ShortcutHintSize.large
-                      : ShortcutHintSize.medium,
-                ),
-                const SizedBox(width: AppSpacing.sm),
-                Expanded(
-                  child: Text(
-                    helperText,
-                    style:
-                        (isTvLayout
-                                ? theme.textTheme.titleMedium
-                                : theme.textTheme.bodyMedium)
-                            ?.copyWith(color: AppColors.textMuted),
-                  ),
-                ),
-              ],
-            ),
-            SizedBox(height: isTvLayout ? 24 : 18),
+            // SizedBox(height: isTvLayout ? 20 : 24),
+            // Row(
+            //   children: [
+            //     ShortcutHint(label: 'Enter', size: isTvLayout ? ShortcutHintSize.large : ShortcutHintSize.medium),
+            //     const SizedBox(width: AppSpacing.sm),
+            //     Expanded(
+            //       child: Text(helperText, style: (isTvLayout ? theme.textTheme.bodyMedium : theme.textTheme.bodyMedium)?.copyWith(color: AppColors.textMuted)),
+            //     ),
+            //   ],
+            // ),
+            SizedBox(height: isTvLayout ? 16 : 18),
             SizedBox(
               width: double.infinity,
               height: buttonHeight,
               child: FilledButton(
                 focusNode: actionButtonFocusNode,
                 style: FilledButton.styleFrom(
-                  textStyle: isTvLayout
-                      ? theme.textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.w700,
-                        )
-                      : theme.textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w700,
-                        ),
+                  padding: EdgeInsets.symmetric(horizontal: 18, vertical: isTvLayout ? 10 : 14),
+                  textStyle: buttonTextStyle,
                 ),
                 onPressed: isSubmitting ? null : onPrimaryAction,
-                child: Text(
-                  isSubmitting
-                      ? 'Working...'
-                      : (isCredentialsStep
-                            ? 'Save profile and continue'
-                            : 'Validate server'),
-                ),
+                child: Text(isSubmitting ? 'Working...' : primaryButtonLabel),
               ),
             ),
-            if (hasSavedProfiles) ...[
-              SizedBox(height: isTvLayout ? 16 : 12),
-              SizedBox(
-                width: double.infinity,
-                height: buttonHeight,
-                child: OutlinedButton(
-                  onPressed: isSubmitting
-                      ? null
-                      : (isCredentialsStep ? onChangeServer : onShowProfiles),
-                  child: Text(
-                    isCredentialsStep ? 'Change server' : 'Back to profiles',
-                  ),
-                ),
-              ),
-            ] else if (isCredentialsStep) ...[
-              SizedBox(height: isTvLayout ? 16 : 12),
-              SizedBox(
-                width: double.infinity,
-                height: buttonHeight,
-                child: OutlinedButton(
-                  onPressed: isSubmitting ? null : onChangeServer,
-                  child: const Text('Change server'),
-                ),
-              ),
-            ],
+            // if (hasSavedProfiles || !isServerStep) ...[
+            //   SizedBox(height: isTvLayout ? 12 : 12),
+            //   SizedBox(
+            //     width: double.infinity,
+            //     height: buttonHeight,
+            //     child: OutlinedButton(
+            //       style: OutlinedButton.styleFrom(
+            //         padding: EdgeInsets.symmetric(horizontal: 18, vertical: isTvLayout ? 10 : 14),
+            //         textStyle: buttonTextStyle,
+            //       ),
+            //       onPressed: isSubmitting ? null : onSecondaryAction,
+            //       child: Text(secondaryButtonLabel),
+            //     ),
+            //   ),
+            // ],
           ],
         ),
       ),

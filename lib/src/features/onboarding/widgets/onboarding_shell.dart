@@ -29,22 +29,22 @@ class OnboardingShell extends StatelessWidget {
               final isTvLayout =
                   viewportConstraints.maxWidth >= AppBreakpoints.tv;
               final horizontalPadding = isTvLayout
-                  ? 56.0
+                  ? 40.0
                   : viewportConstraints.maxWidth < AppBreakpoints.tablet
                   ? 24.0
                   : 32.0;
-              final cardMaxWidth = isTvLayout ? 760.0 : 560.0;
-              final cardPadding = isTvLayout ? 40.0 : 32.0;
+              final cardMaxWidth = isTvLayout ? 680.0 : 560.0;
+              final cardPadding = isTvLayout ? 28.0 : 32.0;
 
               return Padding(
                 padding: EdgeInsets.symmetric(
                   horizontal: horizontalPadding,
-                  vertical: 24,
+                  vertical: isTvLayout ? 20 : 24,
                 ),
                 child: Column(
                   children: [
                     branding,
-                    SizedBox(height: isTvLayout ? 48 : 32),
+                    SizedBox(height: isTvLayout ? 28 : 32),
                     Expanded(
                       child: Center(
                         child: ConstrainedBox(

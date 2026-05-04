@@ -84,7 +84,7 @@ void main() {
     await tester.tap(find.text('Validate server'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Create a saved profile'), findsOneWidget);
+    expect(find.text('Sign in to Immich'), findsOneWidget);
     expect(
       find.textContaining('API detected at https://photos.example.com/api'),
       findsOneWidget,
@@ -98,6 +98,11 @@ void main() {
       find.widgetWithText(TextField, 'Password'),
       'demo-password',
     );
+    await tester.ensureVisible(find.text('Continue to PIN setup'));
+    await tester.tap(find.text('Continue to PIN setup'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Create a profile PIN'), findsOneWidget);
     await tester.enterText(
       find.widgetWithText(TextField, '4-digit PIN'),
       '1234',
@@ -136,7 +141,7 @@ void main() {
     await tester.testTextInput.receiveAction(TextInputAction.done);
     await tester.pumpAndSettle();
 
-    expect(find.text('Create a saved profile'), findsOneWidget);
+    expect(find.text('Sign in to Immich'), findsOneWidget);
 
     await tester.enterText(
       find.widgetWithText(TextField, 'Email'),
@@ -146,6 +151,11 @@ void main() {
       find.widgetWithText(TextField, 'Password'),
       'secret-password',
     );
+    await tester.pump();
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Create a profile PIN'), findsOneWidget);
     await tester.enterText(
       find.widgetWithText(TextField, '4-digit PIN'),
       '2468',
@@ -318,6 +328,10 @@ Future<void> _pumpSignedInApp(
     find.widgetWithText(TextField, 'Password'),
     'demo-password',
   );
+  await tester.ensureVisible(find.text('Continue to PIN setup'));
+  await tester.tap(find.text('Continue to PIN setup'));
+  await tester.pumpAndSettle();
+
   await tester.enterText(find.widgetWithText(TextField, '4-digit PIN'), '1234');
   await tester.enterText(find.widgetWithText(TextField, 'Confirm PIN'), '1234');
   await tester.ensureVisible(find.text('Save profile and continue'));

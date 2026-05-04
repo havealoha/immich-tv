@@ -17,7 +17,14 @@ class OnboardingBranding extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isTvLayout = MediaQuery.sizeOf(context).width >= AppBreakpoints.tv;
-    final serverValidated = state.hasValidatedServer;
+    final description = switch (state.step) {
+      OnboardingStep.server =>
+        'Enter your Immich Server URL to connect this TV and continue to sign in.',
+      OnboardingStep.credentials =>
+        'Your server is ready. Enter your Immich account email and password to continue.',
+      OnboardingStep.pin =>
+        'Set a 4-digit PIN so this profile can be reopened quickly on future launches.',
+    };
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.center,
@@ -27,21 +34,19 @@ class OnboardingBranding extends StatelessWidget {
           textAlign: TextAlign.center,
           style:
               (isTvLayout
-                      ? theme.textTheme.displayMedium
+                      ? theme.textTheme.headlineLarge
                       : theme.textTheme.displaySmall)
                   ?.copyWith(fontWeight: FontWeight.w800, height: 1),
         ),
-        SizedBox(height: isTvLayout ? 18 : 12),
+        SizedBox(height: isTvLayout ? 10 : 12),
         ConstrainedBox(
-          constraints: BoxConstraints(maxWidth: isTvLayout ? 960 : 760),
+          constraints: BoxConstraints(maxWidth: isTvLayout ? 780 : 760),
           child: Text(
-            serverValidated
-                ? 'Your server is ready. Enter your Immich account email and password to continue.'
-                : 'Enter your Immich Server URL to connect this TV and continue to sign in.',
+            description,
             textAlign: TextAlign.center,
             style:
                 (isTvLayout
-                        ? theme.textTheme.headlineSmall
+                        ? theme.textTheme.titleLarge
                         : theme.textTheme.titleMedium)
                     ?.copyWith(color: AppColors.textSecondary, height: 1.5),
           ),

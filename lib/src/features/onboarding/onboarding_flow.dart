@@ -85,19 +85,16 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
       child: BlocListener<OnboardingCubit, OnboardingState>(
         listenWhen: (previous, current) => previous.step != current.step,
         listener: (context, state) {
-          if (state.step == OnboardingStep.credentials) {
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              if (mounted) {
-                _emailFieldFocusNode.requestFocus();
-              }
-            });
-          } else {
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              if (mounted) {
-                _serverFieldFocusNode.requestFocus();
-              }
-            });
-          }
+          final targetFocusNode = switch (state.step) {
+            OnboardingStep.server => _serverFieldFocusNode,
+            OnboardingStep.credentials => _emailFieldFocusNode,
+            OnboardingStep.pin => _pinFieldFocusNode,
+          };
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) {
+              targetFocusNode.requestFocus();
+            }
+          });
         },
         child: BlocBuilder<OnboardingCubit, OnboardingState>(
           builder: (context, state) {
@@ -130,10 +127,24 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
                 confirmPinFieldFocusNode: _confirmPinFieldFocusNode,
                 actionButtonFocusNode: _actionButtonFocusNode,
                 onPrimaryAction: () => _handlePrimaryAction(context, state),
-                onChangeServer: () =>
-                    context.read<OnboardingCubit>().returnToServerStep(),
-                onShowProfiles: () =>
-                    context.read<AppFlowCubit>().showProfilePicker(),
+                onSecondaryAction: () {
+                  final cubit = context.read<OnboardingCubit>();
+                  switch (state.step) {
+                    case OnboardingStep.server:
+                      context.read<AppFlowCubit>().showProfilePicker();
+                      break;
+                    case OnboardingStep.credentials:
+                      _pinController.clear();
+                      _confirmPinController.clear();
+                      cubit.returnToServerStep();
+                      break;
+                    case OnboardingStep.pin:
+                      _pinController.clear();
+                      _confirmPinController.clear();
+                      cubit.returnToCredentialsStep();
+                      break;
+                  }
+                },
               ),
             );
           },
@@ -151,8 +162,24 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
     final authRepository = context.read<AuthRepository>();
     final messenger = ScaffoldMessenger.of(context);
 
-    if (!state.hasValidatedServer) {
+    if (state.step == OnboardingStep.server) {
       await onboardingCubit.validateServer(_serverController.text);
+      return;
+    }
+
+    if (state.step == OnboardingStep.credentials) {
+      await onboardingCubit.signIn(
+        email: _emailController.text.trim(),
+        password: _passwordController.text,
+      );
+      return;
+    }
+
+    final session = state.pendingSession;
+    if (session == null) {
+      messenger.showSnackBar(
+        const SnackBar(content: Text('Sign in before setting up a PIN.')),
+      );
       return;
     }
 
@@ -173,14 +200,6 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
         const SnackBar(content: Text('The PIN confirmation did not match.')),
       );
       _confirmPinFieldFocusNode.requestFocus();
-      return;
-    }
-
-    final session = await onboardingCubit.signIn(
-      email: _emailController.text.trim(),
-      password: _passwordController.text,
-    );
-    if (!mounted || session == null) {
       return;
     }
 
