@@ -81,4 +81,14 @@ class OnboardingCubit extends Cubit<OnboardingState> {
       return null;
     }
   }
+
+  void returnToServerStep() {
+    emit(
+      state.copyWith(
+        step: OnboardingStep.server,
+        status: OnboardingStatus.idle,
+        clearError: true,
+      ),
+    );
+  }
 }

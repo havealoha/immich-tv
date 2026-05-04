@@ -90,10 +90,22 @@ void main() {
       findsOneWidget,
     );
 
-    await tester.enterText(find.byType(TextField).at(1), 'family@example.com');
-    await tester.enterText(find.byType(TextField).at(2), 'demo-password');
-    await tester.enterText(find.byType(TextField).at(3), '1234');
-    await tester.enterText(find.byType(TextField).at(4), '1234');
+    await tester.enterText(
+      find.widgetWithText(TextField, 'Email'),
+      'family@example.com',
+    );
+    await tester.enterText(
+      find.widgetWithText(TextField, 'Password'),
+      'demo-password',
+    );
+    await tester.enterText(
+      find.widgetWithText(TextField, '4-digit PIN'),
+      '1234',
+    );
+    await tester.enterText(
+      find.widgetWithText(TextField, 'Confirm PIN'),
+      '1234',
+    );
     await tester.ensureVisible(find.text('Save profile and continue'));
     await tester.tap(find.text('Save profile and continue'));
     await tester.pumpAndSettle();
@@ -127,12 +139,21 @@ void main() {
     expect(find.text('Create a saved profile'), findsOneWidget);
 
     await tester.enterText(
-      find.byType(TextField).at(1),
+      find.widgetWithText(TextField, 'Email'),
       'keyboard@example.com',
     );
-    await tester.enterText(find.byType(TextField).at(2), 'secret-password');
-    await tester.enterText(find.byType(TextField).at(3), '2468');
-    await tester.enterText(find.byType(TextField).at(4), '2468');
+    await tester.enterText(
+      find.widgetWithText(TextField, 'Password'),
+      'secret-password',
+    );
+    await tester.enterText(
+      find.widgetWithText(TextField, '4-digit PIN'),
+      '2468',
+    );
+    await tester.enterText(
+      find.widgetWithText(TextField, 'Confirm PIN'),
+      '2468',
+    );
     await tester.pump();
     await tester.testTextInput.receiveAction(TextInputAction.done);
     await tester.pumpAndSettle();
@@ -289,10 +310,16 @@ Future<void> _pumpSignedInApp(
   await tester.tap(find.text('Validate server'));
   await tester.pumpAndSettle();
 
-  await tester.enterText(find.byType(TextField).at(1), 'family@example.com');
-  await tester.enterText(find.byType(TextField).at(2), 'demo-password');
-  await tester.enterText(find.byType(TextField).at(3), '1234');
-  await tester.enterText(find.byType(TextField).at(4), '1234');
+  await tester.enterText(
+    find.widgetWithText(TextField, 'Email'),
+    'family@example.com',
+  );
+  await tester.enterText(
+    find.widgetWithText(TextField, 'Password'),
+    'demo-password',
+  );
+  await tester.enterText(find.widgetWithText(TextField, '4-digit PIN'), '1234');
+  await tester.enterText(find.widgetWithText(TextField, 'Confirm PIN'), '1234');
   await tester.ensureVisible(find.text('Save profile and continue'));
   await tester.tap(find.text('Save profile and continue'));
   await tester.pumpAndSettle();

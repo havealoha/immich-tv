@@ -82,42 +82,62 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
         authRepository: context.read<AuthRepository>(),
         serverRepository: context.read<ServerRepository>(),
       ),
-      child: BlocBuilder<OnboardingCubit, OnboardingState>(
-        builder: (context, state) {
-          final useMockServices = context
-              .read<AppEnvironment>()
-              .useMockServices;
-          final hasSavedProfiles = context
-              .watch<AppFlowCubit>()
-              .state
-              .profiles
-              .isNotEmpty;
-
-          return OnboardingShell(
-            branding: OnboardingBranding(theme: theme, state: state),
-            child: OnboardingForm(
-              theme: theme,
-              state: state,
-              isTvLayout: MediaQuery.sizeOf(context).width >= 1600,
-              useMockServices: useMockServices,
-              hasSavedProfiles: hasSavedProfiles,
-              serverController: _serverController,
-              emailController: _emailController,
-              passwordController: _passwordController,
-              pinController: _pinController,
-              confirmPinController: _confirmPinController,
-              serverFieldFocusNode: _serverFieldFocusNode,
-              emailFieldFocusNode: _emailFieldFocusNode,
-              passwordFieldFocusNode: _passwordFieldFocusNode,
-              pinFieldFocusNode: _pinFieldFocusNode,
-              confirmPinFieldFocusNode: _confirmPinFieldFocusNode,
-              actionButtonFocusNode: _actionButtonFocusNode,
-              onPrimaryAction: () => _handlePrimaryAction(context, state),
-              onShowProfiles: () =>
-                  context.read<AppFlowCubit>().showProfilePicker(),
-            ),
-          );
+      child: BlocListener<OnboardingCubit, OnboardingState>(
+        listenWhen: (previous, current) => previous.step != current.step,
+        listener: (context, state) {
+          if (state.step == OnboardingStep.credentials) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted) {
+                _emailFieldFocusNode.requestFocus();
+              }
+            });
+          } else {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted) {
+                _serverFieldFocusNode.requestFocus();
+              }
+            });
+          }
         },
+        child: BlocBuilder<OnboardingCubit, OnboardingState>(
+          builder: (context, state) {
+            final useMockServices = context
+                .read<AppEnvironment>()
+                .useMockServices;
+            final hasSavedProfiles = context
+                .watch<AppFlowCubit>()
+                .state
+                .profiles
+                .isNotEmpty;
+
+            return OnboardingShell(
+              branding: OnboardingBranding(theme: theme, state: state),
+              child: OnboardingForm(
+                theme: theme,
+                state: state,
+                isTvLayout: MediaQuery.sizeOf(context).width >= 1600,
+                useMockServices: useMockServices,
+                hasSavedProfiles: hasSavedProfiles,
+                serverController: _serverController,
+                emailController: _emailController,
+                passwordController: _passwordController,
+                pinController: _pinController,
+                confirmPinController: _confirmPinController,
+                serverFieldFocusNode: _serverFieldFocusNode,
+                emailFieldFocusNode: _emailFieldFocusNode,
+                passwordFieldFocusNode: _passwordFieldFocusNode,
+                pinFieldFocusNode: _pinFieldFocusNode,
+                confirmPinFieldFocusNode: _confirmPinFieldFocusNode,
+                actionButtonFocusNode: _actionButtonFocusNode,
+                onPrimaryAction: () => _handlePrimaryAction(context, state),
+                onChangeServer: () =>
+                    context.read<OnboardingCubit>().returnToServerStep(),
+                onShowProfiles: () =>
+                    context.read<AppFlowCubit>().showProfilePicker(),
+              ),
+            );
+          },
+        ),
       ),
     );
   }
@@ -133,9 +153,6 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
 
     if (!state.hasValidatedServer) {
       await onboardingCubit.validateServer(_serverController.text);
-      if (mounted) {
-        _emailFieldFocusNode.requestFocus();
-      }
       return;
     }
 

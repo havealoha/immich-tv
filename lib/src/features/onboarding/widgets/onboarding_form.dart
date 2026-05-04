@@ -27,6 +27,7 @@ class OnboardingForm extends StatelessWidget {
     required this.confirmPinFieldFocusNode,
     required this.actionButtonFocusNode,
     required this.onPrimaryAction,
+    required this.onChangeServer,
     required this.onShowProfiles,
   });
 
@@ -47,15 +48,16 @@ class OnboardingForm extends StatelessWidget {
   final FocusNode confirmPinFieldFocusNode;
   final FocusNode actionButtonFocusNode;
   final VoidCallback onPrimaryAction;
+  final VoidCallback onChangeServer;
   final VoidCallback onShowProfiles;
 
   @override
   Widget build(BuildContext context) {
     final isSubmitting = state.isBusy;
-    final serverValidated = state.hasValidatedServer;
-    final helperText = serverValidated
+    final isCredentialsStep = state.step == OnboardingStep.credentials;
+    final helperText = isCredentialsStep
         ? 'Press Enter to save this profile after entering credentials and a 4-digit PIN.'
-        : 'Press Enter to validate your server URL.';
+        : 'Press Enter to validate your server URL and continue.';
     final titleStyle =
         (isTvLayout
                 ? theme.textTheme.headlineLarge
@@ -93,17 +95,17 @@ class OnboardingForm extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              serverValidated
+              isCredentialsStep
                   ? 'Create a saved profile'
                   : 'Connect your server',
               style: titleStyle,
             ),
             const SizedBox(height: 12),
             Text(
-              serverValidated
+              isCredentialsStep
                   ? (useMockServices
-                        ? 'Demo mode is active. Sign in to explore the curated TV experience with mock content.'
-                        : 'We found a compatible Immich API. Sign in securely to continue.')
+                        ? 'Demo mode is active. Enter your profile details and PIN to save a TV-ready mock session.'
+                        : 'Your server is verified. Enter your Immich credentials and a 4-digit PIN to save this profile.')
                   : (useMockServices
                         ? 'Start with the demo server URL. We will validate it and load a polished mock library so we can shape the full TV experience first.'
                         : 'Start with the URL of your Immich instance. We will validate it before asking for credentials.'),
@@ -121,22 +123,8 @@ class OnboardingForm extends StatelessWidget {
               ),
               SizedBox(height: fieldSpacing),
             ],
-            TextField(
-              controller: serverController,
-              focusNode: serverFieldFocusNode,
-              enabled: !serverValidated && !isSubmitting,
-              textInputAction: TextInputAction.done,
-              style: isTvLayout ? theme.textTheme.titleLarge : null,
-              onSubmitted: !serverValidated && !isSubmitting
-                  ? (_) => onPrimaryAction()
-                  : null,
-              decoration: const InputDecoration(
-                labelText: 'Immich server URL',
-                hintText: 'https://photos.example.com',
-              ),
-            ),
             if (state.errorMessage case final message?) ...[
-              SizedBox(height: fieldSpacing),
+              if (!useMockServices) SizedBox(height: fieldSpacing),
               OnboardingStatusBanner(
                 icon: Icons.error_outline,
                 color: const Color(0xFFFF907C),
@@ -145,7 +133,20 @@ class OnboardingForm extends StatelessWidget {
                 isTvLayout: isTvLayout,
               ),
             ],
-            if (serverValidated) ...[
+            if (!isCredentialsStep) ...[
+              TextField(
+                controller: serverController,
+                focusNode: serverFieldFocusNode,
+                enabled: !isSubmitting,
+                textInputAction: TextInputAction.done,
+                style: isTvLayout ? theme.textTheme.titleLarge : null,
+                onSubmitted: !isSubmitting ? (_) => onPrimaryAction() : null,
+                decoration: const InputDecoration(
+                  labelText: 'Immich server URL',
+                  hintText: 'https://photos.example.com',
+                ),
+              ),
+            ] else ...[
               SizedBox(height: fieldSpacing),
               OnboardingStatusBanner(
                 icon: Icons.verified_outlined,
@@ -277,7 +278,7 @@ class OnboardingForm extends StatelessWidget {
                 child: Text(
                   isSubmitting
                       ? 'Working...'
-                      : (serverValidated
+                      : (isCredentialsStep
                             ? 'Save profile and continue'
                             : 'Validate server'),
                 ),
@@ -289,8 +290,22 @@ class OnboardingForm extends StatelessWidget {
                 width: double.infinity,
                 height: buttonHeight,
                 child: OutlinedButton(
-                  onPressed: isSubmitting ? null : onShowProfiles,
-                  child: const Text('Back to profiles'),
+                  onPressed: isSubmitting
+                      ? null
+                      : (isCredentialsStep ? onChangeServer : onShowProfiles),
+                  child: Text(
+                    isCredentialsStep ? 'Change server' : 'Back to profiles',
+                  ),
+                ),
+              ),
+            ] else if (isCredentialsStep) ...[
+              SizedBox(height: isTvLayout ? 16 : 12),
+              SizedBox(
+                width: double.infinity,
+                height: buttonHeight,
+                child: OutlinedButton(
+                  onPressed: isSubmitting ? null : onChangeServer,
+                  child: const Text('Change server'),
                 ),
               ),
             ],
