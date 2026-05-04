@@ -14,6 +14,9 @@ class LibraryState extends Equatable {
     this.timeline = const [],
     this.albums = const [],
     this.favorites = const [],
+    this.hasLoadedTimeline = false,
+    this.hasLoadedAlbums = false,
+    this.hasLoadedFavorites = false,
     this.timelineNextPage,
     this.favoritesNextPage,
     this.isLoadingMore = false,
@@ -25,6 +28,9 @@ class LibraryState extends Equatable {
   final List<AssetSummary> timeline;
   final List<AlbumSummary> albums;
   final List<AssetSummary> favorites;
+  final bool hasLoadedTimeline;
+  final bool hasLoadedAlbums;
+  final bool hasLoadedFavorites;
   final String? timelineNextPage;
   final String? favoritesNextPage;
   final bool isLoadingMore;
@@ -61,6 +67,9 @@ class LibraryState extends Equatable {
     List<AssetSummary>? timeline,
     List<AlbumSummary>? albums,
     List<AssetSummary>? favorites,
+    bool? hasLoadedTimeline,
+    bool? hasLoadedAlbums,
+    bool? hasLoadedFavorites,
     String? timelineNextPage,
     String? favoritesNextPage,
     bool? isLoadingMore,
@@ -75,6 +84,9 @@ class LibraryState extends Equatable {
       timeline: timeline ?? this.timeline,
       albums: albums ?? this.albums,
       favorites: favorites ?? this.favorites,
+      hasLoadedTimeline: hasLoadedTimeline ?? this.hasLoadedTimeline,
+      hasLoadedAlbums: hasLoadedAlbums ?? this.hasLoadedAlbums,
+      hasLoadedFavorites: hasLoadedFavorites ?? this.hasLoadedFavorites,
       timelineNextPage: clearTimelineNextPage
           ? null
           : (timelineNextPage ?? this.timelineNextPage),
@@ -93,6 +105,9 @@ class LibraryState extends Equatable {
     timeline,
     albums,
     favorites,
+    hasLoadedTimeline,
+    hasLoadedAlbums,
+    hasLoadedFavorites,
     timelineNextPage,
     favoritesNextPage,
     isLoadingMore,

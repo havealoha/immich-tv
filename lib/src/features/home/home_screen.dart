@@ -1528,63 +1528,88 @@ class _TvChoiceTileState extends State<_TvChoiceTile> {
       builder: (context, focusState) {
         final isActive = widget.isSelected || focusState.isActive;
 
-        return AnimatedContainer(
-          duration: const Duration(milliseconds: 180),
-          padding: const EdgeInsets.all(AppSpacing.lg),
-          decoration: BoxDecoration(
-            color: isActive ? const Color(0xFF13212A) : const Color(0xFF0D1A21),
-            borderRadius: BorderRadius.circular(AppRadii.lg),
-            border: Border.all(
-              color: widget.isSelected
-                  ? AppColors.focus
-                  : isActive
-                  ? AppColors.borderStrong
-                  : AppColors.border,
-              width: widget.isSelected ? 2 : 1,
-            ),
-          ),
-          child: Opacity(
-            opacity: widget.isEnabled ? 1 : 0.45,
-            child: Row(
-              children: [
-                Container(
-                  width: 48,
-                  height: 48,
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.06),
-                    borderRadius: BorderRadius.circular(AppRadii.md),
-                  ),
-                  child: Icon(widget.icon, color: Colors.white, size: 24),
+        return LayoutBuilder(
+          builder: (context, constraints) {
+            final isCompact =
+                constraints.maxHeight.isFinite && constraints.maxHeight < 96;
+            final iconSize = isCompact ? 40.0 : 48.0;
+            final padding = isCompact ? AppSpacing.md : AppSpacing.lg;
+            final gap = isCompact ? AppSpacing.sm : AppSpacing.md;
+
+            return AnimatedContainer(
+              duration: const Duration(milliseconds: 180),
+              padding: EdgeInsets.all(padding),
+              decoration: BoxDecoration(
+                color: isActive
+                    ? const Color(0xFF13212A)
+                    : const Color(0xFF0D1A21),
+                borderRadius: BorderRadius.circular(AppRadii.lg),
+                border: Border.all(
+                  color: widget.isSelected
+                      ? AppColors.focus
+                      : isActive
+                      ? AppColors.borderStrong
+                      : AppColors.border,
+                  width: widget.isSelected ? 2 : 1,
                 ),
-                const SizedBox(width: AppSpacing.md),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        widget.badge,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w800,
-                        ),
+              ),
+              child: Opacity(
+                opacity: widget.isEnabled ? 1 : 0.45,
+                child: Row(
+                  children: [
+                    Container(
+                      width: iconSize,
+                      height: iconSize,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.06),
+                        borderRadius: BorderRadius.circular(AppRadii.md),
                       ),
-                      const SizedBox(height: 4),
-                      Text(
-                        widget.subtitle,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: AppColors.textSecondary,
-                        ),
+                      child: Icon(
+                        widget.icon,
+                        color: Colors.white,
+                        size: isCompact ? 20 : 24,
                       ),
-                    ],
-                  ),
+                    ),
+                    SizedBox(width: gap),
+                    Expanded(
+                      child: isCompact
+                          ? Text(
+                              widget.badge,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: theme.textTheme.titleMedium?.copyWith(
+                                fontWeight: FontWeight.w800,
+                              ),
+                            )
+                          : Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  widget.badge,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: theme.textTheme.titleMedium?.copyWith(
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  widget.subtitle,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: theme.textTheme.bodyMedium?.copyWith(
+                                    color: AppColors.textSecondary,
+                                  ),
+                                ),
+                              ],
+                            ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
-          ),
+              ),
+            );
+          },
         );
       },
     );
