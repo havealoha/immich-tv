@@ -4,8 +4,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../core/models/album_summary.dart';
 import '../../core/models/asset_summary.dart';
 import '../../core/models/authenticated_session.dart';
-import '../../core/repositories/asset_image_repository.dart';
 import '../../core/repositories/media_repository.dart';
+import '../../shared/presentation/app_breakpoints.dart';
 import '../../shared/presentation/app_colors.dart';
 import '../../shared/presentation/app_radii.dart';
 import '../../shared/presentation/app_spacing.dart';
@@ -29,37 +29,23 @@ class HomeScreen extends StatelessWidget {
       child: Scaffold(
         backgroundColor: AppColors.background,
         body: SafeArea(
-          child: BlocListener<LibraryCubit, LibraryState>(
-            listenWhen: (previous, current) => previous.selectedTab != current.selectedTab || previous.status != current.status,
-            listener: (context, state) {
-              if (state.status != LibraryLoadStatus.success) {
-                return;
-              }
+          child: BlocBuilder<LibraryCubit, LibraryState>(
+            builder: (context, state) {
+              return LayoutBuilder(
+                builder: (context, constraints) {
+                  final sidebarWidth = _responsiveSidebarWidth(constraints.maxWidth);
 
-              final urls = switch (state.selectedTab) {
-                LibraryTab.timeline => state.timeline.take(4).map((asset) => asset.thumbnailUrls).toList(growable: false),
-                LibraryTab.favorites => state.favorites.take(4).map((asset) => asset.thumbnailUrls).toList(growable: false),
-                LibraryTab.albums || LibraryTab.slideshow => const <List<String>>[],
-              };
-
-              if (urls.isEmpty) {
-                return;
-              }
-
-              context.read<AssetImageRepository>().prefetchImages(urls: urls, accessToken: session.accessToken);
+                  return Row(
+                    children: [
+                      _Sidebar(session: session, state: state, width: sidebarWidth),
+                      Expanded(
+                        child: _ContentPane(session: session, state: state),
+                      ),
+                    ],
+                  );
+                },
+              );
             },
-            child: BlocBuilder<LibraryCubit, LibraryState>(
-              builder: (context, state) {
-                return Row(
-                  children: [
-                    _Sidebar(session: session, state: state),
-                    Expanded(
-                      child: _ContentPane(session: session, state: state),
-                    ),
-                  ],
-                );
-              },
-            ),
           ),
         ),
       ),
@@ -68,17 +54,18 @@ class HomeScreen extends StatelessWidget {
 }
 
 class _Sidebar extends StatelessWidget {
-  const _Sidebar({required this.session, required this.state});
+  const _Sidebar({required this.session, required this.state, required this.width});
 
   final AuthenticatedSession session;
   final LibraryState state;
+  final double width;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
     return Container(
-      width: 300,
+      width: width,
       padding: const EdgeInsets.fromLTRB(24, 24, 20, 24),
       decoration: const BoxDecoration(
         border: Border(right: BorderSide(color: AppColors.border, width: 1)),
@@ -250,9 +237,15 @@ class _ContentPane extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(28, 20, 28, 20),
-      child: _LibraryContent(state: state, session: session),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final horizontalPadding = constraints.maxWidth >= AppBreakpoints.tv ? 36.0 : 28.0;
+
+        return Padding(
+          padding: EdgeInsets.fromLTRB(horizontalPadding, 20, horizontalPadding, 20),
+          child: _LibraryContent(state: state, session: session),
+        );
+      },
     );
   }
 }
@@ -348,21 +341,25 @@ class _AssetSectionView extends StatelessWidget {
 
         return false;
       },
-      child: GridView.builder(
-        cacheExtent: 720,
-        gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(maxCrossAxisExtent: 240, mainAxisSpacing: 8, crossAxisSpacing: 8, childAspectRatio: 1),
-        itemCount: assets.length + (hasMore || isLoadingMore ? 1 : 0),
-        itemBuilder: (context, index) {
-          if (index >= assets.length) {
-            return _LoadMoreTile(isLoading: isLoadingMore, hasMore: hasMore);
-          }
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          return GridView.builder(
+            cacheExtent: 240,
+            gridDelegate: _buildAssetGridDelegate(constraints.maxWidth),
+            itemCount: assets.length + (hasMore || isLoadingMore ? 1 : 0),
+            itemBuilder: (context, index) {
+              if (index >= assets.length) {
+                return _LoadMoreTile(isLoading: isLoadingMore, hasMore: hasMore);
+              }
 
-          final asset = assets[index];
-          return _AssetTile(
-            session: session,
-            asset: asset,
-            autofocus: index == 0,
-            onPressed: () => AssetViewerScreen.show(context, assets: assets, initialIndex: index, accessToken: session.accessToken),
+              final asset = assets[index];
+              return _AssetTile(
+                session: session,
+                asset: asset,
+                autofocus: index == 0,
+                onPressed: () => AssetViewerScreen.show(context, assets: assets, initialIndex: index, accessToken: session.accessToken),
+              );
+            },
           );
         },
       ),
@@ -405,7 +402,7 @@ class _AssetTileState extends State<_AssetTile> {
                   requiresAuth: widget.asset.requiresAuth,
                   heroTag: 'asset-${widget.asset.id}',
                   placeholderIcon: widget.asset.isVideo ? Icons.smart_display_outlined : Icons.photo_outlined,
-                  filterQuality: FilterQuality.low,
+                  filterQuality: FilterQuality.none,
                 ),
                 DecoratedBox(
                   decoration: BoxDecoration(border: Border.all(color: focusState.isFocused ? AppColors.focus : Colors.transparent, width: 2)),
@@ -628,7 +625,7 @@ class _AlbumBrowserState extends State<_AlbumBrowser> {
 
         return Row(
           children: [
-            SizedBox(width: 300, child: albumRail),
+            SizedBox(width: _responsiveAlbumRailWidth(constraints.maxWidth), child: albumRail),
             const SizedBox(width: AppSpacing.xl),
             Expanded(child: albumContent),
           ],
@@ -739,17 +736,21 @@ class _AlbumAssetGrid extends StatelessWidget {
         Text('${assets.length} photos', style: theme.textTheme.bodyLarge?.copyWith(color: AppColors.textSecondary)),
         const SizedBox(height: AppSpacing.lg),
         Expanded(
-          child: GridView.builder(
-            cacheExtent: 720,
-            gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(maxCrossAxisExtent: 240, mainAxisSpacing: 8, crossAxisSpacing: 8, childAspectRatio: 1),
-            itemCount: assets.length,
-            itemBuilder: (context, index) {
-              final asset = assets[index];
-              return _AssetTile(
-                session: session,
-                asset: asset,
-                autofocus: index == 0,
-                onPressed: () => AssetViewerScreen.show(context, assets: assets, initialIndex: index, accessToken: session.accessToken),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              return GridView.builder(
+                cacheExtent: 240,
+                gridDelegate: _buildAssetGridDelegate(constraints.maxWidth),
+                itemCount: assets.length,
+                itemBuilder: (context, index) {
+                  final asset = assets[index];
+                  return _AssetTile(
+                    session: session,
+                    asset: asset,
+                    autofocus: index == 0,
+                    onPressed: () => AssetViewerScreen.show(context, assets: assets, initialIndex: index, accessToken: session.accessToken),
+                  );
+                },
               );
             },
           ),
@@ -826,9 +827,6 @@ class _SlideshowSectionViewState extends State<_SlideshowSectionView> {
                   albumsFuture: _albumsFuture!,
                   selectedAlbum: _selectedAlbum,
                   albumAssetsFuture: _albumAssetsFuture,
-                  durationSeconds: _durationSeconds,
-                  shuffle: _shuffle,
-                  accessToken: widget.session.accessToken,
                   onAlbumSelected: _selectAlbum,
                   onStart: (assets) {
                     SlideshowPlayerScreen.show(
@@ -840,11 +838,16 @@ class _SlideshowSectionViewState extends State<_SlideshowSectionView> {
                     );
                   },
                 )
-              : _PhotoSlideshowPreview(
+              : _SlideshowLaunchPanel(
                   title: _source == _SlideshowSource.timeline ? 'Timeline' : 'Favorites',
-                  assets: sourceAssets,
-                  shuffle: _shuffle,
-                  accessToken: widget.session.accessToken,
+                  description: _source == _SlideshowSource.timeline
+                      ? 'Play your full photo timeline in sequence or shuffle.'
+                      : 'Play only your favorite photos as a dedicated slideshow.',
+                  assetCount: sourceAssets.length,
+                  emptyTitle: 'No photos ready for slideshow',
+                  emptyBody: _source == _SlideshowSource.timeline
+                      ? 'Timeline will become available here once your library has photos.'
+                      : 'Favorite some photos first, then start a favorites slideshow from here.',
                   onStart: () {
                     SlideshowPlayerScreen.show(
                       context,
@@ -996,25 +999,29 @@ class _SlideshowControlsPanel extends StatelessWidget {
   }
 }
 
-class _PhotoSlideshowPreview extends StatelessWidget {
-  const _PhotoSlideshowPreview({required this.title, required this.assets, required this.shuffle, required this.accessToken, required this.onStart});
+class _SlideshowLaunchPanel extends StatelessWidget {
+  const _SlideshowLaunchPanel({
+    required this.title,
+    required this.description,
+    required this.assetCount,
+    required this.emptyTitle,
+    required this.emptyBody,
+    required this.onStart,
+  });
 
   final String title;
-  final List<AssetSummary> assets;
-  final bool shuffle;
-  final String accessToken;
+  final String description;
+  final int assetCount;
+  final String emptyTitle;
+  final String emptyBody;
   final VoidCallback onStart;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    if (assets.isEmpty) {
-      return const _InfoPanel(
-        title: 'No photos ready for slideshow',
-        body: 'Slideshow currently uses photo assets only. Open Timeline or Favorites first if you want to load more sources.',
-        accent: AppColors.textMuted,
-      );
+    if (assetCount == 0) {
+      return _InfoPanel(title: emptyTitle, body: emptyBody, accent: AppColors.textMuted);
     }
 
     return DecoratedBox(
@@ -1028,50 +1035,17 @@ class _PhotoSlideshowPreview extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('$title • ${assets.length} photos ready', style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800)),
+            Text(title, style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800)),
             const SizedBox(height: AppSpacing.xs),
-            Text(
-              shuffle ? 'Playback starts in a shuffled order.' : 'Playback starts in your current library order.',
-              style: theme.textTheme.bodyLarge?.copyWith(color: AppColors.textSecondary),
-            ),
-            const SizedBox(height: AppSpacing.xl),
+            Text('$assetCount photos ready', style: theme.textTheme.bodyLarge?.copyWith(color: AppColors.textSecondary)),
+            const SizedBox(height: AppSpacing.lg),
             Expanded(
-              child: Row(
-                children: [
-                  Expanded(
-                    flex: 3,
-                    child: AuthenticatedAssetImage(
-                      imageUrls: assets.first.displayUrls,
-                      accessToken: accessToken,
-                      requiresAuth: assets.first.requiresAuth,
-                      borderRadius: AppRadii.xl,
-                      fit: BoxFit.cover,
-                      filterQuality: FilterQuality.low,
-                    ),
-                  ),
-                  const SizedBox(width: AppSpacing.lg),
-                  SizedBox(
-                    width: 160,
-                    child: Column(
-                      children: [
-                        for (final asset in assets.take(4))
-                          Expanded(
-                            child: Padding(
-                              padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-                              child: AuthenticatedAssetImage(
-                                imageUrls: asset.thumbnailUrls,
-                                accessToken: accessToken,
-                                requiresAuth: asset.requiresAuth,
-                                borderRadius: 20,
-                                fit: BoxFit.cover,
-                                filterQuality: FilterQuality.low,
-                              ),
-                            ),
-                          ),
-                      ],
-                    ),
-                  ),
-                ],
+              child: Align(
+                alignment: Alignment.topLeft,
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 560),
+                  child: Text(description, style: theme.textTheme.titleMedium?.copyWith(color: AppColors.textSecondary, height: 1.6)),
+                ),
               ),
             ),
             const SizedBox(height: AppSpacing.xl),
@@ -1097,9 +1071,6 @@ class _AlbumSlideshowSourceView extends StatelessWidget {
     required this.albumsFuture,
     required this.selectedAlbum,
     required this.albumAssetsFuture,
-    required this.durationSeconds,
-    required this.shuffle,
-    required this.accessToken,
     required this.onAlbumSelected,
     required this.onStart,
   });
@@ -1108,9 +1079,6 @@ class _AlbumSlideshowSourceView extends StatelessWidget {
   final Future<List<AlbumSummary>> albumsFuture;
   final AlbumSummary? selectedAlbum;
   final Future<List<AssetSummary>>? albumAssetsFuture;
-  final int durationSeconds;
-  final bool shuffle;
-  final String accessToken;
   final ValueChanged<AlbumSummary> onAlbumSelected;
   final ValueChanged<List<AssetSummary>> onStart;
 
@@ -1180,19 +1148,20 @@ class _AlbumSlideshowSourceView extends StatelessWidget {
                 if (assets.isEmpty) {
                   return const Expanded(
                     child: _InfoPanel(
-                      title: 'This album has no photos for slideshow',
-                      body: 'Only photo assets are included in slideshow playback right now.',
+                      title: 'This album has no photos ready',
+                      body: 'Choose another album or add photo assets to this one before starting a slideshow.',
                       accent: AppColors.textMuted,
                     ),
                   );
                 }
 
                 return Expanded(
-                  child: _PhotoSlideshowPreview(
+                  child: _SlideshowLaunchPanel(
                     title: selectedAlbumValue.name,
-                    assets: assets,
-                    shuffle: shuffle,
-                    accessToken: accessToken,
+                    description: 'Start playback from this album using your selected duration and shuffle settings.',
+                    assetCount: assets.length,
+                    emptyTitle: 'This album has no photos ready',
+                    emptyBody: 'Choose another album or add photo assets to this one before starting a slideshow.',
                     onStart: () => onStart(assets),
                   ),
                 );
@@ -1239,56 +1208,72 @@ class _TvChoiceTileState extends State<_TvChoiceTile> {
       builder: (context, focusState) {
         final isActive = widget.isSelected || focusState.isActive;
 
-        return AnimatedContainer(
-          duration: const Duration(milliseconds: 180),
-          padding: const EdgeInsets.all(AppSpacing.lg),
-          decoration: BoxDecoration(
-            color: isActive ? const Color(0xFF13212A) : const Color(0xFF0D1A21),
-            borderRadius: BorderRadius.circular(AppRadii.lg),
-            border: Border.all(
-              color: widget.isSelected
-                  ? AppColors.focus
-                  : isActive
-                  ? AppColors.borderStrong
-                  : AppColors.border,
-              width: widget.isSelected ? 2 : 1,
-            ),
-          ),
-          child: Opacity(
-            opacity: widget.isEnabled ? 1 : 0.45,
-            child: Row(
-              children: [
-                Container(
-                  width: 48,
-                  height: 48,
-                  decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.06), borderRadius: BorderRadius.circular(AppRadii.md)),
-                  child: Icon(widget.icon, color: Colors.white, size: 24),
+        return LayoutBuilder(
+          builder: (context, constraints) {
+            final isCompact = constraints.maxHeight.isFinite && constraints.maxHeight < 96;
+            final iconSize = isCompact ? 40.0 : 48.0;
+            final padding = isCompact ? AppSpacing.md : AppSpacing.lg;
+            final gap = isCompact ? AppSpacing.sm : AppSpacing.md;
+
+            return AnimatedContainer(
+              duration: const Duration(milliseconds: 180),
+              padding: EdgeInsets.all(padding),
+              decoration: BoxDecoration(
+                color: isActive ? const Color(0xFF13212A) : const Color(0xFF0D1A21),
+                borderRadius: BorderRadius.circular(AppRadii.lg),
+                border: Border.all(
+                  color: widget.isSelected
+                      ? AppColors.focus
+                      : isActive
+                      ? AppColors.borderStrong
+                      : AppColors.border,
+                  width: widget.isSelected ? 2 : 1,
                 ),
-                const SizedBox(width: AppSpacing.md),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        widget.badge,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        widget.subtitle,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: theme.textTheme.bodyMedium?.copyWith(color: AppColors.textSecondary),
-                      ),
-                    ],
-                  ),
+              ),
+              child: Opacity(
+                opacity: widget.isEnabled ? 1 : 0.45,
+                child: Row(
+                  children: [
+                    Container(
+                      width: iconSize,
+                      height: iconSize,
+                      decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.06), borderRadius: BorderRadius.circular(AppRadii.md)),
+                      child: Icon(widget.icon, color: Colors.white, size: isCompact ? 20 : 24),
+                    ),
+                    SizedBox(width: gap),
+                    Expanded(
+                      child: isCompact
+                          ? Text(
+                              widget.badge,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+                            )
+                          : Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  widget.badge,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  widget.subtitle,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: theme.textTheme.bodyMedium?.copyWith(color: AppColors.textSecondary),
+                                ),
+                              ],
+                            ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
-          ),
+              ),
+            );
+          },
         );
       },
     );
@@ -1392,4 +1377,24 @@ class _InfoPanel extends StatelessWidget {
       ),
     );
   }
+}
+
+double _responsiveSidebarWidth(double screenWidth) {
+  return (screenWidth * 0.18).clamp(240.0, 420.0).toDouble();
+}
+
+double _responsiveAlbumRailWidth(double contentWidth) {
+  return (contentWidth * 0.22).clamp(260.0, 360.0).toDouble();
+}
+
+SliverGridDelegate _buildAssetGridDelegate(double availableWidth) {
+  const spacing = 8.0;
+  // if (availableWidth >= AppBreakpoints.tv - 280) {
+  //   return const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 6, mainAxisSpacing: spacing, crossAxisSpacing: spacing, childAspectRatio: 1);
+  // }
+
+  // const targetTileWidth = 320.0;
+  // final crossAxisCount = (availableWidth / targetTileWidth).floor().clamp(2, 6);
+
+  return SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 6, mainAxisSpacing: spacing, crossAxisSpacing: spacing, childAspectRatio: 1);
 }

@@ -1,23 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import 'src/app_shell.dart';
 import 'src/core/config/app_environment.dart';
 import 'src/core/network/immich_dio_factory.dart';
-import 'src/core/repositories/auth_repository.dart';
 import 'src/core/repositories/asset_image_repository.dart';
+import 'src/core/repositories/auth_repository.dart';
 import 'src/core/repositories/media_repository.dart';
 import 'src/core/repositories/server_repository.dart';
 import 'src/core/services/server_url_normalizer.dart';
-import 'src/features/auth/data/immich_auth_repository.dart';
-import 'src/app_shell.dart';
 import 'src/features/app_flow/cubit/app_flow_cubit.dart';
+import 'src/features/auth/data/immich_auth_repository.dart';
 import 'src/features/library/data/immich_asset_image_repository.dart';
 import 'src/features/library/data/immich_media_repository.dart';
 import 'src/features/mock/data/mock_auth_repository.dart';
 import 'src/features/mock/data/mock_media_repository.dart';
 import 'src/features/mock/data/mock_server_repository.dart';
 import 'src/features/onboarding/data/immich_server_repository.dart';
-import 'src/platform/storage/platform_session_storage.dart';
+import 'src/platform/storage/platform_profile_storage.dart';
 import 'src/shared/presentation/app_colors.dart';
 import 'src/shared/presentation/app_radii.dart';
 
@@ -33,36 +33,19 @@ class ImmichTvApp extends StatelessWidget {
     ServerRepository? serverRepository,
     MediaRepository? mediaRepository,
     bool? useMockServices,
-  }) : _environment = AppEnvironment(useMockServices: useMockServices ?? false) {
-    final useMocks = useMockServices ?? false;
-    final sessionStorage = PlatformSessionStorage();
-    final sharedDio = useMocks ? null : ImmichDioFactory.create();
-
-    _authRepository =
-        authRepository ??
-        (useMocks
-            ? MockAuthRepository(sessionStorage: sessionStorage)
-            : ImmichAuthRepository(
-                dio: sharedDio!,
-                sessionStorage: sessionStorage,
-              ));
-    _serverRepository =
-        serverRepository ??
-        (useMocks
-            ? MockServerRepository(normalizer: const ServerUrlNormalizer())
-            : ImmichServerRepository(
-                dio: sharedDio!,
-                normalizer: const ServerUrlNormalizer(),
-              ));
-    _assetImageRepository =
-        assetImageRepository ??
-        (useMocks
-            ? ImmichAssetImageRepository(dio: ImmichDioFactory.create())
-            : ImmichAssetImageRepository(dio: sharedDio!));
-    _mediaRepository =
-        mediaRepository ??
-        (useMocks ? MockMediaRepository() : ImmichMediaRepository(dio: sharedDio!));
-  }
+  }) : _environment = AppEnvironment(useMockServices: useMockServices ?? false),
+       _authRepository =
+           authRepository ??
+           ((useMockServices ?? false)
+               ? MockAuthRepository(profileStorage: PlatformProfileStorage())
+               : ImmichAuthRepository(dio: ImmichDioFactory.create(), profileStorage: PlatformProfileStorage())),
+       _serverRepository =
+           serverRepository ??
+           ((useMockServices ?? false)
+               ? MockServerRepository(normalizer: const ServerUrlNormalizer())
+               : ImmichServerRepository(dio: ImmichDioFactory.create(), normalizer: const ServerUrlNormalizer())),
+       _assetImageRepository = assetImageRepository ?? const ImmichAssetImageRepository(),
+       _mediaRepository = mediaRepository ?? ((useMockServices ?? false) ? MockMediaRepository() : ImmichMediaRepository(dio: ImmichDioFactory.create()));
 
   final AppEnvironment _environment;
   late final AuthRepository _authRepository;
@@ -94,9 +77,7 @@ class ImmichTvApp extends StatelessWidget {
       providers: [
         RepositoryProvider<AppEnvironment>.value(value: _environment),
         RepositoryProvider<AuthRepository>.value(value: _authRepository),
-        RepositoryProvider<AssetImageRepository>.value(
-          value: _assetImageRepository,
-        ),
+        RepositoryProvider<AssetImageRepository>.value(value: _assetImageRepository),
         RepositoryProvider<ServerRepository>.value(value: _serverRepository),
         RepositoryProvider<MediaRepository>.value(value: _mediaRepository),
       ],
@@ -104,10 +85,7 @@ class ImmichTvApp extends StatelessWidget {
         title: 'Immich TV',
         debugShowCheckedModeBanner: false,
         theme: baseTheme.copyWith(
-          textTheme: baseTheme.textTheme.apply(
-            bodyColor: AppColors.textPrimary,
-            displayColor: AppColors.textPrimary,
-          ),
+          textTheme: baseTheme.textTheme.apply(bodyColor: AppColors.textPrimary, displayColor: AppColors.textPrimary),
           cardTheme: baseTheme.cardTheme.copyWith(
             color: AppColors.surface,
             elevation: 0,
@@ -139,9 +117,7 @@ class ImmichTvApp extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
               foregroundColor: AppColors.textPrimary,
               side: const BorderSide(color: AppColors.borderStrong),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(AppRadii.md),
-              ),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadii.md)),
             ),
           ),
           filledButtonTheme: FilledButtonThemeData(
@@ -149,23 +125,13 @@ class ImmichTvApp extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 18),
               backgroundColor: AppColors.immichBlue,
               foregroundColor: AppColors.actionForeground,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(AppRadii.md),
-              ),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadii.md)),
             ),
           ),
-          progressIndicatorTheme: const ProgressIndicatorThemeData(
-            color: AppColors.immichBlue,
-            linearTrackColor: AppColors.darkSurfaceSoft,
-          ),
-          textButtonTheme: TextButtonThemeData(
-            style: TextButton.styleFrom(foregroundColor: AppColors.textPrimary),
-          ),
+          progressIndicatorTheme: const ProgressIndicatorThemeData(color: AppColors.immichBlue, linearTrackColor: AppColors.darkSurfaceSoft),
+          textButtonTheme: TextButtonThemeData(style: TextButton.styleFrom(foregroundColor: AppColors.textPrimary)),
         ),
-        home: BlocProvider(
-          create: (_) => AppFlowCubit(_authRepository)..initialize(),
-          child: const AppShell(),
-        ),
+        home: BlocProvider(create: (_) => AppFlowCubit(_authRepository)..initialize(), child: const AppShell()),
       ),
     );
   }

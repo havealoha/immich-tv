@@ -10,21 +10,39 @@ class AppFlowCubit extends Cubit<AppFlowState> {
   final AuthRepository _authRepository;
 
   Future<void> initialize() async {
-    final restoredSession = await _authRepository.restoreSession();
-    if (restoredSession == null) {
+    final profiles = await _authRepository.getSavedProfiles();
+    if (profiles.isEmpty) {
       emit(const AppFlowState.onboarding());
       return;
     }
 
-    emit(AppFlowState.home(restoredSession));
+    emit(AppFlowState.profilePicker(profiles));
   }
 
   void completeSignIn(AuthenticatedSession session) {
-    emit(AppFlowState.home(session));
+    emit(AppFlowState.home(session, profiles: state.profiles));
+  }
+
+  void showOnboarding() {
+    emit(AppFlowState.onboarding(profiles: state.profiles));
+  }
+
+  void showProfilePicker() {
+    emit(AppFlowState.profilePicker(state.profiles));
+  }
+
+  Future<void> refreshProfiles() async {
+    final profiles = await _authRepository.getSavedProfiles();
+    if (profiles.isEmpty) {
+      emit(const AppFlowState.onboarding());
+      return;
+    }
+
+    emit(AppFlowState.profilePicker(profiles));
   }
 
   Future<void> signOut() async {
     await _authRepository.signOut();
-    emit(const AppFlowState.onboarding());
+    await refreshProfiles();
   }
 }

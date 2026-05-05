@@ -67,7 +67,14 @@ class OnboardingCubit extends Cubit<OnboardingState> {
         email: email,
         password: password,
       );
-      emit(state.copyWith(status: OnboardingStatus.idle, clearError: true));
+      emit(
+        state.copyWith(
+          step: OnboardingStep.pin,
+          status: OnboardingStatus.idle,
+          pendingSession: session,
+          clearError: true,
+        ),
+      );
       return session;
     } catch (error) {
       emit(
@@ -80,5 +87,26 @@ class OnboardingCubit extends Cubit<OnboardingState> {
       );
       return null;
     }
+  }
+
+  void returnToServerStep() {
+    emit(
+      state.copyWith(
+        step: OnboardingStep.server,
+        status: OnboardingStatus.idle,
+        clearPendingSession: true,
+        clearError: true,
+      ),
+    );
+  }
+
+  void returnToCredentialsStep() {
+    emit(
+      state.copyWith(
+        step: OnboardingStep.credentials,
+        status: OnboardingStatus.idle,
+        clearError: true,
+      ),
+    );
   }
 }

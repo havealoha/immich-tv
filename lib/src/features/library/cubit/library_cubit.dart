@@ -13,10 +13,56 @@ class LibraryCubit extends Cubit<LibraryState> {
   final MediaRepository _mediaRepository;
   final AuthenticatedSession _session;
 
-  Future<void> loadInitial() => selectTab(state.selectedTab);
+  Future<void> loadInitial() async {
+    emit(state.copyWith(status: LibraryLoadStatus.loading, clearError: true));
+
+    try {
+      final timelineFuture = _mediaRepository.fetchTimelinePage(_session);
+      final favoritesFuture = _mediaRepository.fetchFavoritesPage(_session);
+      final albumsFuture = _mediaRepository.fetchAlbums(_session);
+
+      final timeline = await timelineFuture;
+      final favorites = await favoritesFuture;
+      final albums = await albumsFuture;
+
+      emit(
+        state.copyWith(
+          status: LibraryLoadStatus.success,
+          timeline: timeline.items,
+          timelineNextPage: timeline.nextPage,
+          clearTimelineNextPage: timeline.nextPage == null,
+          favorites: favorites.items,
+          favoritesNextPage: favorites.nextPage,
+          clearFavoritesNextPage: favorites.nextPage == null,
+          albums: albums,
+          hasLoadedTimeline: true,
+          hasLoadedFavorites: true,
+          hasLoadedAlbums: true,
+          isLoadingMore: false,
+          clearError: true,
+        ),
+      );
+    } catch (error) {
+      emit(
+        state.copyWith(
+          status: LibraryLoadStatus.failure,
+          errorMessage: error is AppException
+              ? error.message
+              : 'We could not load your library right now.',
+        ),
+      );
+    }
+  }
 
   Future<void> selectTab(LibraryTab tab) async {
-    if (tab == state.selectedTab && state.status == LibraryLoadStatus.success) {
+    if (_isTabLoaded(tab)) {
+      emit(
+        state.copyWith(
+          selectedTab: tab,
+          status: LibraryLoadStatus.success,
+          clearError: true,
+        ),
+      );
       return;
     }
 
@@ -49,6 +95,7 @@ class LibraryCubit extends Cubit<LibraryState> {
               timeline: timeline.items,
               timelineNextPage: timeline.nextPage,
               clearTimelineNextPage: timeline.nextPage == null,
+              hasLoadedTimeline: true,
               status: LibraryLoadStatus.success,
               isLoadingMore: false,
               clearError: true,
@@ -60,6 +107,7 @@ class LibraryCubit extends Cubit<LibraryState> {
             state.copyWith(
               selectedTab: tab,
               albums: albums,
+              hasLoadedAlbums: true,
               status: LibraryLoadStatus.success,
               isLoadingMore: false,
               clearError: true,
@@ -73,6 +121,7 @@ class LibraryCubit extends Cubit<LibraryState> {
               favorites: favorites.items,
               favoritesNextPage: favorites.nextPage,
               clearFavoritesNextPage: favorites.nextPage == null,
+              hasLoadedFavorites: true,
               status: LibraryLoadStatus.success,
               isLoadingMore: false,
               clearError: true,
@@ -188,5 +237,14 @@ class LibraryCubit extends Cubit<LibraryState> {
     return response.items
         .where((item) => !existingIds.contains(item.id))
         .toList(growable: false);
+  }
+
+  bool _isTabLoaded(LibraryTab tab) {
+    return switch (tab) {
+      LibraryTab.timeline => state.hasLoadedTimeline,
+      LibraryTab.albums => state.hasLoadedAlbums,
+      LibraryTab.favorites => state.hasLoadedFavorites,
+      LibraryTab.slideshow => true,
+    };
   }
 }

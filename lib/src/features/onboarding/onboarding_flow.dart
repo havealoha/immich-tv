@@ -2,16 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../core/config/app_environment.dart';
+import '../../core/errors/app_exception.dart';
 import '../../core/repositories/auth_repository.dart';
 import '../../core/repositories/server_repository.dart';
-import '../../shared/presentation/app_breakpoints.dart';
-import '../../shared/presentation/app_colors.dart';
-import '../../shared/presentation/app_radii.dart';
-import '../../shared/presentation/app_spacing.dart';
-import '../../shared/presentation/widgets/shortcut_hint.dart';
 import '../app_flow/cubit/app_flow_cubit.dart';
 import 'cubit/onboarding_cubit.dart';
 import 'cubit/onboarding_state.dart';
+import 'widgets/onboarding_branding.dart';
+import 'widgets/onboarding_form.dart';
+import 'widgets/onboarding_shell.dart';
 
 class OnboardingFlow extends StatefulWidget {
   const OnboardingFlow({super.key});
@@ -21,12 +20,20 @@ class OnboardingFlow extends StatefulWidget {
 }
 
 class _OnboardingFlowState extends State<OnboardingFlow> {
-  final _serverController = TextEditingController(text: "http://192.168.0.243:2283");
-  final _emailController = TextEditingController(text: "afridi.khondakar@gmail.com");
-  final _passwordController = TextEditingController(text: "#Noobshit911");
+  final _serverController = TextEditingController(
+    text: 'http://192.168.0.243:2283',
+  );
+  final _emailController = TextEditingController(
+    text: 'afridi.khondakar@gmail.com',
+  );
+  final _passwordController = TextEditingController(text: '#Noobshit911');
+  final _pinController = TextEditingController();
+  final _confirmPinController = TextEditingController();
   final _serverFieldFocusNode = FocusNode(debugLabel: 'serverField');
   final _emailFieldFocusNode = FocusNode(debugLabel: 'emailField');
   final _passwordFieldFocusNode = FocusNode(debugLabel: 'passwordField');
+  final _pinFieldFocusNode = FocusNode(debugLabel: 'pinField');
+  final _confirmPinFieldFocusNode = FocusNode(debugLabel: 'confirmPinField');
   final _actionButtonFocusNode = FocusNode(debugLabel: 'primaryAction');
   bool _hasAppliedInitialValues = false;
 
@@ -37,12 +44,16 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
       return;
     }
 
-    final environment = context.read<AppEnvironment>();
-    final useMockServices = environment.useMockServices;
-
-    _serverController.text = useMockServices ? 'https://demo.immichtv.local' : 'http://192.168.0.243:2283';
-    _emailController.text = useMockServices ? 'livingroom@demo.immichtv' : 'afridi.khondakar@gmail.com';
-    _passwordController.text = useMockServices ? 'demo-password' : '#Noobshit911';
+    final useMockServices = context.read<AppEnvironment>().useMockServices;
+    _serverController.text = useMockServices
+        ? 'https://demo.immichtv.local'
+        : 'http://192.168.0.243:2283';
+    _emailController.text = useMockServices
+        ? 'livingroom@demo.immichtv'
+        : 'afridi.khondakar@gmail.com';
+    _passwordController.text = useMockServices
+        ? 'demo-password'
+        : '#Noobshit911';
     _hasAppliedInitialValues = true;
   }
 
@@ -51,9 +62,13 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
     _serverController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
+    _pinController.dispose();
+    _confirmPinController.dispose();
     _serverFieldFocusNode.dispose();
     _emailFieldFocusNode.dispose();
     _passwordFieldFocusNode.dispose();
+    _pinFieldFocusNode.dispose();
+    _confirmPinFieldFocusNode.dispose();
     _actionButtonFocusNode.dispose();
     super.dispose();
   }
@@ -61,349 +76,150 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+
     return BlocProvider(
-      create: (_) => OnboardingCubit(authRepository: context.read<AuthRepository>(), serverRepository: context.read<ServerRepository>()),
-      child: BlocBuilder<OnboardingCubit, OnboardingState>(
-        builder: (context, state) {
-          return Scaffold(
-            body: Container(
-              decoration: const BoxDecoration(
-                gradient: RadialGradient(colors: [Color(0xFF1A4E58), Color(0xFF08131A)], center: Alignment.topLeft, radius: 1.4),
-              ),
-              child: SafeArea(
-                child: LayoutBuilder(
-                  builder: (context, viewportConstraints) {
-                    final useCompactLayout = viewportConstraints.maxWidth < AppBreakpoints.tablet || viewportConstraints.maxHeight < 700;
-
-                    final form = _buildForm(context, theme, state);
-
-                    if (useCompactLayout) {
-                      return SingleChildScrollView(
-                        padding: const EdgeInsets.all(24),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            Card(
-                              child: Padding(
-                                padding: const EdgeInsets.all(32),
-                                child: SingleChildScrollView(child: _IntroPanel(theme: theme)),
-                              ),
-                            ),
-                            const SizedBox(height: 24),
-                            Card(
-                              child: Padding(
-                                padding: const EdgeInsets.all(32),
-                                child: SingleChildScrollView(child: form),
-                              ),
-                            ),
-                          ],
-                        ),
-                      );
-                    }
-
-                    final panelHeight = (viewportConstraints.maxHeight - 64).clamp(560.0, 720.0);
-
-                    return Center(
-                      child: ConstrainedBox(
-                        constraints: const BoxConstraints(maxWidth: 1180),
-                        child: Padding(
-                          padding: const EdgeInsets.all(32),
-                          child: SizedBox(
-                            height: panelHeight.toDouble(),
-                            child: Row(
-                              crossAxisAlignment: CrossAxisAlignment.stretch,
-                              children: [
-                                Expanded(
-                                  child: Card(
-                                    child: Padding(
-                                      padding: const EdgeInsets.all(32),
-                                      child: SingleChildScrollView(child: _IntroPanel(theme: theme)),
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(width: 24),
-                                Expanded(
-                                  child: Card(
-                                    child: Padding(
-                                      padding: const EdgeInsets.all(32),
-                                      child: SingleChildScrollView(child: form),
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                    );
-                  },
-                ),
-              ),
-            ),
-          );
+      create: (_) => OnboardingCubit(
+        authRepository: context.read<AuthRepository>(),
+        serverRepository: context.read<ServerRepository>(),
+      ),
+      child: BlocListener<OnboardingCubit, OnboardingState>(
+        listenWhen: (previous, current) => previous.step != current.step,
+        listener: (context, state) {
+          final targetFocusNode = switch (state.step) {
+            OnboardingStep.server => _serverFieldFocusNode,
+            OnboardingStep.credentials => _emailFieldFocusNode,
+            OnboardingStep.pin => _pinFieldFocusNode,
+          };
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) {
+              targetFocusNode.requestFocus();
+            }
+          });
         },
+        child: BlocBuilder<OnboardingCubit, OnboardingState>(
+          builder: (context, state) {
+            final useMockServices = context
+                .read<AppEnvironment>()
+                .useMockServices;
+            final hasSavedProfiles = context
+                .watch<AppFlowCubit>()
+                .state
+                .profiles
+                .isNotEmpty;
+
+            return OnboardingShell(
+              branding: OnboardingBranding(theme: theme, state: state),
+              child: OnboardingForm(
+                theme: theme,
+                state: state,
+                isTvLayout: MediaQuery.sizeOf(context).width >= 1600,
+                useMockServices: useMockServices,
+                hasSavedProfiles: hasSavedProfiles,
+                serverController: _serverController,
+                emailController: _emailController,
+                passwordController: _passwordController,
+                pinController: _pinController,
+                confirmPinController: _confirmPinController,
+                serverFieldFocusNode: _serverFieldFocusNode,
+                emailFieldFocusNode: _emailFieldFocusNode,
+                passwordFieldFocusNode: _passwordFieldFocusNode,
+                pinFieldFocusNode: _pinFieldFocusNode,
+                confirmPinFieldFocusNode: _confirmPinFieldFocusNode,
+                actionButtonFocusNode: _actionButtonFocusNode,
+                onPrimaryAction: () => _handlePrimaryAction(context, state),
+                onSecondaryAction: () {
+                  final cubit = context.read<OnboardingCubit>();
+                  switch (state.step) {
+                    case OnboardingStep.server:
+                      context.read<AppFlowCubit>().showProfilePicker();
+                      break;
+                    case OnboardingStep.credentials:
+                      _pinController.clear();
+                      _confirmPinController.clear();
+                      cubit.returnToServerStep();
+                      break;
+                    case OnboardingStep.pin:
+                      _pinController.clear();
+                      _confirmPinController.clear();
+                      cubit.returnToCredentialsStep();
+                      break;
+                  }
+                },
+              ),
+            );
+          },
+        ),
       ),
     );
   }
 
-  Widget _buildForm(BuildContext context, ThemeData theme, OnboardingState state) {
-    final useMockServices = context.read<AppEnvironment>().useMockServices;
-    final isSubmitting = state.isBusy;
-    final serverValidated = state.hasValidatedServer;
-    final helperText = serverValidated ? 'Press Enter to sign in after entering your credentials.' : 'Press Enter to validate your server URL.';
-
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(serverValidated ? 'Sign in to Immich' : 'Connect your server', style: theme.textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w700)),
-        const SizedBox(height: 12),
-        Text(
-          serverValidated
-              ? (useMockServices
-                    ? 'Demo mode is active. Sign in to explore the curated TV experience with mock content.'
-                    : 'We found a compatible Immich API. Sign in securely to continue.')
-              : (useMockServices
-                    ? 'Start with the demo server URL. We will validate it and load a polished mock library so we can shape the full TV experience first.'
-                    : 'Start with the URL of your Immich instance. We will validate it before asking for credentials.'),
-          style: theme.textTheme.bodyLarge?.copyWith(color: const Color(0xFFB8C8CF), height: 1.5),
-        ),
-        const SizedBox(height: 28),
-        if (useMockServices) ...[
-          const _StatusBanner(
-            icon: Icons.auto_awesome_outlined,
-            color: Color(0xFF6FE0DB),
-            message:
-                'Demo mode is on. Authentication, library browsing, pagination, and fullscreen viewing are currently backed by mock data so we can polish the UI before real API rollout.',
-          ),
-          const SizedBox(height: 18),
-        ],
-        TextField(
-          controller: _serverController,
-          focusNode: _serverFieldFocusNode,
-          enabled: !serverValidated && !isSubmitting,
-          textInputAction: TextInputAction.done,
-          onSubmitted: !serverValidated && !isSubmitting ? (_) => _handlePrimaryAction(context, state) : null,
-          decoration: const InputDecoration(labelText: 'Immich server URL', hintText: 'https://photos.example.com'),
-        ),
-        if (state.errorMessage case final message?) ...[
-          const SizedBox(height: 18),
-          _StatusBanner(icon: Icons.error_outline, color: const Color(0xFFFF907C), message: message),
-        ],
-        const SizedBox(height: 18),
-        if (serverValidated) ...[
-          _StatusBanner(
-            icon: Icons.verified_outlined,
-            color: const Color(0xFF6FE0DB),
-            message: useMockServices
-                ? 'Demo server ready at ${state.serverConfig!.apiUrl}. Your mock session will restore like a real TV app flow.'
-                : 'API detected at ${state.serverConfig!.apiUrl}. Your session will be stored without saving the password.',
-          ),
-          const SizedBox(height: 18),
-          TextField(
-            controller: _emailController,
-            focusNode: _emailFieldFocusNode,
-            enabled: !isSubmitting,
-            textInputAction: TextInputAction.next,
-            onSubmitted: (_) => _passwordFieldFocusNode.requestFocus(),
-            decoration: const InputDecoration(labelText: 'Email'),
-          ),
-          const SizedBox(height: 18),
-          TextField(
-            controller: _passwordController,
-            focusNode: _passwordFieldFocusNode,
-            enabled: !isSubmitting,
-            obscureText: true,
-            textInputAction: TextInputAction.done,
-            onSubmitted: !isSubmitting ? (_) => _handlePrimaryAction(context, state) : null,
-            decoration: const InputDecoration(labelText: 'Password'),
-          ),
-          const SizedBox(height: 18),
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: const Color(0xFF0D1B22),
-              borderRadius: BorderRadius.circular(18),
-              border: Border.all(color: const Color(0xFF1E3947)),
-            ),
-            child: Row(
-              children: [
-                const Icon(Icons.verified_user_outlined, color: Color(0xFF6FE0DB)),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    useMockServices
-                        ? 'Next up: continue with the mock-first showcase flow, then swap these repositories for real Immich APIs.'
-                        : 'Next up: real API validation, secure storage, and persisted sessions.',
-                    style: theme.textTheme.bodyMedium?.copyWith(color: const Color(0xFFB8C8CF)),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-        const SizedBox(height: 24),
-        Row(
-          children: [
-            const ShortcutHint(label: 'Enter'),
-            const SizedBox(width: AppSpacing.sm),
-            Expanded(
-              child: Text(helperText, style: theme.textTheme.bodyMedium?.copyWith(color: AppColors.textMuted)),
-            ),
-          ],
-        ),
-        const SizedBox(height: 18),
-        SizedBox(
-          width: double.infinity,
-          child: FilledButton(
-            focusNode: _actionButtonFocusNode,
-            onPressed: isSubmitting ? null : () => _handlePrimaryAction(context, state),
-            child: Text(isSubmitting ? 'Working...' : (serverValidated ? 'Continue to library shell' : 'Validate server')),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Future<void> _handlePrimaryAction(BuildContext context, OnboardingState state) async {
+  Future<void> _handlePrimaryAction(
+    BuildContext context,
+    OnboardingState state,
+  ) async {
     final onboardingCubit = context.read<OnboardingCubit>();
     final appFlowCubit = context.read<AppFlowCubit>();
+    final authRepository = context.read<AuthRepository>();
+    final messenger = ScaffoldMessenger.of(context);
 
-    if (!state.hasValidatedServer) {
+    if (state.step == OnboardingStep.server) {
       await onboardingCubit.validateServer(_serverController.text);
-      if (mounted) {
-        _emailFieldFocusNode.requestFocus();
-      }
       return;
     }
 
-    final session = await onboardingCubit.signIn(email: _emailController.text.trim(), password: _passwordController.text);
+    if (state.step == OnboardingStep.credentials) {
+      await onboardingCubit.signIn(
+        email: _emailController.text.trim(),
+        password: _passwordController.text,
+      );
+      return;
+    }
 
-    if (!mounted || session == null) {
+    final session = state.pendingSession;
+    if (session == null) {
+      messenger.showSnackBar(
+        const SnackBar(content: Text('Sign in before setting up a PIN.')),
+      );
+      return;
+    }
+
+    final pin = _pinController.text.trim();
+    final confirmedPin = _confirmPinController.text.trim();
+    if (!RegExp(r'^\d{4}$').hasMatch(pin)) {
+      messenger.showSnackBar(
+        const SnackBar(
+          content: Text('Enter a 4-digit PIN to save this profile.'),
+        ),
+      );
+      _pinFieldFocusNode.requestFocus();
+      return;
+    }
+
+    if (pin != confirmedPin) {
+      messenger.showSnackBar(
+        const SnackBar(content: Text('The PIN confirmation did not match.')),
+      );
+      _confirmPinFieldFocusNode.requestFocus();
+      return;
+    }
+
+    try {
+      await authRepository.saveProfile(
+        session: session,
+        password: _passwordController.text,
+        pin: pin,
+      );
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      final rawMessage = error is AppException
+          ? error.message
+          : error.toString().replaceFirst('Exception: ', '');
+      messenger.showSnackBar(SnackBar(content: Text(rawMessage)));
       return;
     }
 
     appFlowCubit.completeSignIn(session);
-  }
-}
-
-class _StatusBanner extends StatelessWidget {
-  const _StatusBanner({required this.icon, required this.color, required this.message});
-
-  final IconData icon;
-  final Color color;
-  final String message;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.backgroundElevated,
-        borderRadius: BorderRadius.circular(AppRadii.md),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Row(
-        children: [
-          Icon(icon, color: color),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(message, style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppColors.textSecondary)),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _IntroPanel extends StatelessWidget {
-  const _IntroPanel({required this.theme});
-
-  final ThemeData theme;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-          decoration: BoxDecoration(
-            color: AppColors.backgroundElevated,
-            borderRadius: BorderRadius.circular(AppRadii.pill),
-            border: Border.all(color: AppColors.border),
-          ),
-          child: const Text(
-            'MVP foundation',
-            style: TextStyle(color: AppColors.focus, fontWeight: FontWeight.w600, letterSpacing: 0.3),
-          ),
-        ),
-        const SizedBox(height: 24),
-        Text('A TV-first Immich client for the living room.', style: theme.textTheme.displaySmall?.copyWith(fontWeight: FontWeight.w700, height: 1.1)),
-        const SizedBox(height: 18),
-        Text(
-          'This first milestone focuses on the core path: app bootstrap, server entry, authentication handoff, and a library shell ready for albums, timeline, favorites, and slideshow work.',
-          style: theme.textTheme.bodyLarge?.copyWith(color: AppColors.textSecondary, height: 1.6),
-        ),
-        const SizedBox(height: 28),
-        const _FeatureCallout(icon: Icons.dns_outlined, title: 'Server-first onboarding', body: 'Validate the user server before asking for credentials.'),
-        const SizedBox(height: 16),
-        const _FeatureCallout(
-          icon: Icons.settings_remote_outlined,
-          title: 'TV-friendly navigation',
-          body: 'Large cards, calm contrast, and layouts that translate well to remote input.',
-        ),
-        const SizedBox(height: 16),
-        const _FeatureCallout(
-          icon: Icons.photo_library_outlined,
-          title: 'Library-focused roadmap',
-          body: 'Timeline, albums, favorites, slideshow, caching, and session persistence come next.',
-        ),
-        const SizedBox(height: 24),
-        Text(
-          'Today we are replacing the starter app with product-shaped structure so feature work has a clean home.',
-          style: theme.textTheme.bodyMedium?.copyWith(color: AppColors.textMuted),
-        ),
-      ],
-    );
-  }
-}
-
-class _FeatureCallout extends StatelessWidget {
-  const _FeatureCallout({required this.icon, required this.title, required this.body});
-
-  final IconData icon;
-  final String title;
-  final String body;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Container(
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: AppColors.backgroundElevated,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, color: AppColors.focus, size: 28),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(title, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
-                const SizedBox(height: 6),
-                Text(body, style: theme.textTheme.bodyMedium?.copyWith(color: AppColors.textSecondary, height: 1.5)),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
   }
 }

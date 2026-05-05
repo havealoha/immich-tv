@@ -1,9 +1,6 @@
-import 'dart:typed_data';
-
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../../core/repositories/asset_image_repository.dart';
+import '../../../core/network/immich_headers.dart';
 import '../app_colors.dart';
 import '../app_spacing.dart';
 
@@ -35,12 +32,12 @@ class AuthenticatedAssetImage extends StatefulWidget {
 }
 
 class _AuthenticatedAssetImageState extends State<AuthenticatedAssetImage> {
-  Future<Uint8List>? _imageFuture;
+  int _urlIndex = 0;
+  bool _isAdvancingUrl = false;
 
   @override
   void initState() {
     super.initState();
-    _syncFuture();
   }
 
   @override
@@ -49,7 +46,7 @@ class _AuthenticatedAssetImageState extends State<AuthenticatedAssetImage> {
     if (oldWidget.accessToken != widget.accessToken ||
         oldWidget.requiresAuth != widget.requiresAuth ||
         oldWidget.imageUrls.join('|') != widget.imageUrls.join('|')) {
-      _syncFuture();
+      _resetImageState();
     }
   }
 
@@ -74,105 +71,153 @@ class _AuthenticatedAssetImageState extends State<AuthenticatedAssetImage> {
       return child;
     }
 
-    if (!widget.requiresAuth && primaryUrl != null) {
-      Widget child = Image.network(
-        primaryUrl,
-        fit: widget.fit,
-        filterQuality: widget.filterQuality,
-        loadingBuilder: (context, widget, progress) {
-          if (progress == null) {
-            return widget;
-          }
-
-          return const _ImagePlaceholder(
-            child: SizedBox(
-              width: 28,
-              height: 28,
-              child: CircularProgressIndicator(strokeWidth: 2.4),
-            ),
-          );
-        },
-        errorBuilder: (context, error, stackTrace) {
-          return _ImagePlaceholder(
-            child: Icon(
-              widget.placeholderIcon,
-              color: AppColors.textMuted,
-              size: 30,
-            ),
-          );
-        },
+    if (widget.imageUrls.isEmpty) {
+      return _wrapImage(
+        _ImagePlaceholder(
+          child: Icon(
+            widget.placeholderIcon,
+            color: AppColors.textMuted,
+            size: 30,
+          ),
+        ),
       );
-
-      if (widget.borderRadius != null) {
-        child = ClipRRect(
-          borderRadius: BorderRadius.circular(widget.borderRadius!),
-          child: child,
-        );
-      }
-
-      if (widget.heroTag != null) {
-        child = Hero(tag: widget.heroTag!, child: child);
-      }
-
-      return child;
     }
 
-    return FutureBuilder<Uint8List>(
-      future: _imageFuture,
-      builder: (context, snapshot) {
-        Widget child;
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          child = const _ImagePlaceholder(
-            child: SizedBox(
-              width: 28,
-              height: 28,
-              child: CircularProgressIndicator(strokeWidth: 2.4),
-            ),
-          );
-        } else if (snapshot.hasError || !snapshot.hasData) {
-          child = _ImagePlaceholder(
-            child: Icon(
-              widget.placeholderIcon,
-              color: AppColors.textMuted,
-              size: 30,
-            ),
-          );
-        } else {
-          child = Image.memory(
-            snapshot.data!,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final currentUrl = widget.imageUrls[_urlIndex];
+        final targetSize = _resolveDecodeSize(context, constraints);
+
+        return _wrapImage(
+          Image.network(
+            currentUrl,
+            headers: widget.requiresAuth
+                ? ImmichHeaders.mediaSessionToken(widget.accessToken)
+                : null,
             fit: widget.fit,
             gaplessPlayback: true,
             filterQuality: widget.filterQuality,
-          );
-        }
+            cacheWidth: targetSize.cacheWidth,
+            cacheHeight: targetSize.cacheHeight,
+            frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
+              if (wasSynchronouslyLoaded || frame != null) {
+                return child;
+              }
 
-        if (widget.borderRadius != null) {
-          child = ClipRRect(
-            borderRadius: BorderRadius.circular(widget.borderRadius!),
-            child: child,
-          );
-        }
-
-        if (widget.heroTag != null) {
-          child = Hero(tag: widget.heroTag!, child: child);
-        }
-
-        return RepaintBoundary(child: child);
+              return const _ImagePlaceholder(
+                child: SizedBox(
+                  width: 28,
+                  height: 28,
+                  child: CircularProgressIndicator(strokeWidth: 2.4),
+                ),
+              );
+            },
+            errorBuilder: (context, error, stackTrace) {
+              _advanceToNextUrl();
+              return _ImagePlaceholder(
+                child: Icon(
+                  widget.placeholderIcon,
+                  color: AppColors.textMuted,
+                  size: 30,
+                ),
+              );
+            },
+          ),
+        );
       },
     );
   }
 
-  void _syncFuture() {
-    if (!widget.requiresAuth) {
-      _imageFuture = null;
+  void _resetImageState() {
+    _urlIndex = 0;
+    _isAdvancingUrl = false;
+  }
+
+  void _advanceToNextUrl() {
+    if (_isAdvancingUrl || _urlIndex >= widget.imageUrls.length - 1) {
       return;
     }
 
-    _imageFuture = context.read<AssetImageRepository>().fetchImageBytes(
-      urls: widget.imageUrls,
-      accessToken: widget.accessToken,
-    );
+    _isAdvancingUrl = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _urlIndex += 1;
+        _isAdvancingUrl = false;
+      });
+    });
   }
+
+  Widget _wrapImage(Widget child) {
+    Widget current = child;
+
+    if (widget.borderRadius != null) {
+      current = ClipRRect(
+        borderRadius: BorderRadius.circular(widget.borderRadius!),
+        child: current,
+      );
+    }
+
+    if (widget.heroTag != null) {
+      current = Hero(tag: widget.heroTag!, child: current);
+    }
+
+    return RepaintBoundary(child: current);
+  }
+
+  _DecodeTargetSize _resolveDecodeSize(
+    BuildContext context,
+    BoxConstraints constraints,
+  ) {
+    final mediaQuery = MediaQuery.maybeOf(context);
+    final devicePixelRatio = mediaQuery?.devicePixelRatio ?? 1.0;
+    final decodeScaleCap = widget.fit == BoxFit.contain ? 2.0 : 1.2;
+    final effectivePixelRatio = devicePixelRatio.clamp(1.0, decodeScaleCap);
+
+    final width = constraints.maxWidth.isFinite
+        ? constraints.maxWidth
+        : mediaQuery?.size.width ?? 0;
+    final height = constraints.maxHeight.isFinite
+        ? constraints.maxHeight
+        : mediaQuery?.size.height ?? 0;
+
+    final scaledWidth = _scaledDimension(width, effectivePixelRatio);
+    final scaledHeight = _scaledDimension(height, effectivePixelRatio);
+
+    if (scaledWidth == null && scaledHeight == null) {
+      return const _DecodeTargetSize();
+    }
+
+    if (scaledWidth == null) {
+      return _DecodeTargetSize(cacheHeight: scaledHeight);
+    }
+
+    if (scaledHeight == null) {
+      return _DecodeTargetSize(cacheWidth: scaledWidth);
+    }
+
+    return scaledWidth >= scaledHeight
+        ? _DecodeTargetSize(cacheWidth: scaledWidth)
+        : _DecodeTargetSize(cacheHeight: scaledHeight);
+  }
+
+  int? _scaledDimension(double logicalDimension, double pixelRatio) {
+    if (logicalDimension <= 0 || !logicalDimension.isFinite) {
+      return null;
+    }
+
+    return (logicalDimension * pixelRatio).round().clamp(64, 4096);
+  }
+}
+
+class _DecodeTargetSize {
+  const _DecodeTargetSize({this.cacheWidth, this.cacheHeight});
+
+  final int? cacheWidth;
+  final int? cacheHeight;
 }
 
 class _ImagePlaceholder extends StatelessWidget {
