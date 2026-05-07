@@ -23,11 +23,21 @@ class ImmichMediaRepository implements MediaRepository {
     );
 
     final items = response.data ?? const [];
-    return items
+    final albums = items
         .whereType<Map<String, dynamic>>()
         .map(_mapAlbum)
         .whereType<AlbumSummary>()
         .toList(growable: false);
+    final sortedAlbums = albums.toList(growable: false)
+      ..sort((a, b) {
+        final assetCountCompare = b.assetCount.compareTo(a.assetCount);
+        if (assetCountCompare != 0) {
+          return assetCountCompare;
+        }
+
+        return a.name.toLowerCase().compareTo(b.name.toLowerCase());
+      });
+    return sortedAlbums;
   }
 
   @override
