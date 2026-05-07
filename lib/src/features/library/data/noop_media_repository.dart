@@ -12,12 +12,14 @@ class NoopMediaRepository implements MediaRepository {
   }
 
   @override
-  Future<List<AssetSummary>> fetchAlbumAssets(
+  Future<MediaPage<AssetSummary>> fetchAlbumAssetsPage(
     AuthenticatedSession session, {
     required String albumId,
+    String? page,
+    int pageSize = 120,
   }) async {
     await Future<void>.delayed(const Duration(milliseconds: 220));
-    return const [];
+    return const MediaPage(items: []);
   }
 
   @override

@@ -41,23 +41,43 @@ class ImmichMediaRepository implements MediaRepository {
   }
 
   @override
-  Future<List<AssetSummary>> fetchAlbumAssets(
+  Future<MediaPage<AssetSummary>> fetchAlbumAssetsPage(
     AuthenticatedSession session, {
     required String albumId,
+    String? page,
+    int pageSize = 120,
   }) async {
-    final response = await _dio.get<dynamic>(
-      session.serverConfig.apiEndpoint('albums/$albumId').toString(),
+    final pageNumber = int.tryParse(page ?? '1') ?? 1;
+    final response = await _dio.post<dynamic>(
+      session.serverConfig.apiEndpoint('search/metadata').toString(),
+      data: {
+        'albumIds': [albumId],
+        'page': pageNumber,
+        'size': pageSize,
+        'withArchived': false,
+      },
       options: Options(
-        headers: ImmichHeaders.sessionToken(session.accessToken),
+        headers: {
+          ...ImmichHeaders.sessionToken(session.accessToken),
+          'Content-Type': 'application/json',
+        },
       ),
     );
 
     final items = _extractAssetMaps(response.data);
-    return items
-        .map((item) => _mapAsset(item, session))
-        .whereType<AssetSummary>()
-        .where((asset) => !asset.isVideo)
-        .toList(growable: false);
+    return MediaPage(
+      items: items
+          .map((item) => _mapAsset(item, session))
+          .whereType<AssetSummary>()
+          .where((asset) => !asset.isVideo)
+          .toList(growable: false),
+      nextPage: _extractCountBasedNextPage(
+        response.data,
+        currentPage: pageNumber,
+        pageSize: pageSize,
+        currentItemCount: items.length,
+      ),
+    );
   }
 
   @override
@@ -246,6 +266,25 @@ class ImmichMediaRepository implements MediaRepository {
     }
 
     return null;
+  }
+
+  String? _extractCountBasedNextPage(
+    dynamic payload, {
+    required int currentPage,
+    required int pageSize,
+    required int currentItemCount,
+  }) {
+    if (payload is Map<String, dynamic>) {
+      final rawCount = payload['count'];
+      final count = rawCount is int
+          ? rawCount
+          : int.tryParse(rawCount?.toString() ?? '');
+      if (count != null) {
+        return count > currentPage * pageSize ? '${currentPage + 1}' : null;
+      }
+    }
+
+    return currentItemCount >= pageSize ? '${currentPage + 1}' : null;
   }
 
   String? _extractTimeBucket(dynamic bucket) {

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../core/errors/app_exception.dart';
 import '../../core/models/album_summary.dart';
 import '../../core/models/asset_summary.dart';
 import '../../core/models/authenticated_session.dart';
@@ -871,14 +872,20 @@ class _AlbumBrowser extends StatefulWidget {
 
 class _AlbumBrowserState extends State<_AlbumBrowser> {
   AlbumSummary? _selectedAlbum;
-  Future<List<AssetSummary>>? _albumAssetsFuture;
+  List<AssetSummary> _albumAssets = const [];
+  String? _albumAssetsNextPage;
+  bool _isLoadingAlbumAssets = false;
+  String? _albumAssetsError;
 
   @override
   void didUpdateWidget(covariant _AlbumBrowser oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (widget.albums.isEmpty) {
       _selectedAlbum = null;
-      _albumAssetsFuture = null;
+      _albumAssets = const [];
+      _albumAssetsNextPage = null;
+      _albumAssetsError = null;
+      _isLoadingAlbumAssets = false;
       return;
     }
 
@@ -912,12 +919,6 @@ class _AlbumBrowserState extends State<_AlbumBrowser> {
     }
 
     final selectedAlbum = _selectedAlbum ?? widget.albums.first;
-    final albumAssetsFuture =
-        _albumAssetsFuture ??
-        context.read<MediaRepository>().fetchAlbumAssets(
-          widget.session,
-          albumId: selectedAlbum.id,
-        );
 
     if (_selectedAlbum == null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -936,30 +937,7 @@ class _AlbumBrowserState extends State<_AlbumBrowser> {
           onAlbumSelected: _selectAlbum,
           horizontal: useStackedLayout,
         );
-        final albumContent = FutureBuilder<List<AssetSummary>>(
-          future: albumAssetsFuture,
-          builder: (context, snapshot) {
-            if (snapshot.connectionState != ConnectionState.done) {
-              return const Center(child: CircularProgressIndicator());
-            }
-
-            final assets = snapshot.data ?? const <AssetSummary>[];
-            if (assets.isEmpty) {
-              return _InfoPanel(
-                title: 'No photos in ${selectedAlbum.name}',
-                body:
-                    'This album does not contain any photo assets that can be displayed yet.',
-                accent: AppColors.textMuted,
-              );
-            }
-
-            return _AlbumAssetGrid(
-              session: widget.session,
-              album: selectedAlbum,
-              assets: assets,
-            );
-          },
-        );
+        final albumContent = _buildAlbumContent(selectedAlbum);
 
         if (useStackedLayout) {
           return Column(
@@ -992,11 +970,114 @@ class _AlbumBrowserState extends State<_AlbumBrowser> {
   void _selectAlbum(AlbumSummary album) {
     setState(() {
       _selectedAlbum = album;
-      _albumAssetsFuture = context.read<MediaRepository>().fetchAlbumAssets(
-        widget.session,
-        albumId: album.id,
-      );
+      _albumAssets = const [];
+      _albumAssetsNextPage = null;
+      _albumAssetsError = null;
+      _isLoadingAlbumAssets = false;
     });
+    _loadAlbumAssets(album: album, page: null, replace: true);
+  }
+
+  Widget _buildAlbumContent(AlbumSummary selectedAlbum) {
+    if (_isLoadingAlbumAssets && _albumAssets.isEmpty) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (_albumAssetsError != null && _albumAssets.isEmpty) {
+      return _InfoPanel(
+        title: 'This album could not load',
+        body: _albumAssetsError!,
+        accent: AppColors.error,
+      );
+    }
+
+    if (_albumAssets.isEmpty) {
+      return _InfoPanel(
+        title: 'No photos in ${selectedAlbum.name}',
+        body:
+            'This album does not contain any photo assets that can be displayed yet.',
+        accent: AppColors.textMuted,
+      );
+    }
+
+    return _AlbumAssetGrid(
+      session: widget.session,
+      album: selectedAlbum,
+      assets: _albumAssets,
+      hasMore: _albumAssetsNextPage != null && _albumAssetsNextPage!.isNotEmpty,
+      isLoadingMore: _isLoadingAlbumAssets && _albumAssets.isNotEmpty,
+      onLoadMore: _loadMoreAlbumAssets,
+    );
+  }
+
+  Future<void> _loadMoreAlbumAssets() async {
+    final selectedAlbum = _selectedAlbum;
+    final nextPage = _albumAssetsNextPage;
+    if (selectedAlbum == null || nextPage == null || _isLoadingAlbumAssets) {
+      return;
+    }
+
+    await _loadAlbumAssets(
+      album: selectedAlbum,
+      page: nextPage,
+      replace: false,
+    );
+  }
+
+  Future<void> _loadAlbumAssets({
+    required AlbumSummary album,
+    required String? page,
+    required bool replace,
+  }) async {
+    if (_isLoadingAlbumAssets) {
+      return;
+    }
+
+    setState(() {
+      _isLoadingAlbumAssets = true;
+      _albumAssetsError = null;
+    });
+
+    try {
+      final response = await context
+          .read<MediaRepository>()
+          .fetchAlbumAssetsPage(widget.session, albumId: album.id, page: page);
+      if (!mounted || _selectedAlbum?.id != album.id) {
+        return;
+      }
+
+      setState(() {
+        _albumAssets = replace
+            ? response.items
+            : [
+                ..._albumAssets,
+                ..._dedupeAlbumAssets(_albumAssets, response.items),
+              ];
+        _albumAssetsNextPage = response.nextPage;
+        _isLoadingAlbumAssets = false;
+      });
+    } catch (error) {
+      if (!mounted || _selectedAlbum?.id != album.id) {
+        return;
+      }
+
+      setState(() {
+        _isLoadingAlbumAssets = false;
+        _albumAssetsError = error is AppException
+            ? error.message
+            : 'We could not load this album right now.';
+      });
+    }
+  }
+
+  List<AssetSummary> _dedupeAlbumAssets(
+    List<AssetSummary> existing,
+    List<AssetSummary> incoming,
+  ) {
+    final existingIds = existing.map((item) => item.id).toSet();
+    return incoming
+        .where((item) => !existingIds.contains(item.id))
+        .toList(growable: false);
   }
 }
 
@@ -1104,11 +1185,17 @@ class _AlbumAssetGrid extends StatelessWidget {
     required this.session,
     required this.album,
     required this.assets,
+    required this.hasMore,
+    required this.isLoadingMore,
+    required this.onLoadMore,
   });
 
   final AuthenticatedSession session;
   final AlbumSummary album;
   final List<AssetSummary> assets;
+  final bool hasMore;
+  final bool isLoadingMore;
+  final VoidCallback onLoadMore;
 
   @override
   Widget build(BuildContext context) {
@@ -1131,28 +1218,49 @@ class _AlbumAssetGrid extends StatelessWidget {
         ),
         const SizedBox(height: AppSpacing.lg),
         Expanded(
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              return GridView.builder(
-                cacheExtent: 240,
-                gridDelegate: _buildAssetGridDelegate(constraints.maxWidth),
-                itemCount: assets.length,
-                itemBuilder: (context, index) {
-                  final asset = assets[index];
-                  return _AssetTile(
-                    session: session,
-                    asset: asset,
-                    autofocus: index == 0,
-                    onPressed: () => AssetViewerScreen.show(
-                      context,
-                      assets: assets,
-                      initialIndex: index,
-                      accessToken: session.accessToken,
-                    ),
-                  );
-                },
-              );
+          child: NotificationListener<ScrollNotification>(
+            onNotification: (notification) {
+              if (!hasMore || isLoadingMore) {
+                return false;
+              }
+
+              final metrics = notification.metrics;
+              if (metrics.pixels >= metrics.maxScrollExtent - 600) {
+                onLoadMore();
+              }
+
+              return false;
             },
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                return GridView.builder(
+                  cacheExtent: 240,
+                  gridDelegate: _buildAssetGridDelegate(constraints.maxWidth),
+                  itemCount: assets.length + (hasMore || isLoadingMore ? 1 : 0),
+                  itemBuilder: (context, index) {
+                    if (index >= assets.length) {
+                      return _LoadMoreTile(
+                        isLoading: isLoadingMore,
+                        hasMore: hasMore,
+                      );
+                    }
+
+                    final asset = assets[index];
+                    return _AssetTile(
+                      session: session,
+                      asset: asset,
+                      autofocus: index == 0,
+                      onPressed: () => AssetViewerScreen.show(
+                        context,
+                        assets: assets,
+                        initialIndex: index,
+                        accessToken: session.accessToken,
+                      ),
+                    );
+                  },
+                );
+              },
+            ),
           ),
         ),
       ],
@@ -1293,10 +1401,10 @@ class _SlideshowSectionViewState extends State<_SlideshowSectionView> {
   Future<void> _selectAlbum(AlbumSummary album) async {
     setState(() {
       _selectedAlbum = album;
-      _albumAssetsFuture = context.read<MediaRepository>().fetchAlbumAssets(
-        widget.session,
-        albumId: album.id,
-      );
+      _albumAssetsFuture = context
+          .read<MediaRepository>()
+          .fetchAlbumAssetsPage(widget.session, albumId: album.id)
+          .then((response) => response.items);
     });
   }
 }
@@ -1559,10 +1667,10 @@ class _AlbumSlideshowSourceView extends StatelessWidget {
         final selectedAlbumValue = selectedAlbum ?? albums.first;
         final selectedFuture =
             albumAssetsFuture ??
-            context.read<MediaRepository>().fetchAlbumAssets(
-              session,
-              albumId: selectedAlbumValue.id,
-            );
+            context
+                .read<MediaRepository>()
+                .fetchAlbumAssetsPage(session, albumId: selectedAlbumValue.id)
+                .then((response) => response.items);
 
         if (selectedAlbum == null) {
           WidgetsBinding.instance.addPostFrameCallback((_) {

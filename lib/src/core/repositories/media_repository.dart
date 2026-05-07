@@ -6,9 +6,11 @@ import '../models/media_page.dart';
 abstract class MediaRepository {
   Future<List<AlbumSummary>> fetchAlbums(AuthenticatedSession session);
 
-  Future<List<AssetSummary>> fetchAlbumAssets(
+  Future<MediaPage<AssetSummary>> fetchAlbumAssetsPage(
     AuthenticatedSession session, {
     required String albumId,
+    String? page,
+    int pageSize = 120,
   });
 
   Future<MediaPage<AssetSummary>> fetchTimelinePage(

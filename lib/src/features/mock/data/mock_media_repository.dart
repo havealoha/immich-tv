@@ -23,12 +23,18 @@ class MockMediaRepository implements MediaRepository {
   }
 
   @override
-  Future<List<AssetSummary>> fetchAlbumAssets(
+  Future<MediaPage<AssetSummary>> fetchAlbumAssetsPage(
     AuthenticatedSession session, {
     required String albumId,
+    String? page,
+    int pageSize = _pageSizeDefault,
   }) async {
     await Future<void>.delayed(const Duration(milliseconds: 280));
-    return _buildAlbumAssets(albumId);
+    return _pageAssets(
+      _buildAlbumAssets(albumId),
+      page: page,
+      pageSize: pageSize,
+    );
   }
 
   @override
