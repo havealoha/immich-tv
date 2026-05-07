@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../../shared/presentation/app_breakpoints.dart';
 import '../../../shared/presentation/app_colors.dart';
 import '../cubit/onboarding_state.dart';
 import 'onboarding_status_banner.dart';
@@ -12,106 +13,135 @@ class OnboardingForm extends StatelessWidget {
     required this.state,
     required this.isTvLayout,
     required this.useMockServices,
-    required this.hasSavedProfiles,
     required this.serverController,
     required this.emailController,
     required this.passwordController,
     required this.pinController,
     required this.confirmPinController,
+    required this.pinDigitControllers,
+    required this.confirmPinDigitControllers,
+    required this.pinDigitFocusNodes,
+    required this.confirmPinDigitFocusNodes,
     required this.serverFieldFocusNode,
     required this.emailFieldFocusNode,
     required this.passwordFieldFocusNode,
     required this.pinFieldFocusNode,
     required this.confirmPinFieldFocusNode,
     required this.actionButtonFocusNode,
+    required this.isConfirmingPin,
     required this.onPrimaryAction,
-    required this.onSecondaryAction,
   });
 
   final ThemeData theme;
   final OnboardingState state;
   final bool isTvLayout;
   final bool useMockServices;
-  final bool hasSavedProfiles;
   final TextEditingController serverController;
   final TextEditingController emailController;
   final TextEditingController passwordController;
   final TextEditingController pinController;
   final TextEditingController confirmPinController;
+  final List<TextEditingController> pinDigitControllers;
+  final List<TextEditingController> confirmPinDigitControllers;
+  final List<FocusNode> pinDigitFocusNodes;
+  final List<FocusNode> confirmPinDigitFocusNodes;
   final FocusNode serverFieldFocusNode;
   final FocusNode emailFieldFocusNode;
   final FocusNode passwordFieldFocusNode;
   final FocusNode pinFieldFocusNode;
   final FocusNode confirmPinFieldFocusNode;
   final FocusNode actionButtonFocusNode;
+  final bool isConfirmingPin;
   final VoidCallback onPrimaryAction;
-  final VoidCallback onSecondaryAction;
 
   @override
   Widget build(BuildContext context) {
+    final viewportSize = MediaQuery.sizeOf(context);
+    final widthScale = (viewportSize.width / 1440).clamp(0.72, 1.28);
+    final heightScale = (viewportSize.height / 900).clamp(0.9, 1.18);
+    final typographyScale = ((widthScale * 0.7) + (heightScale * 0.3)).clamp(
+      0.82,
+      1.22,
+    );
+    final isCompactWidth = viewportSize.width < AppBreakpoints.tablet;
     final isSubmitting = state.isBusy;
     final isServerStep = state.step == OnboardingStep.server;
     final isCredentialsStep = state.step == OnboardingStep.credentials;
-    final helperText = switch (state.step) {
-      OnboardingStep.server => 'Press Enter to validate your server URL and continue.',
-      OnboardingStep.credentials => 'Press Enter to sign in and continue to PIN setup.',
-      OnboardingStep.pin => 'Press Enter to save this profile after entering your 4-digit PIN.',
-    };
-    final title = switch (state.step) {
-      OnboardingStep.server => 'Connect your server',
-      OnboardingStep.credentials => 'Sign in to Immich',
-      OnboardingStep.pin => 'Create a profile PIN',
-    };
-    final description = switch (state.step) {
-      OnboardingStep.server =>
-        useMockServices
-            ? 'Start with the demo server URL. We will validate it and load a polished mock library so we can shape the full TV experience first.'
-            : 'Start with the URL of your Immich instance. We will validate it before asking for credentials.',
-      OnboardingStep.credentials =>
-        useMockServices
-            ? 'Demo mode is active. Enter your Immich account details to create a TV-ready mock session.'
-            : 'Your server is verified. Sign in with your Immich account to continue.',
-      OnboardingStep.pin =>
-        useMockServices
-            ? 'Your mock session is ready. Add a 4-digit PIN so this TV profile can be reopened quickly.'
-            : 'You are signed in. Add a 4-digit PIN so this TV profile can be reopened without entering your password again.',
-    };
+
     final primaryButtonLabel = switch (state.step) {
       OnboardingStep.server => 'Validate server',
       OnboardingStep.credentials => 'Continue to PIN setup',
-      OnboardingStep.pin => 'Save profile and continue',
+      OnboardingStep.pin =>
+        isConfirmingPin
+            ? 'Save profile and continue'
+            : 'Continue to confirm PIN',
     };
-    final secondaryButtonLabel = switch (state.step) {
-      OnboardingStep.server => 'Back to profiles',
-      OnboardingStep.credentials => 'Change server',
-      OnboardingStep.pin => 'Back to sign in',
-    };
-    final titleStyle = (isTvLayout ? theme.textTheme.headlineLarge : theme.textTheme.headlineMedium)?.copyWith(fontWeight: FontWeight.w700);
-    final bodyStyle = (isTvLayout ? theme.textTheme.titleMedium : theme.textTheme.bodyLarge)?.copyWith(color: const Color(0xFFB8C8CF), height: 1.5);
-    final fieldSpacing = isTvLayout ? 18.0 : 18.0;
-    final contentGap = isTvLayout ? 24.0 : 28.0;
-    final buttonHeight = isTvLayout ? 60.0 : 52.0;
-    final statusPadding = isTvLayout ? 16.0 : 16.0;
-    final buttonTextStyle = (isTvLayout ? theme.textTheme.titleSmall : theme.textTheme.titleMedium)?.copyWith(fontWeight: FontWeight.w700, height: 1.1);
+
+    final fieldTextStyle =
+        (isTvLayout ? theme.textTheme.titleMedium : theme.textTheme.bodyLarge)
+            ?.copyWith(fontSize: (18.0 * typographyScale).clamp(15.0, 24.0));
+    final pinPromptStyle =
+        (isTvLayout ? theme.textTheme.titleLarge : theme.textTheme.titleMedium)
+            ?.copyWith(
+              fontWeight: FontWeight.w700,
+              fontSize: (22.0 * typographyScale).clamp(18.0, 30.0),
+            );
+    final pinCaptionStyle = theme.textTheme.bodyMedium?.copyWith(
+      color: AppColors.textSecondary,
+      fontSize: (15.0 * typographyScale).clamp(13.0, 20.0),
+      height: 1.45,
+    );
+    final fieldSpacing = (18.0 * widthScale).clamp(14.0, 24.0);
+    final buttonHeight = (56.0 * heightScale).clamp(50.0, 66.0);
+    final statusPadding = (16.0 * widthScale).clamp(14.0, 22.0);
+    final otpSpacing = (12.0 * widthScale).clamp(10.0, 18.0);
+    final otpDigitSize = ((isCompactWidth ? 58.0 : 68.0) * typographyScale)
+        .clamp(48.0, 82.0);
+    final fieldWidthFactor = isTvLayout
+        ? 0.92
+        : isCompactWidth
+        ? 1.0
+        : 0.94;
+    final buttonTextStyle =
+        (isTvLayout ? theme.textTheme.titleSmall : theme.textTheme.titleMedium)
+            ?.copyWith(
+              fontWeight: FontWeight.w700,
+              height: 1.1,
+              fontSize: (18.0 * typographyScale).clamp(15.0, 22.0),
+            );
 
     return Theme(
       data: theme.copyWith(
         inputDecorationTheme: theme.inputDecorationTheme.copyWith(
-          contentPadding: EdgeInsets.symmetric(horizontal: isTvLayout ? 18 : 18, vertical: isTvLayout ? 16 : 18),
-          labelStyle: isTvLayout ? theme.textTheme.titleSmall : null,
-          hintStyle: isTvLayout ? theme.textTheme.titleSmall?.copyWith(color: AppColors.textMuted) : null,
+          contentPadding: EdgeInsets.symmetric(
+            horizontal: (18.0 * widthScale).clamp(16.0, 24.0),
+            vertical: (16.0 * heightScale).clamp(15.0, 20.0),
+          ),
+          labelStyle:
+              (isTvLayout
+                      ? theme.textTheme.titleSmall
+                      : theme.textTheme.bodyLarge)
+                  ?.copyWith(
+                    fontSize: (16.0 * typographyScale).clamp(14.0, 20.0),
+                  ),
+          hintStyle:
+              (isTvLayout
+                      ? theme.textTheme.titleSmall
+                      : theme.textTheme.bodyLarge)
+                  ?.copyWith(
+                    color: AppColors.textMuted,
+                    fontSize: (16.0 * typographyScale).clamp(14.0, 20.0),
+                  ),
         ),
       ),
       child: DefaultTextStyle.merge(
-        style: isTvLayout ? theme.textTheme.bodyLarge ?? const TextStyle() : theme.textTheme.bodyLarge ?? const TextStyle(),
+        style: (theme.textTheme.bodyLarge ?? const TextStyle()).copyWith(
+          fontSize: (16.0 * typographyScale).clamp(14.0, 21.0),
+        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Text(title, style: titleStyle),
-            SizedBox(height: isTvLayout ? 8 : 12),
-            // Text(description, style: bodyStyle),
-            // SizedBox(height: contentGap),
             if (useMockServices) ...[
               OnboardingStatusBanner(
                 icon: Icons.auto_awesome_outlined,
@@ -120,154 +150,264 @@ class OnboardingForm extends StatelessWidget {
                     'Demo mode is on. Authentication, library browsing, pagination, and fullscreen viewing are currently backed by mock data so we can polish the UI before real API rollout.',
                 padding: statusPadding,
                 isTvLayout: isTvLayout,
+                typographyScale: typographyScale,
               ),
               SizedBox(height: fieldSpacing),
             ],
             if (state.errorMessage case final message?) ...[
-              if (!useMockServices) SizedBox(height: fieldSpacing),
               OnboardingStatusBanner(
                 icon: Icons.error_outline,
                 color: const Color(0xFFFF907C),
                 message: message,
                 padding: statusPadding,
                 isTvLayout: isTvLayout,
-              ),
-            ],
-            if (isServerStep) ...[
-              TextField(
-                controller: serverController,
-                focusNode: serverFieldFocusNode,
-                enabled: !isSubmitting,
-                textInputAction: TextInputAction.done,
-                style: isTvLayout ? theme.textTheme.titleMedium : null,
-                onSubmitted: !isSubmitting ? (_) => onPrimaryAction() : null,
-                decoration: const InputDecoration(labelText: 'Immich server URL', hintText: 'https://photos.example.com'),
-              ),
-            ] else if (isCredentialsStep) ...[
-              // SizedBox(height: fieldSpacing),
-              // OnboardingStatusBanner(
-              //   icon: Icons.verified_outlined,
-              //   color: const Color(0xFF6FE0DB),
-              //   message: useMockServices
-              //       ? 'Demo server ready at ${state.serverConfig!.apiUrl}. Your mock session will restore like a real TV app flow.'
-              //       : 'API detected at ${state.serverConfig!.apiUrl}. Your session will be stored without saving the password.',
-              //   padding: statusPadding,
-              //   isTvLayout: isTvLayout,
-              // ),
-              // SizedBox(height: fieldSpacing),
-              TextField(
-                controller: emailController,
-                focusNode: emailFieldFocusNode,
-                enabled: !isSubmitting,
-                textInputAction: TextInputAction.next,
-                style: isTvLayout ? theme.textTheme.titleMedium : null,
-                onSubmitted: (_) => passwordFieldFocusNode.requestFocus(),
-                decoration: const InputDecoration(labelText: 'Email'),
+                typographyScale: typographyScale,
               ),
               SizedBox(height: fieldSpacing),
-              TextField(
-                controller: passwordController,
-                focusNode: passwordFieldFocusNode,
-                enabled: !isSubmitting,
-                obscureText: true,
-                style: isTvLayout ? theme.textTheme.titleMedium : null,
-                textInputAction: TextInputAction.next,
-                onSubmitted: !isSubmitting ? (_) => onPrimaryAction() : null,
-                decoration: const InputDecoration(labelText: 'Password'),
+            ],
+            if (isServerStep) ...[
+              _ScaledFieldWidth(
+                widthFactor: fieldWidthFactor,
+                child: TextField(
+                  controller: serverController,
+                  focusNode: serverFieldFocusNode,
+                  enabled: !isSubmitting,
+                  textInputAction: TextInputAction.done,
+                  style: fieldTextStyle,
+                  onSubmitted: !isSubmitting ? (_) => onPrimaryAction() : null,
+                  decoration: const InputDecoration(
+                    labelText: 'Immich server URL',
+                    hintText: 'https://photos.example.com',
+                  ),
+                ),
+              ),
+            ] else if (isCredentialsStep) ...[
+              _ScaledFieldWidth(
+                widthFactor: fieldWidthFactor,
+                child: TextField(
+                  controller: emailController,
+                  focusNode: emailFieldFocusNode,
+                  enabled: !isSubmitting,
+                  textInputAction: TextInputAction.next,
+                  style: fieldTextStyle,
+                  onSubmitted: (_) => passwordFieldFocusNode.requestFocus(),
+                  decoration: const InputDecoration(labelText: 'Email'),
+                ),
+              ),
+              SizedBox(height: fieldSpacing),
+              _ScaledFieldWidth(
+                widthFactor: fieldWidthFactor,
+                child: TextField(
+                  controller: passwordController,
+                  focusNode: passwordFieldFocusNode,
+                  enabled: !isSubmitting,
+                  obscureText: true,
+                  style: fieldTextStyle,
+                  textInputAction: TextInputAction.next,
+                  onSubmitted: !isSubmitting ? (_) => onPrimaryAction() : null,
+                  decoration: const InputDecoration(labelText: 'Password'),
+                ),
               ),
             ] else ...[
-              // SizedBox(height: fieldSpacing),
-              // OnboardingStatusBanner(
-              //   icon: Icons.lock_outline_rounded,
-              //   color: const Color(0xFF6FE0DB),
-              //   message: state.pendingSession == null
-              //       ? 'Complete sign-in before saving this TV profile.'
-              //       : 'Signed in as ${state.pendingSession!.user.email}. Choose a 4-digit PIN for quick access on this TV.',
-              //   padding: statusPadding,
-              //   isTvLayout: isTvLayout,
-              // ),
-              // SizedBox(height: fieldSpacing),
-              Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: pinController,
-                      focusNode: pinFieldFocusNode,
-                      enabled: !isSubmitting,
-                      obscureText: true,
-                      style: isTvLayout ? theme.textTheme.titleMedium : null,
-                      textInputAction: TextInputAction.next,
-                      keyboardType: TextInputType.number,
-                      inputFormatters: [FilteringTextInputFormatter.digitsOnly, LengthLimitingTextInputFormatter(4)],
-                      onSubmitted: (_) => confirmPinFieldFocusNode.requestFocus(),
-                      decoration: const InputDecoration(labelText: '4-digit PIN'),
-                    ),
-                  ),
-                  SizedBox(width: fieldSpacing),
-                  Expanded(
-                    child: TextField(
-                      controller: confirmPinController,
-                      focusNode: confirmPinFieldFocusNode,
-                      enabled: !isSubmitting,
-                      obscureText: true,
-                      style: isTvLayout ? theme.textTheme.titleMedium : null,
-                      textInputAction: TextInputAction.done,
-                      keyboardType: TextInputType.number,
-                      inputFormatters: [FilteringTextInputFormatter.digitsOnly, LengthLimitingTextInputFormatter(4)],
-                      onSubmitted: !isSubmitting ? (_) => onPrimaryAction() : null,
-                      decoration: const InputDecoration(labelText: 'Confirm PIN'),
-                    ),
-                  ),
-                ],
-              ),
-              // SizedBox(height: fieldSpacing),
-              // Text(
-              //   'This PIN unlocks the saved profile on future launches without re-entering your Immich email and password.',
-              //   style: (isTvLayout ? theme.textTheme.titleSmall : theme.textTheme.bodyMedium)?.copyWith(color: AppColors.textMuted, height: 1.5),
-              // ),
-            ],
-            // SizedBox(height: isTvLayout ? 20 : 24),
-            // Row(
-            //   children: [
-            //     ShortcutHint(label: 'Enter', size: isTvLayout ? ShortcutHintSize.large : ShortcutHintSize.medium),
-            //     const SizedBox(width: AppSpacing.sm),
-            //     Expanded(
-            //       child: Text(helperText, style: (isTvLayout ? theme.textTheme.bodyMedium : theme.textTheme.bodyMedium)?.copyWith(color: AppColors.textMuted)),
-            //     ),
-            //   ],
-            // ),
-            SizedBox(height: isTvLayout ? 16 : 18),
-            SizedBox(
-              width: double.infinity,
-              height: buttonHeight,
-              child: FilledButton(
-                focusNode: actionButtonFocusNode,
-                style: FilledButton.styleFrom(
-                  padding: EdgeInsets.symmetric(horizontal: 18, vertical: isTvLayout ? 10 : 14),
-                  textStyle: buttonTextStyle,
+              _ScaledFieldWidth(
+                widthFactor: fieldWidthFactor,
+                child: _PinOtpStep(
+                  title: isConfirmingPin
+                      ? 'Confirm your 4-digit PIN'
+                      : 'Create a 4-digit PIN',
+                  caption: isConfirmingPin
+                      ? 'Enter the same four digits again.'
+                      : 'Use the PIN you want to unlock this profile on TV.',
+                  titleStyle: pinPromptStyle,
+                  captionStyle: pinCaptionStyle,
+                  digitSize: otpDigitSize,
+                  spacing: otpSpacing,
+                  enabled: !isSubmitting,
+                  controllers: isConfirmingPin
+                      ? confirmPinDigitControllers
+                      : pinDigitControllers,
+                  focusNodes: isConfirmingPin
+                      ? confirmPinDigitFocusNodes
+                      : pinDigitFocusNodes,
+                  fieldTextStyle: fieldTextStyle,
+                  onComplete: !isSubmitting ? onPrimaryAction : null,
                 ),
-                onPressed: isSubmitting ? null : onPrimaryAction,
-                child: Text(isSubmitting ? 'Working...' : primaryButtonLabel),
+              ),
+            ],
+            SizedBox(height: (18.0 * heightScale).clamp(16.0, 24.0)),
+            _ScaledFieldWidth(
+              widthFactor: fieldWidthFactor,
+              child: SizedBox(
+                width: double.infinity,
+                height: buttonHeight,
+                child: FilledButton(
+                  focusNode: actionButtonFocusNode,
+                  style: FilledButton.styleFrom(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: (20.0 * widthScale).clamp(18.0, 28.0),
+                      vertical: (12.0 * heightScale).clamp(10.0, 16.0),
+                    ),
+                    textStyle: buttonTextStyle,
+                  ),
+                  onPressed: isSubmitting ? null : onPrimaryAction,
+                  child: Text(isSubmitting ? 'Working...' : primaryButtonLabel),
+                ),
               ),
             ),
-            // if (hasSavedProfiles || !isServerStep) ...[
-            //   SizedBox(height: isTvLayout ? 12 : 12),
-            //   SizedBox(
-            //     width: double.infinity,
-            //     height: buttonHeight,
-            //     child: OutlinedButton(
-            //       style: OutlinedButton.styleFrom(
-            //         padding: EdgeInsets.symmetric(horizontal: 18, vertical: isTvLayout ? 10 : 14),
-            //         textStyle: buttonTextStyle,
-            //       ),
-            //       onPressed: isSubmitting ? null : onSecondaryAction,
-            //       child: Text(secondaryButtonLabel),
-            //     ),
-            //   ),
-            // ],
           ],
         ),
       ),
+    );
+  }
+}
+
+class _PinOtpStep extends StatelessWidget {
+  const _PinOtpStep({
+    required this.title,
+    required this.caption,
+    required this.titleStyle,
+    required this.captionStyle,
+    required this.digitSize,
+    required this.spacing,
+    required this.enabled,
+    required this.controllers,
+    required this.focusNodes,
+    required this.fieldTextStyle,
+    this.onComplete,
+  });
+
+  final String title;
+  final String caption;
+  final TextStyle? titleStyle;
+  final TextStyle? captionStyle;
+  final double digitSize;
+  final double spacing;
+  final bool enabled;
+  final List<TextEditingController> controllers;
+  final List<FocusNode> focusNodes;
+  final TextStyle? fieldTextStyle;
+  final VoidCallback? onComplete;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Text(title, style: titleStyle, textAlign: TextAlign.center),
+        SizedBox(height: spacing),
+        Text(caption, style: captionStyle, textAlign: TextAlign.center),
+        SizedBox(height: spacing * 1.4),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: List.generate(controllers.length, (index) {
+            return Padding(
+              padding: EdgeInsets.only(
+                right: index == controllers.length - 1 ? 0 : spacing,
+              ),
+              child: _OtpDigitField(
+                controller: controllers[index],
+                focusNode: focusNodes[index],
+                previousFocusNode: index > 0 ? focusNodes[index - 1] : null,
+                nextFocusNode: index < focusNodes.length - 1
+                    ? focusNodes[index + 1]
+                    : null,
+                enabled: enabled,
+                size: digitSize.clamp(48.0, 82.0),
+                textStyle: fieldTextStyle,
+                onComplete: index == controllers.length - 1 ? onComplete : null,
+              ),
+            );
+          }),
+        ),
+      ],
+    );
+  }
+}
+
+class _OtpDigitField extends StatelessWidget {
+  const _OtpDigitField({
+    required this.controller,
+    required this.focusNode,
+    required this.enabled,
+    required this.size,
+    this.previousFocusNode,
+    this.nextFocusNode,
+    this.textStyle,
+    this.onComplete,
+  });
+
+  final TextEditingController controller;
+  final FocusNode focusNode;
+  final FocusNode? previousFocusNode;
+  final FocusNode? nextFocusNode;
+  final bool enabled;
+  final double size;
+  final TextStyle? textStyle;
+  final VoidCallback? onComplete;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: size,
+      child: TextField(
+        controller: controller,
+        focusNode: focusNode,
+        enabled: enabled,
+        autofocus: false,
+        textAlign: TextAlign.center,
+        style: textStyle?.copyWith(
+          fontWeight: FontWeight.w700,
+          fontSize: (textStyle?.fontSize ?? 18) + 2,
+          letterSpacing: 1,
+        ),
+        obscureText: true,
+        keyboardType: TextInputType.number,
+        textInputAction: nextFocusNode == null
+            ? TextInputAction.done
+            : TextInputAction.next,
+        inputFormatters: [
+          FilteringTextInputFormatter.digitsOnly,
+          LengthLimitingTextInputFormatter(1),
+        ],
+        decoration: InputDecoration(
+          hintText: '0',
+          counterText: '',
+          contentPadding: EdgeInsets.symmetric(
+            horizontal: 0,
+            vertical: (size * 0.38).clamp(18.0, 28.0),
+          ),
+        ),
+        onChanged: (value) {
+          if (value.isNotEmpty) {
+            if (nextFocusNode != null) {
+              nextFocusNode!.requestFocus();
+            } else {
+              focusNode.unfocus();
+              onComplete?.call();
+            }
+            return;
+          }
+
+          if (previousFocusNode != null) {
+            previousFocusNode!.requestFocus();
+          }
+        },
+      ),
+    );
+  }
+}
+
+class _ScaledFieldWidth extends StatelessWidget {
+  const _ScaledFieldWidth({required this.widthFactor, required this.child});
+
+  final double widthFactor;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Align(
+      alignment: Alignment.center,
+      child: FractionallySizedBox(widthFactor: widthFactor, child: child),
     );
   }
 }

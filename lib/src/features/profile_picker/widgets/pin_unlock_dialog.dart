@@ -52,13 +52,6 @@ class _PinUnlockDialogState extends State<PinUnlockDialog> {
             color: const Color(0xFF09141B),
             borderRadius: BorderRadius.circular(AppRadii.xl),
             border: Border.all(color: AppColors.border),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.32),
-                blurRadius: 32,
-                spreadRadius: 6,
-              ),
-            ],
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,

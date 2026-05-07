@@ -8,7 +8,6 @@ import '../../core/repositories/server_repository.dart';
 import '../app_flow/cubit/app_flow_cubit.dart';
 import 'cubit/onboarding_cubit.dart';
 import 'cubit/onboarding_state.dart';
-import 'widgets/onboarding_branding.dart';
 import 'widgets/onboarding_form.dart';
 import 'widgets/onboarding_shell.dart';
 
@@ -32,10 +31,34 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
   final _serverFieldFocusNode = FocusNode(debugLabel: 'serverField');
   final _emailFieldFocusNode = FocusNode(debugLabel: 'emailField');
   final _passwordFieldFocusNode = FocusNode(debugLabel: 'passwordField');
-  final _pinFieldFocusNode = FocusNode(debugLabel: 'pinField');
-  final _confirmPinFieldFocusNode = FocusNode(debugLabel: 'confirmPinField');
+  late final List<TextEditingController> _pinDigitControllers;
+  late final List<TextEditingController> _confirmPinDigitControllers;
+  late final List<FocusNode> _pinDigitFocusNodes;
+  late final List<FocusNode> _confirmPinDigitFocusNodes;
   final _actionButtonFocusNode = FocusNode(debugLabel: 'primaryAction');
   bool _hasAppliedInitialValues = false;
+  bool _isConfirmingPin = false;
+
+  FocusNode get _pinFieldFocusNode => _pinDigitFocusNodes.first;
+  FocusNode get _confirmPinFieldFocusNode => _confirmPinDigitFocusNodes.first;
+
+  @override
+  void initState() {
+    super.initState();
+    _pinDigitControllers = List.generate(4, (_) => TextEditingController());
+    _confirmPinDigitControllers = List.generate(
+      4,
+      (_) => TextEditingController(),
+    );
+    _pinDigitFocusNodes = List.generate(
+      4,
+      (index) => FocusNode(debugLabel: 'pinField.$index'),
+    );
+    _confirmPinDigitFocusNodes = List.generate(
+      4,
+      (index) => FocusNode(debugLabel: 'confirmPinField.$index'),
+    );
+  }
 
   @override
   void didChangeDependencies() {
@@ -64,19 +87,27 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
     _passwordController.dispose();
     _pinController.dispose();
     _confirmPinController.dispose();
+    for (final controller in _pinDigitControllers) {
+      controller.dispose();
+    }
+    for (final controller in _confirmPinDigitControllers) {
+      controller.dispose();
+    }
     _serverFieldFocusNode.dispose();
     _emailFieldFocusNode.dispose();
     _passwordFieldFocusNode.dispose();
-    _pinFieldFocusNode.dispose();
-    _confirmPinFieldFocusNode.dispose();
+    for (final focusNode in _pinDigitFocusNodes) {
+      focusNode.dispose();
+    }
+    for (final focusNode in _confirmPinDigitFocusNodes) {
+      focusNode.dispose();
+    }
     _actionButtonFocusNode.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
     return BlocProvider(
       create: (_) => OnboardingCubit(
         authRepository: context.read<AuthRepository>(),
@@ -85,10 +116,14 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
       child: BlocListener<OnboardingCubit, OnboardingState>(
         listenWhen: (previous, current) => previous.step != current.step,
         listener: (context, state) {
+          if (state.step == OnboardingStep.pin) {
+            _resetPinSetup();
+          }
           final targetFocusNode = switch (state.step) {
             OnboardingStep.server => _serverFieldFocusNode,
             OnboardingStep.credentials => _emailFieldFocusNode,
-            OnboardingStep.pin => _pinFieldFocusNode,
+            OnboardingStep.pin =>
+              _isConfirmingPin ? _confirmPinFieldFocusNode : _pinFieldFocusNode,
           };
           WidgetsBinding.instance.addPostFrameCallback((_) {
             if (mounted) {
@@ -101,50 +136,30 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
             final useMockServices = context
                 .read<AppEnvironment>()
                 .useMockServices;
-            final hasSavedProfiles = context
-                .watch<AppFlowCubit>()
-                .state
-                .profiles
-                .isNotEmpty;
 
             return OnboardingShell(
-              branding: OnboardingBranding(theme: theme, state: state),
               child: OnboardingForm(
-                theme: theme,
+                theme: Theme.of(context),
                 state: state,
                 isTvLayout: MediaQuery.sizeOf(context).width >= 1600,
                 useMockServices: useMockServices,
-                hasSavedProfiles: hasSavedProfiles,
                 serverController: _serverController,
                 emailController: _emailController,
                 passwordController: _passwordController,
                 pinController: _pinController,
                 confirmPinController: _confirmPinController,
+                pinDigitControllers: _pinDigitControllers,
+                confirmPinDigitControllers: _confirmPinDigitControllers,
+                pinDigitFocusNodes: _pinDigitFocusNodes,
+                confirmPinDigitFocusNodes: _confirmPinDigitFocusNodes,
                 serverFieldFocusNode: _serverFieldFocusNode,
                 emailFieldFocusNode: _emailFieldFocusNode,
                 passwordFieldFocusNode: _passwordFieldFocusNode,
                 pinFieldFocusNode: _pinFieldFocusNode,
                 confirmPinFieldFocusNode: _confirmPinFieldFocusNode,
                 actionButtonFocusNode: _actionButtonFocusNode,
+                isConfirmingPin: _isConfirmingPin,
                 onPrimaryAction: () => _handlePrimaryAction(context, state),
-                onSecondaryAction: () {
-                  final cubit = context.read<OnboardingCubit>();
-                  switch (state.step) {
-                    case OnboardingStep.server:
-                      context.read<AppFlowCubit>().showProfilePicker();
-                      break;
-                    case OnboardingStep.credentials:
-                      _pinController.clear();
-                      _confirmPinController.clear();
-                      cubit.returnToServerStep();
-                      break;
-                    case OnboardingStep.pin:
-                      _pinController.clear();
-                      _confirmPinController.clear();
-                      cubit.returnToCredentialsStep();
-                      break;
-                  }
-                },
               ),
             );
           },
@@ -183,8 +198,34 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
       return;
     }
 
-    final pin = _pinController.text.trim();
-    final confirmedPin = _confirmPinController.text.trim();
+    final pin = _joinDigits(_pinDigitControllers);
+    if (!_isConfirmingPin) {
+      if (!RegExp(r'^\d{4}$').hasMatch(pin)) {
+        messenger.showSnackBar(
+          const SnackBar(content: Text('Enter a 4-digit PIN to continue.')),
+        );
+        _focusFirstIncomplete(_pinDigitControllers, _pinDigitFocusNodes);
+        return;
+      }
+
+      _pinController.text = pin;
+      setState(() {
+        _isConfirmingPin = true;
+        for (final controller in _confirmPinDigitControllers) {
+          controller.clear();
+        }
+        _confirmPinController.clear();
+      });
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          _confirmPinFieldFocusNode.requestFocus();
+        }
+      });
+      return;
+    }
+
+    final confirmedPin = _joinDigits(_confirmPinDigitControllers);
+    _confirmPinController.text = confirmedPin;
     if (!RegExp(r'^\d{4}$').hasMatch(pin)) {
       messenger.showSnackBar(
         const SnackBar(
@@ -196,6 +237,10 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
     }
 
     if (pin != confirmedPin) {
+      for (final controller in _confirmPinDigitControllers) {
+        controller.clear();
+      }
+      _confirmPinController.clear();
       messenger.showSnackBar(
         const SnackBar(content: Text('The PIN confirmation did not match.')),
       );
@@ -221,5 +266,33 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
     }
 
     appFlowCubit.completeSignIn(session);
+  }
+
+  String _joinDigits(List<TextEditingController> controllers) =>
+      controllers.map((controller) => controller.text).join();
+
+  void _focusFirstIncomplete(
+    List<TextEditingController> controllers,
+    List<FocusNode> focusNodes,
+  ) {
+    for (var i = 0; i < controllers.length; i++) {
+      if (controllers[i].text.isEmpty) {
+        focusNodes[i].requestFocus();
+        return;
+      }
+    }
+    focusNodes.first.requestFocus();
+  }
+
+  void _resetPinSetup() {
+    _pinController.clear();
+    _confirmPinController.clear();
+    for (final controller in _pinDigitControllers) {
+      controller.clear();
+    }
+    for (final controller in _confirmPinDigitControllers) {
+      controller.clear();
+    }
+    _isConfirmingPin = false;
   }
 }

@@ -3,13 +3,8 @@ import 'package:flutter/material.dart';
 import '../../../shared/presentation/app_breakpoints.dart';
 
 class OnboardingShell extends StatelessWidget {
-  const OnboardingShell({
-    super.key,
-    required this.branding,
-    required this.child,
-  });
+  const OnboardingShell({super.key, required this.child});
 
-  final Widget branding;
   final Widget child;
 
   @override
@@ -26,15 +21,24 @@ class OnboardingShell extends StatelessWidget {
         child: SafeArea(
           child: LayoutBuilder(
             builder: (context, viewportConstraints) {
-              final isTvLayout =
-                  viewportConstraints.maxWidth >= AppBreakpoints.tv;
+              final viewportWidth = viewportConstraints.maxWidth;
+              final isTvLayout = viewportWidth >= AppBreakpoints.tv;
               final horizontalPadding = isTvLayout
                   ? 40.0
-                  : viewportConstraints.maxWidth < AppBreakpoints.tablet
+                  : viewportWidth < AppBreakpoints.tablet
                   ? 24.0
                   : 32.0;
-              final cardMaxWidth = isTvLayout ? 680.0 : 560.0;
-              final cardPadding = isTvLayout ? 28.0 : 32.0;
+              final panelWidthFactor = isTvLayout
+                  ? 0.42
+                  : viewportWidth < AppBreakpoints.tablet
+                  ? 0.94
+                  : 0.62;
+              final panelMaxWidth = (viewportWidth * panelWidthFactor).clamp(
+                360.0,
+                760.0,
+              );
+              final panelPadding = (viewportWidth * (isTvLayout ? 0.018 : 0.03))
+                  .clamp(24.0, 36.0);
 
               return Padding(
                 padding: EdgeInsets.symmetric(
@@ -43,17 +47,13 @@ class OnboardingShell extends StatelessWidget {
                 ),
                 child: Column(
                   children: [
-                    branding,
-                    SizedBox(height: isTvLayout ? 28 : 32),
                     Expanded(
                       child: Center(
                         child: ConstrainedBox(
-                          constraints: BoxConstraints(maxWidth: cardMaxWidth),
-                          child: Card(
-                            child: Padding(
-                              padding: EdgeInsets.all(cardPadding),
-                              child: SingleChildScrollView(child: child),
-                            ),
+                          constraints: BoxConstraints(maxWidth: panelMaxWidth),
+                          child: Padding(
+                            padding: EdgeInsets.all(panelPadding),
+                            child: SingleChildScrollView(child: child),
                           ),
                         ),
                       ),
