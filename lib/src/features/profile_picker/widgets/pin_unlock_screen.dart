@@ -5,9 +5,9 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../core/errors/app_exception.dart';
 import '../../../core/models/saved_profile.dart';
 import '../../../core/repositories/auth_repository.dart';
-import '../../../shared/presentation/app_breakpoints.dart';
 import '../../../shared/presentation/app_colors.dart';
 import '../../../shared/presentation/app_radii.dart';
+import '../../../shared/presentation/app_scale.dart';
 import '../../../shared/presentation/app_spacing.dart';
 import '../../../shared/presentation/widgets/tv_focusable.dart';
 import 'profile_avatar_color.dart';
@@ -58,15 +58,10 @@ class _PinUnlockScreenState extends State<PinUnlockScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final viewport = MediaQuery.sizeOf(context);
-    final isTvLayout = viewport.width >= AppBreakpoints.tv;
-    final widthScale = (viewport.width / 1440).clamp(0.72, 1.28);
-    final typographyScale = ((widthScale * 0.7) + 0.3).clamp(0.82, 1.22);
-    final otpSpacing = (12.0 * widthScale).clamp(10.0, 18.0);
-    final otpDigitSize = ((isTvLayout ? 68.0 : 58.0) * typographyScale).clamp(
-      48.0,
-      82.0,
-    );
+    final scale = AppScale.of(context);
+    final isTvLayout = scale.isTvLayout;
+    final otpSpacing = scale.space(12, min: 10, max: 16);
+    final otpDigitSize = scale.sizeOf(isTvLayout ? 68 : 58, min: 48, max: 72);
     final buttonWidth = (otpDigitSize * 4) + (otpSpacing * 3);
     final profileColor = profileAvatarColor(widget.profile);
     final pin = _currentPin;
@@ -119,7 +114,7 @@ class _PinUnlockScreenState extends State<PinUnlockScreen> {
                       textAlign: TextAlign.center,
                       style: theme.textTheme.bodyLarge?.copyWith(
                         color: AppColors.textSecondary,
-                        fontSize: (15.0 * typographyScale).clamp(13.0, 20.0),
+                        fontSize: scale.text(15, min: 13, max: 17),
                         height: 1.45,
                       ),
                     ),
@@ -151,9 +146,10 @@ class _PinUnlockScreenState extends State<PinUnlockScreen> {
                                         ? theme.textTheme.titleMedium
                                         : theme.textTheme.bodyLarge)
                                     ?.copyWith(
-                                      fontSize: (18.0 * typographyScale).clamp(
-                                        15.0,
-                                        24.0,
+                                      fontSize: scale.text(
+                                        18,
+                                        min: 15,
+                                        max: 22,
                                       ),
                                     ),
                             onChanged: _handleDigitChanged,

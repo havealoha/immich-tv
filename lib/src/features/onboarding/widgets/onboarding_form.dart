@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import '../../../shared/presentation/app_breakpoints.dart';
 import '../../../shared/presentation/app_colors.dart';
+import '../../../shared/presentation/app_scale.dart';
 import '../cubit/onboarding_state.dart';
 import 'onboarding_status_banner.dart';
 
@@ -56,14 +56,9 @@ class OnboardingForm extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final viewportSize = MediaQuery.sizeOf(context);
-    final widthScale = (viewportSize.width / 1440).clamp(0.72, 1.28);
-    final heightScale = (viewportSize.height / 900).clamp(0.9, 1.18);
-    final typographyScale = ((widthScale * 0.7) + (heightScale * 0.3)).clamp(
-      0.82,
-      1.22,
-    );
-    final isCompactWidth = viewportSize.width < AppBreakpoints.tablet;
+    final scale = AppScale.of(context);
+    final typographyScale = scale.typographyScale;
+    final isCompactWidth = scale.isCompactWidth;
     final isSubmitting = state.isBusy;
     final isServerStep = state.step == OnboardingStep.server;
     final isCredentialsStep = state.step == OnboardingStep.credentials;
@@ -79,24 +74,27 @@ class OnboardingForm extends StatelessWidget {
 
     final fieldTextStyle =
         (isTvLayout ? theme.textTheme.titleMedium : theme.textTheme.bodyLarge)
-            ?.copyWith(fontSize: (18.0 * typographyScale).clamp(15.0, 24.0));
+            ?.copyWith(fontSize: scale.text(18, min: 15, max: 22));
     final pinPromptStyle =
         (isTvLayout ? theme.textTheme.titleLarge : theme.textTheme.titleMedium)
             ?.copyWith(
               fontWeight: FontWeight.w700,
-              fontSize: (22.0 * typographyScale).clamp(18.0, 30.0),
+              fontSize: scale.text(22, min: 18, max: 26),
             );
     final pinCaptionStyle = theme.textTheme.bodyMedium?.copyWith(
       color: AppColors.textSecondary,
-      fontSize: (15.0 * typographyScale).clamp(13.0, 20.0),
+      fontSize: scale.text(15, min: 13, max: 17),
       height: 1.45,
     );
-    final fieldSpacing = (18.0 * widthScale).clamp(14.0, 24.0);
-    final buttonHeight = (56.0 * heightScale).clamp(50.0, 66.0);
-    final statusPadding = (16.0 * widthScale).clamp(14.0, 22.0);
-    final otpSpacing = (12.0 * widthScale).clamp(10.0, 18.0);
-    final otpDigitSize = ((isCompactWidth ? 58.0 : 68.0) * typographyScale)
-        .clamp(48.0, 82.0);
+    final fieldSpacing = scale.space(18, min: 14, max: 22);
+    final buttonHeight = scale.sizeOf(56, min: 50, max: 60);
+    final statusPadding = scale.space(16, min: 14, max: 20);
+    final otpSpacing = scale.space(12, min: 10, max: 16);
+    final otpDigitSize = scale.sizeOf(
+      isCompactWidth ? 58 : 68,
+      min: 48,
+      max: 72,
+    );
     final fieldWidthFactor = isTvLayout
         ? 0.92
         : isCompactWidth
@@ -107,36 +105,34 @@ class OnboardingForm extends StatelessWidget {
             ?.copyWith(
               fontWeight: FontWeight.w700,
               height: 1.1,
-              fontSize: (18.0 * typographyScale).clamp(15.0, 22.0),
+              fontSize: scale.text(18, min: 15, max: 20),
             );
 
     return Theme(
       data: theme.copyWith(
         inputDecorationTheme: theme.inputDecorationTheme.copyWith(
           contentPadding: EdgeInsets.symmetric(
-            horizontal: (18.0 * widthScale).clamp(16.0, 24.0),
-            vertical: (16.0 * heightScale).clamp(15.0, 20.0),
+            horizontal: scale.space(18, min: 16, max: 22),
+            vertical: scale.space(16, min: 14, max: 18),
           ),
           labelStyle:
               (isTvLayout
                       ? theme.textTheme.titleSmall
                       : theme.textTheme.bodyLarge)
-                  ?.copyWith(
-                    fontSize: (16.0 * typographyScale).clamp(14.0, 20.0),
-                  ),
+                  ?.copyWith(fontSize: scale.text(16, min: 14, max: 18)),
           hintStyle:
               (isTvLayout
                       ? theme.textTheme.titleSmall
                       : theme.textTheme.bodyLarge)
                   ?.copyWith(
                     color: AppColors.textMuted,
-                    fontSize: (16.0 * typographyScale).clamp(14.0, 20.0),
+                    fontSize: scale.text(16, min: 14, max: 18),
                   ),
         ),
       ),
       child: DefaultTextStyle.merge(
         style: (theme.textTheme.bodyLarge ?? const TextStyle()).copyWith(
-          fontSize: (16.0 * typographyScale).clamp(14.0, 21.0),
+          fontSize: scale.text(16, min: 14, max: 18),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -234,7 +230,7 @@ class OnboardingForm extends StatelessWidget {
                 ),
               ),
             ],
-            SizedBox(height: (18.0 * heightScale).clamp(16.0, 24.0)),
+            SizedBox(height: scale.space(18, min: 16, max: 22)),
             _ScaledFieldWidth(
               widthFactor: fieldWidthFactor,
               child: SizedBox(
@@ -244,8 +240,8 @@ class OnboardingForm extends StatelessWidget {
                   focusNode: actionButtonFocusNode,
                   style: FilledButton.styleFrom(
                     padding: EdgeInsets.symmetric(
-                      horizontal: (20.0 * widthScale).clamp(18.0, 28.0),
-                      vertical: (12.0 * heightScale).clamp(10.0, 16.0),
+                      horizontal: scale.space(20, min: 18, max: 24),
+                      vertical: scale.space(12, min: 10, max: 14),
                     ),
                     textStyle: buttonTextStyle,
                   ),
@@ -312,7 +308,7 @@ class _PinOtpStep extends StatelessWidget {
                     ? focusNodes[index + 1]
                     : null,
                 enabled: enabled,
-                size: digitSize.clamp(48.0, 82.0),
+                size: digitSize.clamp(48.0, 72.0),
                 textStyle: fieldTextStyle,
                 onComplete: index == controllers.length - 1 ? onComplete : null,
               ),

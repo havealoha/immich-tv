@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/models/saved_profile.dart';
 import '../../shared/presentation/app_breakpoints.dart';
+import '../../shared/presentation/app_scale.dart';
 import 'widgets/add_profile_card.dart';
 import 'widgets/saved_profile_card.dart';
 
@@ -24,20 +25,34 @@ class ProfilePickerScreen extends StatelessWidget {
         child: SafeArea(
           child: LayoutBuilder(
             builder: (context, constraints) {
+              final scale = AppScale.of(context);
               final isTvLayout = constraints.maxWidth >= AppBreakpoints.tv;
-              final horizontalPadding = isTvLayout ? 56.0 : 28.0;
-              final tileWidth = isTvLayout ? 280.0 : 220.0;
+              final horizontalPadding = scale.space(
+                isTvLayout ? 56 : 28,
+                min: 24,
+                max: 48,
+              );
+              final tileWidth = scale.sizeOf(
+                isTvLayout ? 280 : 220,
+                min: 200,
+                max: 260,
+              );
               final maxColumns = isTvLayout ? 5 : 3;
               final crossAxisCount = (constraints.maxWidth / tileWidth)
                   .floor()
                   .clamp(2, maxColumns);
+              final gridSpacing = scale.space(
+                isTvLayout ? 24 : 18,
+                min: 16,
+                max: 22,
+              );
 
               return Padding(
                 padding: EdgeInsets.fromLTRB(
                   horizontalPadding,
-                  isTvLayout ? 36 : 28,
+                  scale.space(isTvLayout ? 36 : 28, min: 24, max: 32),
                   horizontalPadding,
-                  28,
+                  scale.space(28, min: 24, max: 32),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.center,
@@ -48,15 +63,15 @@ class ProfilePickerScreen extends StatelessWidget {
                           constraints: BoxConstraints(
                             maxWidth:
                                 (crossAxisCount * tileWidth) +
-                                ((crossAxisCount - 1) * (isTvLayout ? 24 : 18)),
+                                ((crossAxisCount - 1) * gridSpacing),
                           ),
                           child: GridView.builder(
                             shrinkWrap: true,
                             gridDelegate:
                                 SliverGridDelegateWithFixedCrossAxisCount(
                                   crossAxisCount: crossAxisCount,
-                                  mainAxisSpacing: isTvLayout ? 24 : 18,
-                                  crossAxisSpacing: isTvLayout ? 24 : 18,
+                                  mainAxisSpacing: gridSpacing,
+                                  crossAxisSpacing: gridSpacing,
                                   childAspectRatio: isTvLayout ? 0.9 : 0.84,
                                 ),
                             itemCount: profiles.length + 1,

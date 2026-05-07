@@ -9,6 +9,7 @@ import '../../core/repositories/media_repository.dart';
 import '../../shared/presentation/app_breakpoints.dart';
 import '../../shared/presentation/app_colors.dart';
 import '../../shared/presentation/app_radii.dart';
+import '../../shared/presentation/app_scale.dart';
 import '../../shared/presentation/app_spacing.dart';
 import '../../shared/presentation/widgets/authenticated_asset_image.dart';
 import '../../shared/presentation/widgets/tv_focusable.dart';
@@ -35,8 +36,10 @@ class HomeScreen extends StatelessWidget {
             builder: (context, state) {
               return LayoutBuilder(
                 builder: (context, constraints) {
+                  final scale = AppScale.of(context);
                   final sidebarWidth = _responsiveSidebarWidth(
                     constraints.maxWidth,
+                    scale,
                   );
 
                   return Row(
@@ -75,10 +78,16 @@ class _Sidebar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final scale = AppScale.of(context);
 
     return Container(
       width: width,
-      padding: const EdgeInsets.fromLTRB(24, 24, 20, 24),
+      padding: EdgeInsets.fromLTRB(
+        scale.space(24, min: 20, max: 24),
+        scale.space(24, min: 20, max: 24),
+        scale.space(20, min: 18, max: 20),
+        scale.space(24, min: 20, max: 24),
+      ),
       decoration: const BoxDecoration(
         border: Border(right: BorderSide(color: AppColors.border, width: 1)),
         gradient: LinearGradient(
@@ -95,16 +104,19 @@ class _Sidebar extends StatelessWidget {
             style: theme.textTheme.headlineSmall?.copyWith(
               fontWeight: FontWeight.w800,
               letterSpacing: 0.3,
+              fontSize: scale.text(30, min: 24, max: 30),
             ),
           ),
-          const SizedBox(height: AppSpacing.lg),
+          SizedBox(height: scale.space(AppSpacing.lg, min: 20, max: 24)),
           Expanded(
             child: SingleChildScrollView(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   _ProfileHeader(session: session),
-                  const SizedBox(height: AppSpacing.xl),
+                  SizedBox(
+                    height: scale.space(AppSpacing.xl, min: 24, max: 32),
+                  ),
                   _SidebarMenuButton(
                     label: 'Timeline',
                     subtitle: 'All photos',
@@ -115,7 +127,7 @@ class _Sidebar extends StatelessWidget {
                     ),
                     autofocus: true,
                   ),
-                  const SizedBox(height: AppSpacing.xs),
+                  SizedBox(height: scale.space(AppSpacing.xs, min: 8, max: 8)),
                   _SidebarMenuButton(
                     label: 'Albums',
                     subtitle: 'Curated collections',
@@ -125,7 +137,7 @@ class _Sidebar extends StatelessWidget {
                       LibraryTab.albums,
                     ),
                   ),
-                  const SizedBox(height: AppSpacing.xs),
+                  SizedBox(height: scale.space(AppSpacing.xs, min: 8, max: 8)),
                   _SidebarMenuButton(
                     label: 'Favorites',
                     subtitle: 'Saved highlights',
@@ -135,7 +147,7 @@ class _Sidebar extends StatelessWidget {
                       LibraryTab.favorites,
                     ),
                   ),
-                  const SizedBox(height: AppSpacing.xs),
+                  SizedBox(height: scale.space(AppSpacing.xs, min: 8, max: 8)),
                   _SidebarMenuButton(
                     label: 'Slideshow',
                     subtitle: 'Ambient playback',
@@ -149,43 +161,46 @@ class _Sidebar extends StatelessWidget {
               ),
             ),
           ),
-          const SizedBox(height: AppSpacing.md),
+          SizedBox(height: scale.space(AppSpacing.md, min: 14, max: 16)),
           Text(
             'Connected to ${session.serverConfig.serverUrl}',
             style: theme.textTheme.bodySmall?.copyWith(
               color: AppColors.textMuted,
               height: 1.5,
+              fontSize: scale.text(12, min: 11, max: 12),
             ),
           ),
-          const SizedBox(height: AppSpacing.md),
+          SizedBox(height: scale.space(AppSpacing.md, min: 14, max: 16)),
           TextButton.icon(
             onPressed: () => context.read<AppFlowCubit>().showProfilePicker(),
             icon: const Icon(Icons.switch_account_rounded),
             label: const Text('Switch user'),
             style: TextButton.styleFrom(
-              padding: const EdgeInsets.symmetric(
+              padding: EdgeInsets.symmetric(
                 horizontal: 0,
-                vertical: AppSpacing.sm,
+                vertical: scale.space(AppSpacing.sm, min: 10, max: 12),
               ),
               foregroundColor: Colors.white,
               textStyle: theme.textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.w700,
+                fontSize: scale.text(18, min: 15, max: 18),
               ),
             ),
           ),
-          const SizedBox(height: AppSpacing.xs),
+          SizedBox(height: scale.space(AppSpacing.xs, min: 6, max: 8)),
           TextButton.icon(
             onPressed: () => context.read<AppFlowCubit>().signOut(),
             icon: const Icon(Icons.logout_rounded),
             label: const Text('Sign out'),
             style: TextButton.styleFrom(
-              padding: const EdgeInsets.symmetric(
+              padding: EdgeInsets.symmetric(
                 horizontal: 0,
-                vertical: AppSpacing.sm,
+                vertical: scale.space(AppSpacing.sm, min: 10, max: 12),
               ),
               foregroundColor: Colors.white,
               textStyle: theme.textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.w700,
+                fontSize: scale.text(18, min: 15, max: 18),
               ),
             ),
           ),
@@ -203,6 +218,7 @@ class _ProfileHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final scale = AppScale.of(context);
     final name = session.user.name.trim().isEmpty
         ? session.user.email
         : session.user.name;
@@ -217,21 +233,23 @@ class _ProfileHeader extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         CircleAvatar(
-          radius: 30,
+          radius: scale.sizeOf(30, min: 26, max: 30),
           backgroundColor: AppColors.focus,
           foregroundColor: AppColors.actionForeground,
           child: Text(
             initials.isEmpty ? 'U' : initials,
             style: theme.textTheme.titleLarge?.copyWith(
               fontWeight: FontWeight.w800,
+              fontSize: scale.text(22, min: 18, max: 22),
             ),
           ),
         ),
-        const SizedBox(height: AppSpacing.md),
+        SizedBox(height: scale.space(AppSpacing.md, min: 14, max: 16)),
         Text(
           name,
           style: theme.textTheme.titleLarge?.copyWith(
             fontWeight: FontWeight.w800,
+            fontSize: scale.text(24, min: 20, max: 24),
           ),
         ),
         const SizedBox(height: AppSpacing.xxs),
@@ -239,6 +257,7 @@ class _ProfileHeader extends StatelessWidget {
           session.user.email,
           style: theme.textTheme.bodyMedium?.copyWith(
             color: AppColors.textSecondary,
+            fontSize: scale.text(14, min: 12, max: 14),
           ),
         ),
       ],
@@ -271,6 +290,7 @@ class _SidebarMenuButtonState extends State<_SidebarMenuButton> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final scale = AppScale.of(context);
     return TvFocusable(
       autofocus: widget.autofocus,
       onPressed: widget.onPressed,
@@ -278,9 +298,9 @@ class _SidebarMenuButtonState extends State<_SidebarMenuButton> {
         final isActive = widget.isSelected || focusState.isActive;
 
         return Container(
-          padding: const EdgeInsets.symmetric(
-            horizontal: AppSpacing.md,
-            vertical: AppSpacing.md,
+          padding: EdgeInsets.symmetric(
+            horizontal: scale.space(AppSpacing.md, min: 14, max: 16),
+            vertical: scale.space(AppSpacing.md, min: 14, max: 16),
           ),
           decoration: BoxDecoration(
             color: isActive ? const Color(0xFF111F26) : Colors.transparent,
@@ -296,7 +316,7 @@ class _SidebarMenuButtonState extends State<_SidebarMenuButton> {
               Icon(
                 widget.icon,
                 color: isActive ? Colors.white : AppColors.textMuted,
-                size: 22,
+                size: scale.sizeOf(22, min: 20, max: 22),
               ),
               const SizedBox(width: AppSpacing.md),
               Expanded(
@@ -308,6 +328,7 @@ class _SidebarMenuButtonState extends State<_SidebarMenuButton> {
                       style: theme.textTheme.titleMedium?.copyWith(
                         color: isActive ? Colors.white : AppColors.textPrimary,
                         fontWeight: FontWeight.w700,
+                        fontSize: scale.text(18, min: 15, max: 18),
                       ),
                     ),
                     const SizedBox(height: 4),
@@ -315,6 +336,7 @@ class _SidebarMenuButtonState extends State<_SidebarMenuButton> {
                       widget.subtitle,
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: AppColors.textMuted,
+                        fontSize: scale.text(12, min: 11, max: 12),
                       ),
                     ),
                   ],
@@ -338,16 +360,20 @@ class _ContentPane extends StatelessWidget {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final horizontalPadding = constraints.maxWidth >= AppBreakpoints.tv
-            ? 36.0
-            : 28.0;
+        final scale = AppScale.of(context);
+        final horizontalPadding = scale.space(
+          constraints.maxWidth >= AppBreakpoints.tv ? 36 : 28,
+          min: 24,
+          max: 32,
+        );
+        final verticalPadding = scale.space(20, min: 16, max: 20);
 
         return Padding(
           padding: EdgeInsets.fromLTRB(
             horizontalPadding,
-            20,
+            verticalPadding,
             horizontalPadding,
-            20,
+            verticalPadding,
           ),
           child: _LibraryContent(state: state, session: session),
         );
@@ -617,6 +643,7 @@ class _TimelineDaySection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final scale = AppScale.of(context);
     return LayoutBuilder(
       builder: (context, constraints) {
         return Column(
@@ -626,9 +653,10 @@ class _TimelineDaySection extends StatelessWidget {
               _formatTimelineDay(group.day),
               style: theme.textTheme.headlineSmall?.copyWith(
                 fontWeight: FontWeight.w800,
+                fontSize: scale.text(28, min: 22, max: 28),
               ),
             ),
-            const SizedBox(height: AppSpacing.md),
+            SizedBox(height: scale.space(AppSpacing.md, min: 12, max: 16)),
             GridView.builder(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
@@ -678,6 +706,7 @@ class _AssetTileState extends State<_AssetTile> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final scale = AppScale.of(context);
     return TvFocusable(
       autofocus: widget.autofocus,
       onPressed: widget.onPressed,
@@ -707,7 +736,7 @@ class _AssetTileState extends State<_AssetTile> {
                       color: focusState.isFocused
                           ? AppColors.focus
                           : Colors.transparent,
-                      width: 2,
+                      width: scale.sizeOf(2, min: 1.5, max: 2),
                     ),
                   ),
                 ),
@@ -732,9 +761,9 @@ class _AssetTileState extends State<_AssetTile> {
                     child: IgnorePointer(child: Center(child: _VideoBadge())),
                   ),
                 Positioned(
-                  left: AppSpacing.sm,
-                  right: AppSpacing.sm,
-                  bottom: AppSpacing.sm,
+                  left: scale.space(AppSpacing.sm, min: 10, max: 12),
+                  right: scale.space(AppSpacing.sm, min: 10, max: 12),
+                  bottom: scale.space(AppSpacing.sm, min: 10, max: 12),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -745,13 +774,15 @@ class _AssetTileState extends State<_AssetTile> {
                         style: theme.textTheme.titleSmall?.copyWith(
                           color: Colors.white,
                           fontWeight: FontWeight.w700,
+                          fontSize: scale.text(15, min: 13, max: 15),
                         ),
                       ),
-                      const SizedBox(height: 2),
+                      SizedBox(height: scale.space(2, min: 2, max: 2)),
                       Text(
                         _formatDate(widget.asset.createdAt),
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: Colors.white.withValues(alpha: 0.82),
+                          fontSize: scale.text(12, min: 11, max: 12),
                         ),
                       ),
                     ],
@@ -778,15 +809,20 @@ class _VideoBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scale = AppScale.of(context);
     return DecoratedBox(
       decoration: BoxDecoration(
         color: Colors.black.withValues(alpha: 0.48),
         shape: BoxShape.circle,
         border: Border.all(color: Colors.white.withValues(alpha: 0.14)),
       ),
-      child: const Padding(
-        padding: EdgeInsets.all(AppSpacing.md),
-        child: Icon(Icons.play_arrow_rounded, color: Colors.white, size: 32),
+      child: Padding(
+        padding: EdgeInsets.all(scale.space(AppSpacing.md, min: 12, max: 16)),
+        child: Icon(
+          Icons.play_arrow_rounded,
+          color: Colors.white,
+          size: scale.sizeOf(32, min: 26, max: 32),
+        ),
       ),
     );
   }
@@ -801,38 +837,41 @@ class _LoadMoreTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final scale = AppScale.of(context);
     return Container(
       color: const Color(0xFF0D1A21),
-      padding: const EdgeInsets.all(AppSpacing.md),
+      padding: EdgeInsets.all(scale.space(AppSpacing.md, min: 14, max: 16)),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           if (isLoading)
-            const SizedBox(
-              width: 24,
-              height: 24,
-              child: CircularProgressIndicator(strokeWidth: 2.4),
+            SizedBox(
+              width: scale.sizeOf(24, min: 22, max: 24),
+              height: scale.sizeOf(24, min: 22, max: 24),
+              child: const CircularProgressIndicator(strokeWidth: 2.4),
             )
           else
-            const Icon(
+            Icon(
               Icons.more_horiz_rounded,
               color: AppColors.textMuted,
-              size: 28,
+              size: scale.sizeOf(28, min: 24, max: 28),
             ),
-          const SizedBox(height: AppSpacing.sm),
+          SizedBox(height: scale.space(AppSpacing.sm, min: 10, max: 12)),
           Text(
             isLoading ? 'Loading more photos' : 'More photos ahead',
             textAlign: TextAlign.center,
             style: theme.textTheme.titleSmall?.copyWith(
               fontWeight: FontWeight.w700,
+              fontSize: scale.text(16, min: 14, max: 16),
             ),
           ),
-          const SizedBox(height: 4),
+          SizedBox(height: scale.space(4, min: 4, max: 4)),
           Text(
             hasMore ? 'Keep scrolling' : 'End of section',
             textAlign: TextAlign.center,
             style: theme.textTheme.bodySmall?.copyWith(
               color: AppColors.textMuted,
+              fontSize: scale.text(12, min: 11, max: 12),
             ),
           ),
         ],
@@ -946,6 +985,7 @@ class _AlbumBrowserState extends State<_AlbumBrowser> {
 
     return LayoutBuilder(
       builder: (context, constraints) {
+        final scale = AppScale.of(context);
         final useStackedLayout = constraints.maxWidth < 980;
         final albumRail = _AlbumRail(
           albums: widget.albums,
@@ -959,8 +999,11 @@ class _AlbumBrowserState extends State<_AlbumBrowser> {
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              SizedBox(height: 172, child: albumRail),
-              const SizedBox(height: AppSpacing.lg),
+              SizedBox(
+                height: scale.sizeOf(172, min: 152, max: 172),
+                child: albumRail,
+              ),
+              SizedBox(height: scale.space(AppSpacing.lg, min: 20, max: 24)),
               Expanded(child: albumContent),
             ],
           );
@@ -969,10 +1012,10 @@ class _AlbumBrowserState extends State<_AlbumBrowser> {
         return Row(
           children: [
             SizedBox(
-              width: _responsiveAlbumRailWidth(constraints.maxWidth),
+              width: _responsiveAlbumRailWidth(constraints.maxWidth, scale),
               child: albumRail,
             ),
-            const SizedBox(width: AppSpacing.xl),
+            SizedBox(width: scale.space(AppSpacing.xl, min: 24, max: 32)),
             Expanded(child: albumContent),
           ],
         );
@@ -1112,18 +1155,18 @@ class _AlbumRail extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scale = AppScale.of(context);
     return ListView.separated(
       scrollDirection: horizontal ? Axis.horizontal : Axis.vertical,
       itemCount: albums.length,
       separatorBuilder: (_, _) => SizedBox(
-        width: horizontal ? AppSpacing.sm : 0,
-        height: horizontal ? 0 : AppSpacing.sm,
+        width: horizontal ? scale.space(AppSpacing.sm, min: 10, max: 12) : 0,
+        height: horizontal ? 0 : scale.space(AppSpacing.sm, min: 10, max: 12),
       ),
       itemBuilder: (context, index) {
         final album = albums[index];
         return SizedBox(
-          width: horizontal ? 240 : null,
-          // height: horizontal ? null : 140,
+          width: horizontal ? scale.sizeOf(240, min: 220, max: 240) : null,
           child: _AlbumSummaryTile(
             album: album,
             isSelected: album.id == selectedAlbum.id,
@@ -1154,6 +1197,7 @@ class _AlbumSummaryTileState extends State<_AlbumSummaryTile> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final scale = AppScale.of(context);
     return TvFocusable(
       onPressed: widget.onPressed,
       builder: (context, focusState) {
@@ -1161,10 +1205,12 @@ class _AlbumSummaryTileState extends State<_AlbumSummaryTile> {
 
         return AnimatedContainer(
           duration: const Duration(milliseconds: 180),
-          padding: const EdgeInsets.all(AppSpacing.lg),
+          padding: EdgeInsets.all(scale.space(AppSpacing.lg, min: 20, max: 24)),
           decoration: BoxDecoration(
             color: isActive ? const Color(0xFF13212A) : const Color(0xFF0D1A21),
-            borderRadius: BorderRadius.circular(AppRadii.lg),
+            borderRadius: BorderRadius.circular(
+              scale.radius(AppRadii.lg, min: 20, max: 24),
+            ),
             border: Border.all(
               color: widget.isSelected ? AppColors.focus : AppColors.border,
               width: widget.isSelected ? 2 : 1,
@@ -1179,13 +1225,15 @@ class _AlbumSummaryTileState extends State<_AlbumSummaryTile> {
                 overflow: TextOverflow.ellipsis,
                 style: theme.textTheme.titleLarge?.copyWith(
                   fontWeight: FontWeight.w800,
+                  fontSize: scale.text(22, min: 18, max: 22),
                 ),
               ),
-              const SizedBox(height: AppSpacing.xs),
+              SizedBox(height: scale.space(AppSpacing.xs, min: 8, max: 8)),
               Text(
                 '${widget.album.assetCount} assets',
                 style: theme.textTheme.bodyMedium?.copyWith(
                   color: AppColors.textSecondary,
+                  fontSize: scale.text(14, min: 12, max: 14),
                 ),
               ),
             ],
@@ -1216,6 +1264,7 @@ class _AlbumAssetGrid extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final scale = AppScale.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1223,16 +1272,18 @@ class _AlbumAssetGrid extends StatelessWidget {
           album.name,
           style: theme.textTheme.headlineSmall?.copyWith(
             fontWeight: FontWeight.w800,
+            fontSize: scale.text(28, min: 22, max: 28),
           ),
         ),
-        const SizedBox(height: AppSpacing.xs),
+        SizedBox(height: scale.space(AppSpacing.xs, min: 8, max: 8)),
         Text(
           '${assets.length} photos',
           style: theme.textTheme.bodyLarge?.copyWith(
             color: AppColors.textSecondary,
+            fontSize: scale.text(16, min: 14, max: 16),
           ),
         ),
-        const SizedBox(height: AppSpacing.lg),
+        SizedBox(height: scale.space(AppSpacing.lg, min: 20, max: 24)),
         Expanded(
           child: NotificationListener<ScrollNotification>(
             onNotification: (notification) {
@@ -1330,6 +1381,7 @@ class _SlideshowSectionViewState extends State<_SlideshowSectionView> {
           'Start an ambient playback session from your photo stream with screen-safe controls.',
       child: LayoutBuilder(
         builder: (context, constraints) {
+          final scale = AppScale.of(context);
           final useStackedLayout = constraints.maxWidth < 860;
 
           final controls = _SlideshowControlsPanel(
@@ -1395,7 +1447,7 @@ class _SlideshowSectionViewState extends State<_SlideshowSectionView> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 controls,
-                const SizedBox(height: AppSpacing.xl),
+                SizedBox(height: scale.space(AppSpacing.xl, min: 24, max: 32)),
                 Expanded(child: content),
               ],
             );
@@ -1404,8 +1456,11 @@ class _SlideshowSectionViewState extends State<_SlideshowSectionView> {
           return Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              SizedBox(width: 360, child: controls),
-              const SizedBox(width: AppSpacing.xl),
+              SizedBox(
+                width: scale.sizeOf(360, min: 300, max: 360),
+                child: controls,
+              ),
+              SizedBox(width: scale.space(AppSpacing.xl, min: 24, max: 32)),
               Expanded(child: content),
             ],
           );
@@ -1484,6 +1539,7 @@ class _SlideshowControlsPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final scale = AppScale.of(context);
 
     return SingleChildScrollView(
       child: Column(
@@ -1493,16 +1549,17 @@ class _SlideshowControlsPanel extends StatelessWidget {
             'Source',
             style: theme.textTheme.titleLarge?.copyWith(
               fontWeight: FontWeight.w800,
+              fontSize: scale.text(24, min: 20, max: 24),
             ),
           ),
-          const SizedBox(height: AppSpacing.md),
+          SizedBox(height: scale.space(AppSpacing.md, min: 14, max: 16)),
           _SlideshowSourceChip(
             label: 'Timeline',
             count: timelineCount,
             isSelected: source == _SlideshowSource.timeline,
             onPressed: () => onSourceSelected(_SlideshowSource.timeline),
           ),
-          const SizedBox(height: AppSpacing.sm),
+          SizedBox(height: scale.space(AppSpacing.sm, min: 10, max: 12)),
           _SlideshowSourceChip(
             label: 'Favorites',
             count: favoritesCount,
@@ -1510,7 +1567,7 @@ class _SlideshowControlsPanel extends StatelessWidget {
             isEnabled: favoritesCount > 0,
             onPressed: () => onSourceSelected(_SlideshowSource.favorites),
           ),
-          const SizedBox(height: AppSpacing.sm),
+          SizedBox(height: scale.space(AppSpacing.sm, min: 10, max: 12)),
           _SlideshowSourceChip(
             label: 'Albums',
             count: albumsCount,
@@ -1518,17 +1575,18 @@ class _SlideshowControlsPanel extends StatelessWidget {
             isEnabled: albumsCount > 0,
             onPressed: () => onSourceSelected(_SlideshowSource.albums),
           ),
-          const SizedBox(height: AppSpacing.xl),
+          SizedBox(height: scale.space(AppSpacing.xl, min: 24, max: 32)),
           Text(
             'Playback',
             style: theme.textTheme.titleLarge?.copyWith(
               fontWeight: FontWeight.w800,
+              fontSize: scale.text(24, min: 20, max: 24),
             ),
           ),
-          const SizedBox(height: AppSpacing.md),
+          SizedBox(height: scale.space(AppSpacing.md, min: 14, max: 16)),
           Wrap(
-            spacing: AppSpacing.sm,
-            runSpacing: AppSpacing.sm,
+            spacing: scale.space(AppSpacing.sm, min: 10, max: 12),
+            runSpacing: scale.space(AppSpacing.sm, min: 10, max: 12),
             children: [
               for (final seconds in const [3, 5, 8, 12])
                 _TvPillOption(
@@ -1538,7 +1596,7 @@ class _SlideshowControlsPanel extends StatelessWidget {
                 ),
             ],
           ),
-          const SizedBox(height: AppSpacing.md),
+          SizedBox(height: scale.space(AppSpacing.md, min: 14, max: 16)),
           _TvChoiceTile(
             title: 'Shuffle',
             subtitle: shuffle
@@ -1575,6 +1633,7 @@ class _SlideshowLaunchPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final scale = AppScale.of(context);
 
     if (assetCount == 0) {
       return _InfoPanel(
@@ -1587,11 +1646,13 @@ class _SlideshowLaunchPanel extends StatelessWidget {
     return DecoratedBox(
       decoration: BoxDecoration(
         color: const Color(0xFF0D1A21),
-        borderRadius: BorderRadius.circular(AppRadii.xl),
+        borderRadius: BorderRadius.circular(
+          scale.radius(AppRadii.xl, min: 24, max: 28),
+        ),
         border: Border.all(color: AppColors.border),
       ),
       child: Padding(
-        padding: const EdgeInsets.all(AppSpacing.xl),
+        padding: EdgeInsets.all(scale.space(AppSpacing.xl, min: 24, max: 32)),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -1599,38 +1660,47 @@ class _SlideshowLaunchPanel extends StatelessWidget {
               title,
               style: theme.textTheme.headlineSmall?.copyWith(
                 fontWeight: FontWeight.w800,
+                fontSize: scale.text(30, min: 24, max: 30),
               ),
             ),
-            const SizedBox(height: AppSpacing.xs),
+            SizedBox(height: scale.space(AppSpacing.xs, min: 8, max: 8)),
             Text(
               '$assetCount photos ready',
               style: theme.textTheme.bodyLarge?.copyWith(
                 color: AppColors.textSecondary,
+                fontSize: scale.text(16, min: 14, max: 16),
               ),
             ),
-            const SizedBox(height: AppSpacing.lg),
+            SizedBox(height: scale.space(AppSpacing.lg, min: 20, max: 24)),
             Expanded(
               child: Align(
                 alignment: Alignment.topLeft,
                 child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 560),
+                  constraints: BoxConstraints(
+                    maxWidth: scale.sizeOf(560, min: 420, max: 560),
+                  ),
                   child: Text(
                     description,
                     style: theme.textTheme.titleMedium?.copyWith(
                       color: AppColors.textSecondary,
                       height: 1.6,
+                      fontSize: scale.text(18, min: 15, max: 18),
                     ),
                   ),
                 ),
               ),
             ),
-            const SizedBox(height: AppSpacing.xl),
+            SizedBox(height: scale.space(AppSpacing.xl, min: 24, max: 32)),
             FilledButton.icon(
               onPressed: onStart,
               style: FilledButton.styleFrom(
-                minimumSize: const Size(260, 60),
+                minimumSize: Size(
+                  scale.sizeOf(260, min: 220, max: 260),
+                  scale.sizeOf(60, min: 52, max: 60),
+                ),
                 textStyle: theme.textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.w800,
+                  fontSize: scale.text(18, min: 15, max: 18),
                 ),
               ),
               icon: const Icon(Icons.play_arrow_rounded),
@@ -1663,6 +1733,7 @@ class _AlbumSlideshowSourceView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final scale = AppScale.of(context);
 
     return FutureBuilder<List<AlbumSummary>>(
       future: albumsFuture,
@@ -1703,20 +1774,22 @@ class _AlbumSlideshowSourceView extends StatelessWidget {
               'Choose an album',
               style: theme.textTheme.titleLarge?.copyWith(
                 fontWeight: FontWeight.w800,
+                fontSize: scale.text(24, min: 20, max: 24),
               ),
             ),
-            const SizedBox(height: AppSpacing.md),
+            SizedBox(height: scale.space(AppSpacing.md, min: 14, max: 16)),
             SizedBox(
-              height: 92,
+              height: scale.sizeOf(92, min: 84, max: 92),
               child: ListView.separated(
                 scrollDirection: Axis.horizontal,
                 itemCount: albums.length,
-                separatorBuilder: (_, _) =>
-                    const SizedBox(width: AppSpacing.sm),
+                separatorBuilder: (_, _) => SizedBox(
+                  width: scale.space(AppSpacing.sm, min: 10, max: 12),
+                ),
                 itemBuilder: (context, index) {
                   final album = albums[index];
                   return SizedBox(
-                    width: 240,
+                    width: scale.sizeOf(240, min: 220, max: 240),
                     child: _TvChoiceTile(
                       title: album.name,
                       subtitle: '${album.assetCount} photos',
@@ -1729,7 +1802,7 @@ class _AlbumSlideshowSourceView extends StatelessWidget {
                 },
               ),
             ),
-            const SizedBox(height: AppSpacing.lg),
+            SizedBox(height: scale.space(AppSpacing.lg, min: 20, max: 24)),
             FutureBuilder<List<AssetSummary>>(
               future: selectedFuture,
               builder: (context, assetSnapshot) {
@@ -1799,6 +1872,7 @@ class _TvChoiceTileState extends State<_TvChoiceTile> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final scale = AppScale.of(context);
     return TvFocusable(
       enabled: widget.isEnabled,
       onPressed: widget.onPressed,
@@ -1812,9 +1886,21 @@ class _TvChoiceTileState extends State<_TvChoiceTile> {
           builder: (context, constraints) {
             final isCompact =
                 constraints.maxHeight.isFinite && constraints.maxHeight < 96;
-            final iconSize = isCompact ? 40.0 : 48.0;
-            final padding = isCompact ? AppSpacing.md : AppSpacing.lg;
-            final gap = isCompact ? AppSpacing.sm : AppSpacing.md;
+            final iconSize = scale.sizeOf(
+              isCompact ? 40 : 48,
+              min: isCompact ? 34 : 40,
+              max: isCompact ? 40 : 48,
+            );
+            final padding = scale.space(
+              isCompact ? AppSpacing.md : AppSpacing.lg,
+              min: isCompact ? 14 : 20,
+              max: isCompact ? 16 : 24,
+            );
+            final gap = scale.space(
+              isCompact ? AppSpacing.sm : AppSpacing.md,
+              min: 10,
+              max: 16,
+            );
 
             return AnimatedContainer(
               duration: const Duration(milliseconds: 180),
@@ -1842,12 +1928,18 @@ class _TvChoiceTileState extends State<_TvChoiceTile> {
                       height: iconSize,
                       decoration: BoxDecoration(
                         color: Colors.white.withValues(alpha: 0.06),
-                        borderRadius: BorderRadius.circular(AppRadii.md),
+                        borderRadius: BorderRadius.circular(
+                          scale.radius(AppRadii.md, min: 14, max: 18),
+                        ),
                       ),
                       child: Icon(
                         widget.icon,
                         color: Colors.white,
-                        size: isCompact ? 20 : 24,
+                        size: scale.sizeOf(
+                          isCompact ? 20 : 24,
+                          min: 18,
+                          max: 24,
+                        ),
                       ),
                     ),
                     SizedBox(width: gap),
@@ -1859,6 +1951,7 @@ class _TvChoiceTileState extends State<_TvChoiceTile> {
                               overflow: TextOverflow.ellipsis,
                               style: theme.textTheme.titleMedium?.copyWith(
                                 fontWeight: FontWeight.w800,
+                                fontSize: scale.text(18, min: 15, max: 18),
                               ),
                             )
                           : Column(
@@ -1871,15 +1964,19 @@ class _TvChoiceTileState extends State<_TvChoiceTile> {
                                   overflow: TextOverflow.ellipsis,
                                   style: theme.textTheme.titleMedium?.copyWith(
                                     fontWeight: FontWeight.w800,
+                                    fontSize: scale.text(18, min: 15, max: 18),
                                   ),
                                 ),
-                                const SizedBox(height: 2),
+                                SizedBox(
+                                  height: scale.space(2, min: 2, max: 2),
+                                ),
                                 Text(
                                   widget.subtitle,
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                   style: theme.textTheme.bodyMedium?.copyWith(
                                     color: AppColors.textSecondary,
+                                    fontSize: scale.text(14, min: 12, max: 14),
                                   ),
                                 ),
                               ],
@@ -1914,6 +2011,7 @@ class _TvPillOption extends StatefulWidget {
 class _TvPillOptionState extends State<_TvPillOption> {
   @override
   Widget build(BuildContext context) {
+    final scale = AppScale.of(context);
     return TvFocusable(
       onPressed: widget.onPressed,
       builder: (context, focusState) {
@@ -1921,15 +2019,17 @@ class _TvPillOptionState extends State<_TvPillOption> {
 
         return AnimatedContainer(
           duration: const Duration(milliseconds: 180),
-          padding: const EdgeInsets.symmetric(
-            horizontal: AppSpacing.lg,
-            vertical: AppSpacing.md,
+          padding: EdgeInsets.symmetric(
+            horizontal: scale.space(AppSpacing.lg, min: 20, max: 24),
+            vertical: scale.space(AppSpacing.md, min: 14, max: 16),
           ),
           decoration: BoxDecoration(
             color: widget.isSelected
                 ? Colors.white.withValues(alpha: 0.12)
                 : const Color(0xFF0D1A21),
-            borderRadius: BorderRadius.circular(AppRadii.pill),
+            borderRadius: BorderRadius.circular(
+              scale.radius(AppRadii.pill, min: 999, max: 999),
+            ),
             border: Border.all(
               color: widget.isSelected
                   ? AppColors.focus
@@ -1940,9 +2040,10 @@ class _TvPillOptionState extends State<_TvPillOption> {
           ),
           child: Text(
             widget.label,
-            style: Theme.of(
-              context,
-            ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800),
+            style: Theme.of(context).textTheme.titleSmall?.copyWith(
+              fontWeight: FontWeight.w800,
+              fontSize: scale.text(16, min: 14, max: 16),
+            ),
           ),
         );
       },
@@ -1964,6 +2065,7 @@ class _SectionFrame extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final scale = AppScale.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1971,17 +2073,19 @@ class _SectionFrame extends StatelessWidget {
           title,
           style: theme.textTheme.headlineMedium?.copyWith(
             fontWeight: FontWeight.w800,
+            fontSize: scale.text(34, min: 28, max: 34),
           ),
         ),
-        const SizedBox(height: AppSpacing.xs),
+        SizedBox(height: scale.space(AppSpacing.xs, min: 8, max: 8)),
         Text(
           description,
           style: theme.textTheme.bodyLarge?.copyWith(
             color: AppColors.textSecondary,
             height: 1.5,
+            fontSize: scale.text(16, min: 14, max: 16),
           ),
         ),
-        const SizedBox(height: AppSpacing.lg),
+        SizedBox(height: scale.space(AppSpacing.lg, min: 20, max: 24)),
         Expanded(child: child),
       ],
     );
@@ -2002,28 +2106,37 @@ class _InfoPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final scale = AppScale.of(context);
     return Center(
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 560),
+        constraints: BoxConstraints(
+          maxWidth: scale.sizeOf(560, min: 420, max: 560),
+        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.dashboard_customize_outlined, color: accent, size: 34),
-            const SizedBox(height: AppSpacing.md),
+            Icon(
+              Icons.dashboard_customize_outlined,
+              color: accent,
+              size: scale.sizeOf(34, min: 28, max: 34),
+            ),
+            SizedBox(height: scale.space(AppSpacing.md, min: 14, max: 16)),
             Text(
               title,
               textAlign: TextAlign.center,
               style: theme.textTheme.headlineSmall?.copyWith(
                 fontWeight: FontWeight.w800,
+                fontSize: scale.text(28, min: 22, max: 28),
               ),
             ),
-            const SizedBox(height: AppSpacing.sm),
+            SizedBox(height: scale.space(AppSpacing.sm, min: 10, max: 12)),
             Text(
               body,
               textAlign: TextAlign.center,
               style: theme.textTheme.bodyLarge?.copyWith(
                 color: AppColors.textSecondary,
                 height: 1.6,
+                fontSize: scale.text(16, min: 14, max: 16),
               ),
             ),
           ],
@@ -2033,12 +2146,22 @@ class _InfoPanel extends StatelessWidget {
   }
 }
 
-double _responsiveSidebarWidth(double screenWidth) {
-  return (screenWidth * 0.18).clamp(240.0, 420.0).toDouble();
+double _responsiveSidebarWidth(double screenWidth, AppScale scale) {
+  return (screenWidth * 0.18)
+      .clamp(
+        scale.sizeOf(240, min: 220, max: 240),
+        scale.sizeOf(420, min: 360, max: 420),
+      )
+      .toDouble();
 }
 
-double _responsiveAlbumRailWidth(double contentWidth) {
-  return (contentWidth * 0.22).clamp(260.0, 360.0).toDouble();
+double _responsiveAlbumRailWidth(double contentWidth, AppScale scale) {
+  return (contentWidth * 0.22)
+      .clamp(
+        scale.sizeOf(260, min: 220, max: 260),
+        scale.sizeOf(360, min: 320, max: 360),
+      )
+      .toDouble();
 }
 
 List<_TimelineDayGroup> _groupTimelineAssets(List<AssetSummary> assets) {

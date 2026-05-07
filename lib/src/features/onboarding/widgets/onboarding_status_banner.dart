@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../shared/presentation/app_colors.dart';
+import '../../../shared/presentation/app_scale.dart';
 
 class OnboardingStatusBanner extends StatelessWidget {
   const OnboardingStatusBanner({
@@ -22,6 +23,7 @@ class OnboardingStatusBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scale = AppScale.of(context);
     return Container(
       padding: EdgeInsets.symmetric(vertical: padding * 0.75),
       child: Row(
@@ -29,31 +31,25 @@ class OnboardingStatusBanner extends StatelessWidget {
         children: [
           Container(
             width: 3,
-            height: ((isTvLayout ? 28.0 : 24.0) * typographyScale).clamp(
-              20.0,
-              32.0,
-            ),
+            height: scale.sizeOf(isTvLayout ? 28 : 24, min: 20, max: 28),
             margin: EdgeInsets.only(
               top: 2,
-              right: (12.0 * typographyScale).clamp(10.0, 18.0),
+              right: scale.space(12, min: 10, max: 14),
             ),
             color: color,
           ),
           Icon(
             icon,
             color: color,
-            size: ((isTvLayout ? 28.0 : 24.0) * typographyScale).clamp(
-              20.0,
-              32.0,
-            ),
+            size: scale.sizeOf(isTvLayout ? 28 : 24, min: 20, max: 28),
           ),
-          SizedBox(width: (10.0 * typographyScale).clamp(8.0, 14.0)),
+          SizedBox(width: scale.space(10, min: 8, max: 12)),
           Expanded(
             child: Text(
               message,
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                 color: AppColors.textSecondary,
-                fontSize: (16.0 * typographyScale).clamp(14.0, 20.0),
+                fontSize: scale.text(16, min: 14, max: 17),
                 height: 1.5,
               ),
             ),

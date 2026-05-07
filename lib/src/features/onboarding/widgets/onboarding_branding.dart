@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../shared/presentation/app_breakpoints.dart';
 import '../../../shared/presentation/app_colors.dart';
+import '../../../shared/presentation/app_scale.dart';
 import '../cubit/onboarding_state.dart';
 
 class OnboardingBranding extends StatelessWidget {
@@ -17,13 +18,8 @@ class OnboardingBranding extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final viewportSize = MediaQuery.sizeOf(context);
+    final scale = AppScale.of(context);
     final isTvLayout = viewportSize.width >= AppBreakpoints.tv;
-    final widthScale = (viewportSize.width / 1440).clamp(0.72, 1.28);
-    final heightScale = (viewportSize.height / 900).clamp(0.9, 1.18);
-    final typographyScale = ((widthScale * 0.7) + (heightScale * 0.3)).clamp(
-      0.82,
-      1.22,
-    );
     final description = switch (state.step) {
       OnboardingStep.server =>
         'Enter your Immich Server URL to connect this TV and continue to sign in.',
@@ -46,11 +42,14 @@ class OnboardingBranding extends StatelessWidget {
                   ?.copyWith(
                     fontWeight: FontWeight.w800,
                     height: 1,
-                    fontSize: ((isTvLayout ? 48.0 : 40.0) * typographyScale)
-                        .clamp(32.0, 58.0),
+                    fontSize: scale.text(
+                      isTvLayout ? 48 : 40,
+                      min: 32,
+                      max: 50,
+                    ),
                   ),
         ),
-        SizedBox(height: (12.0 * heightScale).clamp(10.0, 18.0)),
+        SizedBox(height: scale.space(12, min: 10, max: 16)),
         ConstrainedBox(
           constraints: BoxConstraints(
             maxWidth: (viewportSize.width * (isTvLayout ? 0.5 : 0.78)).clamp(
@@ -68,7 +67,7 @@ class OnboardingBranding extends StatelessWidget {
                     ?.copyWith(
                       color: AppColors.textSecondary,
                       height: 1.5,
-                      fontSize: (20.0 * typographyScale).clamp(16.0, 28.0),
+                      fontSize: scale.text(20, min: 16, max: 22),
                     ),
           ),
         ),

@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../core/models/authenticated_session.dart';
 import '../../../core/models/saved_profile.dart';
 import '../../../shared/presentation/app_colors.dart';
+import '../../../shared/presentation/app_scale.dart';
 import '../../../shared/presentation/app_spacing.dart';
 import '../../../shared/presentation/widgets/tv_focusable.dart';
 import '../../app_flow/cubit/app_flow_cubit.dart';
@@ -25,6 +26,7 @@ class SavedProfileCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final scale = AppScale.of(context);
     final avatarColor = profileAvatarColor(profile);
 
     return TvFocusable(
@@ -48,8 +50,8 @@ class SavedProfileCard extends StatelessWidget {
           scale: isActive ? 1.02 : 1,
           child: Padding(
             padding: EdgeInsets.symmetric(
-              horizontal: isTvLayout ? 12 : 8,
-              vertical: isTvLayout ? 10 : 8,
+              horizontal: scale.space(isTvLayout ? 12 : 8, min: 8, max: 12),
+              vertical: scale.space(isTvLayout ? 10 : 8, min: 8, max: 10),
             ),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -58,14 +60,16 @@ class SavedProfileCard extends StatelessWidget {
                 Center(
                   child: AnimatedContainer(
                     duration: const Duration(milliseconds: 180),
-                    padding: EdgeInsets.all(isTvLayout ? 6 : 4),
+                    padding: EdgeInsets.all(
+                      scale.space(isTvLayout ? 6 : 4, min: 4, max: 6),
+                    ),
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       border: Border.all(
                         color: focusState.isFocused
                             ? AppColors.focus
                             : Colors.transparent,
-                        width: 2.4,
+                        width: scale.sizeOf(2.4, min: 2, max: 2.4),
                       ),
                       boxShadow: isActive
                           ? [
@@ -78,7 +82,11 @@ class SavedProfileCard extends StatelessWidget {
                           : const [],
                     ),
                     child: CircleAvatar(
-                      radius: isTvLayout ? 52 : 42,
+                      radius: scale.sizeOf(
+                        isTvLayout ? 52 : 42,
+                        min: 40,
+                        max: 50,
+                      ),
                       backgroundColor: avatarColor,
                       foregroundColor: Colors.white,
                       child: Text(
@@ -87,12 +95,21 @@ class SavedProfileCard extends StatelessWidget {
                             (isTvLayout
                                     ? theme.textTheme.headlineMedium
                                     : theme.textTheme.headlineSmall)
-                                ?.copyWith(fontWeight: FontWeight.w800),
+                                ?.copyWith(
+                                  fontWeight: FontWeight.w800,
+                                  fontSize: scale.text(
+                                    isTvLayout ? 30 : 24,
+                                    min: 22,
+                                    max: 28,
+                                  ),
+                                ),
                       ),
                     ),
                   ),
                 ),
-                SizedBox(height: isTvLayout ? 18 : 14),
+                SizedBox(
+                  height: scale.space(isTvLayout ? 18 : 14, min: 12, max: 18),
+                ),
                 Text(
                   profile.name,
                   textAlign: TextAlign.center,
@@ -102,9 +119,16 @@ class SavedProfileCard extends StatelessWidget {
                       (isTvLayout
                               ? theme.textTheme.headlineSmall
                               : theme.textTheme.titleLarge)
-                          ?.copyWith(fontWeight: FontWeight.w800),
+                          ?.copyWith(
+                            fontWeight: FontWeight.w800,
+                            fontSize: scale.text(
+                              isTvLayout ? 26 : 22,
+                              min: 18,
+                              max: 24,
+                            ),
+                          ),
                 ),
-                const SizedBox(height: AppSpacing.xs),
+                SizedBox(height: scale.space(AppSpacing.xs, min: 8, max: 8)),
                 Text(
                   profile.email,
                   textAlign: TextAlign.center,
@@ -117,6 +141,11 @@ class SavedProfileCard extends StatelessWidget {
                           ?.copyWith(
                             color: AppColors.textSecondary,
                             height: 1.4,
+                            fontSize: scale.text(
+                              isTvLayout ? 15 : 13,
+                              min: 12,
+                              max: 15,
+                            ),
                           ),
                 ),
               ],
