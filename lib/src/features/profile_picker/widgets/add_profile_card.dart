@@ -32,38 +32,40 @@ class AddProfileCard extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                AnimatedContainer(
-                  duration: const Duration(milliseconds: 180),
-                  padding: EdgeInsets.all(isTvLayout ? 6 : 4),
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: focusState.isFocused
-                          ? AppColors.focus
-                          : Colors.transparent,
-                      width: 2.4,
-                    ),
-                    boxShadow: isActive
-                        ? [
-                            BoxShadow(
-                              color: AppColors.focus.withValues(alpha: 0.18),
-                              blurRadius: 28,
-                              spreadRadius: 2,
-                            ),
-                          ]
-                        : const [],
-                  ),
-                  child: Container(
-                    width: isTvLayout ? 104 : 84,
-                    height: isTvLayout ? 104 : 84,
+                Center(
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 180),
+                    padding: EdgeInsets.all(isTvLayout ? 6 : 4),
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: Colors.white.withValues(alpha: 0.08),
+                      border: Border.all(
+                        color: focusState.isFocused
+                            ? AppColors.focus
+                            : Colors.transparent,
+                        width: 2.4,
+                      ),
+                      boxShadow: isActive
+                          ? [
+                              BoxShadow(
+                                color: AppColors.focus.withValues(alpha: 0.18),
+                                blurRadius: 28,
+                                spreadRadius: 2,
+                              ),
+                            ]
+                          : const [],
                     ),
-                    child: Icon(
-                      Icons.add_rounded,
-                      size: isTvLayout ? 42 : 34,
-                      color: Colors.white,
+                    child: Container(
+                      width: isTvLayout ? 104 : 84,
+                      height: isTvLayout ? 104 : 84,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Colors.white.withValues(alpha: 0.08),
+                      ),
+                      child: Icon(
+                        Icons.add_rounded,
+                        size: isTvLayout ? 42 : 34,
+                        color: Colors.white,
+                      ),
                     ),
                   ),
                 ),

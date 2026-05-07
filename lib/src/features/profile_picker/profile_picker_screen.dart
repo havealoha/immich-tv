@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import '../../core/models/saved_profile.dart';
 import '../../shared/presentation/app_breakpoints.dart';
 import 'widgets/add_profile_card.dart';
-import 'widgets/profile_picker_header.dart';
 import 'widgets/saved_profile_card.dart';
 
 class ProfilePickerScreen extends StatelessWidget {
@@ -13,8 +12,6 @@ class ProfilePickerScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
     return Scaffold(
       body: DecoratedBox(
         decoration: const BoxDecoration(
@@ -45,8 +42,6 @@ class ProfilePickerScreen extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    ProfilePickerHeader(theme: theme, isTvLayout: isTvLayout),
-                    SizedBox(height: isTvLayout ? 36 : 28),
                     Expanded(
                       child: Center(
                         child: ConstrainedBox(
@@ -66,13 +61,13 @@ class ProfilePickerScreen extends StatelessWidget {
                                 ),
                             itemCount: profiles.length + 1,
                             itemBuilder: (context, index) {
-                              if (index == profiles.length) {
+                              if (index == 0) {
                                 return AddProfileCard(isTvLayout: isTvLayout);
                               }
 
                               return SavedProfileCard(
-                                profile: profiles[index],
-                                autofocus: index == 0,
+                                profile: profiles[index - 1],
+                                autofocus: index == 1,
                                 isTvLayout: isTvLayout,
                               );
                             },

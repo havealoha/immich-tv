@@ -95,7 +95,7 @@ class ImmichMediaRepository implements MediaRepository {
     int pageSize = 30,
   }) async {
     logger.info(
-      'Fetching timeline photos for ${session.user.email} page ${page ?? '1'}',
+      'Fetching timeline assets for ${session.user.email} page ${page ?? '1'}',
     );
     final searchTimeline = await _fetchTimelineViaSearchMetadata(
       session,
@@ -104,7 +104,7 @@ class ImmichMediaRepository implements MediaRepository {
     );
     if (searchTimeline.items.isNotEmpty || page != null) {
       logger.info(
-        'Timeline photo search returned ${searchTimeline.items.length} assets',
+        'Timeline asset search returned ${searchTimeline.items.length} assets',
       );
       return searchTimeline;
     }
@@ -206,13 +206,12 @@ class ImmichMediaRepository implements MediaRepository {
         items: items
             .map((item) => _mapAsset(item, session))
             .whereType<AssetSummary>()
-            .where((asset) => !asset.isVideo)
             .toList(growable: false),
         nextPage: _extractNextPage(response.data),
       );
     } on DioException catch (error) {
       logger.warning(
-        'Timeline photo search failed with ${error.response?.statusCode ?? error.type.name}',
+        'Timeline asset search failed with ${error.response?.statusCode ?? error.type.name}',
       );
       return const MediaPage(items: []);
     }

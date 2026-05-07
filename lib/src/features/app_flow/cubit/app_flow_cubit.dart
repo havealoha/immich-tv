@@ -5,12 +5,20 @@ import '../../../core/repositories/auth_repository.dart';
 import 'app_flow_state.dart';
 
 class AppFlowCubit extends Cubit<AppFlowState> {
+  static const _minimumBootstrapDuration = Duration(milliseconds: 1500);
+
   AppFlowCubit(this._authRepository) : super(const AppFlowState.bootstrap());
 
   final AuthRepository _authRepository;
 
   Future<void> initialize() async {
+    final startedAt = DateTime.now();
     final profiles = await _authRepository.getSavedProfiles();
+    final elapsed = DateTime.now().difference(startedAt);
+    final remainingDelay = _minimumBootstrapDuration - elapsed;
+    if (!remainingDelay.isNegative) {
+      await Future<void>.delayed(remainingDelay);
+    }
     if (profiles.isEmpty) {
       emit(const AppFlowState.onboarding());
       return;

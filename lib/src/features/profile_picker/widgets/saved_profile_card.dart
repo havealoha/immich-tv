@@ -7,7 +7,7 @@ import '../../../shared/presentation/app_colors.dart';
 import '../../../shared/presentation/app_spacing.dart';
 import '../../../shared/presentation/widgets/tv_focusable.dart';
 import '../../app_flow/cubit/app_flow_cubit.dart';
-import 'pin_unlock_dialog.dart';
+import 'pin_unlock_screen.dart';
 import 'profile_avatar_color.dart';
 
 class SavedProfileCard extends StatelessWidget {
@@ -30,10 +30,8 @@ class SavedProfileCard extends StatelessWidget {
     return TvFocusable(
       autofocus: autofocus,
       onPressed: () async {
-        final session = await showDialog<AuthenticatedSession>(
-          context: context,
-          barrierDismissible: true,
-          builder: (_) => PinUnlockDialog(profile: profile),
+        final session = await Navigator.of(context).push<AuthenticatedSession>(
+          MaterialPageRoute(builder: (_) => PinUnlockScreen(profile: profile)),
         );
 
         if (!context.mounted || session == null) {
@@ -57,38 +55,40 @@ class SavedProfileCard extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                AnimatedContainer(
-                  duration: const Duration(milliseconds: 180),
-                  padding: EdgeInsets.all(isTvLayout ? 6 : 4),
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: focusState.isFocused
-                          ? AppColors.focus
-                          : Colors.transparent,
-                      width: 2.4,
+                Center(
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 180),
+                    padding: EdgeInsets.all(isTvLayout ? 6 : 4),
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: focusState.isFocused
+                            ? AppColors.focus
+                            : Colors.transparent,
+                        width: 2.4,
+                      ),
+                      boxShadow: isActive
+                          ? [
+                              BoxShadow(
+                                color: AppColors.focus.withValues(alpha: 0.18),
+                                blurRadius: 28,
+                                spreadRadius: 2,
+                              ),
+                            ]
+                          : const [],
                     ),
-                    boxShadow: isActive
-                        ? [
-                            BoxShadow(
-                              color: AppColors.focus.withValues(alpha: 0.18),
-                              blurRadius: 28,
-                              spreadRadius: 2,
-                            ),
-                          ]
-                        : const [],
-                  ),
-                  child: CircleAvatar(
-                    radius: isTvLayout ? 52 : 42,
-                    backgroundColor: avatarColor,
-                    foregroundColor: Colors.white,
-                    child: Text(
-                      profile.initials,
-                      style:
-                          (isTvLayout
-                                  ? theme.textTheme.headlineMedium
-                                  : theme.textTheme.headlineSmall)
-                              ?.copyWith(fontWeight: FontWeight.w800),
+                    child: CircleAvatar(
+                      radius: isTvLayout ? 52 : 42,
+                      backgroundColor: avatarColor,
+                      foregroundColor: Colors.white,
+                      child: Text(
+                        profile.initials,
+                        style:
+                            (isTvLayout
+                                    ? theme.textTheme.headlineMedium
+                                    : theme.textTheme.headlineSmall)
+                                ?.copyWith(fontWeight: FontWeight.w800),
+                      ),
                     ),
                   ),
                 ),
