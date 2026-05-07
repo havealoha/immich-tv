@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import 'src/app_shell.dart';
 import 'src/core/config/app_environment.dart';
@@ -55,6 +56,24 @@ class ImmichTvApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final baseTextTheme = GoogleFonts.manropeTextTheme().copyWith(
+      displayLarge: GoogleFonts.manrope(fontSize: 57, fontWeight: FontWeight.w700, letterSpacing: -1.2, height: 1.0),
+      displayMedium: GoogleFonts.manrope(fontSize: 45, fontWeight: FontWeight.w700, letterSpacing: -0.9, height: 1.02),
+      displaySmall: GoogleFonts.manrope(fontSize: 36, fontWeight: FontWeight.w700, letterSpacing: -0.6, height: 1.05),
+      headlineLarge: GoogleFonts.manrope(fontSize: 32, fontWeight: FontWeight.w700, letterSpacing: -0.45, height: 1.08),
+      headlineMedium: GoogleFonts.manrope(fontSize: 28, fontWeight: FontWeight.w700, letterSpacing: -0.35, height: 1.08),
+      headlineSmall: GoogleFonts.manrope(fontSize: 24, fontWeight: FontWeight.w700, letterSpacing: -0.25, height: 1.1),
+      titleLarge: GoogleFonts.manrope(fontSize: 22, fontWeight: FontWeight.w700, letterSpacing: -0.2, height: 1.12),
+      titleMedium: GoogleFonts.manrope(fontSize: 16, fontWeight: FontWeight.w700, letterSpacing: -0.1, height: 1.18),
+      titleSmall: GoogleFonts.manrope(fontSize: 14, fontWeight: FontWeight.w700, letterSpacing: -0.05, height: 1.2),
+      bodyLarge: GoogleFonts.manrope(fontSize: 16, fontWeight: FontWeight.w500, letterSpacing: 0, height: 1.45),
+      bodyMedium: GoogleFonts.manrope(fontSize: 14, fontWeight: FontWeight.w500, letterSpacing: 0, height: 1.45),
+      bodySmall: GoogleFonts.manrope(fontSize: 12, fontWeight: FontWeight.w500, letterSpacing: 0.05, height: 1.4),
+      labelLarge: GoogleFonts.manrope(fontSize: 14, fontWeight: FontWeight.w700, letterSpacing: 0.1, height: 1.2),
+      labelMedium: GoogleFonts.manrope(fontSize: 12, fontWeight: FontWeight.w700, letterSpacing: 0.1, height: 1.2),
+      labelSmall: GoogleFonts.manrope(fontSize: 11, fontWeight: FontWeight.w700, letterSpacing: 0.15, height: 1.2),
+    );
+
     final baseTheme = ThemeData(
       useMaterial3: true,
       colorScheme: const ColorScheme(
@@ -71,6 +90,8 @@ class ImmichTvApp extends StatelessWidget {
       scaffoldBackgroundColor: AppColors.background,
       dividerColor: AppColors.border,
       canvasColor: AppColors.background,
+      textTheme: baseTextTheme,
+      primaryTextTheme: baseTextTheme,
     );
 
     return MultiRepositoryProvider(
