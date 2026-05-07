@@ -159,6 +159,22 @@ class _Sidebar extends StatelessWidget {
           ),
           const SizedBox(height: AppSpacing.md),
           TextButton.icon(
+            onPressed: () => context.read<AppFlowCubit>().showProfilePicker(),
+            icon: const Icon(Icons.switch_account_rounded),
+            label: const Text('Switch user'),
+            style: TextButton.styleFrom(
+              padding: const EdgeInsets.symmetric(
+                horizontal: 0,
+                vertical: AppSpacing.sm,
+              ),
+              foregroundColor: Colors.white,
+              textStyle: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+          const SizedBox(height: AppSpacing.xs),
+          TextButton.icon(
             onPressed: () => context.read<AppFlowCubit>().signOut(),
             icon: const Icon(Icons.logout_rounded),
             label: const Text('Sign out'),
