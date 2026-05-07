@@ -10,14 +10,9 @@ class OnboardingShell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: RadialGradient(
-            colors: [Color(0xFF1A4E58), Color(0xFF08131A)],
-            center: Alignment.topLeft,
-            radius: 1.4,
-          ),
-        ),
+      backgroundColor: Colors.black,
+      body: ColoredBox(
+        color: Colors.black,
         child: SafeArea(
           child: LayoutBuilder(
             builder: (context, viewportConstraints) {

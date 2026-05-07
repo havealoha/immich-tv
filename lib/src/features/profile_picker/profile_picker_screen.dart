@@ -14,14 +14,9 @@ class ProfilePickerScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: DecoratedBox(
-        decoration: const BoxDecoration(
-          gradient: RadialGradient(
-            colors: [Color(0xFF1B4A5A), Color(0xFF10232E), Color(0xFF08131A)],
-            center: Alignment(-0.25, -0.8),
-            radius: 1.3,
-          ),
-        ),
+      backgroundColor: Colors.black,
+      body: ColoredBox(
+        color: Colors.black,
         child: SafeArea(
           child: LayoutBuilder(
             builder: (context, constraints) {
