@@ -98,13 +98,10 @@ class _Sidebar extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Immich TV',
-            style: theme.textTheme.headlineSmall?.copyWith(
-              fontWeight: FontWeight.w800,
-              letterSpacing: 0.3,
-              fontSize: scale.text(30, min: 24, max: 30),
-            ),
+          Image.asset(
+            'assets/png/tv-banner-icon.png',
+            width: scale.sizeOf(220, min: 170, max: 220),
+            fit: BoxFit.contain,
           ),
           SizedBox(height: scale.space(AppSpacing.lg, min: 20, max: 24)),
           Expanded(

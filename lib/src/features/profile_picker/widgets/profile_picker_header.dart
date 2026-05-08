@@ -17,14 +17,10 @@ class ProfilePickerHeader extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        Text(
-          'Immich TV',
-          textAlign: TextAlign.center,
-          style:
-              (isTvLayout
-                      ? theme.textTheme.displayMedium
-                      : theme.textTheme.displaySmall)
-                  ?.copyWith(fontWeight: FontWeight.w800, height: 1),
+        Image.asset(
+          'assets/png/tv-banner-icon.png',
+          width: isTvLayout ? 360 : 280,
+          fit: BoxFit.contain,
         ),
         const SizedBox(height: 12),
         Text(

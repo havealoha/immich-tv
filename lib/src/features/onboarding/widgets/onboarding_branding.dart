@@ -32,22 +32,14 @@ class OnboardingBranding extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        Text(
-          'Immich TV',
-          textAlign: TextAlign.center,
-          style:
-              (isTvLayout
-                      ? theme.textTheme.headlineLarge
-                      : theme.textTheme.displaySmall)
-                  ?.copyWith(
-                    fontWeight: FontWeight.w800,
-                    height: 1,
-                    fontSize: scale.text(
-                      isTvLayout ? 48 : 40,
-                      min: 32,
-                      max: 50,
-                    ),
-                  ),
+        Image.asset(
+          'assets/png/tv-banner-icon.png',
+          width: scale.sizeOf(
+            isTvLayout ? 420 : 320,
+            min: 220,
+            max: 440,
+          ),
+          fit: BoxFit.contain,
         ),
         SizedBox(height: scale.space(12, min: 10, max: 16)),
         ConstrainedBox(
