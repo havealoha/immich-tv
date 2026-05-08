@@ -1052,9 +1052,9 @@ class _AlbumBrowserState extends State<_AlbumBrowser> {
 
     if (_albumAssets.isEmpty) {
       return _InfoPanel(
-        title: 'No photos in ${selectedAlbum.name}',
+        title: 'No assets in ${selectedAlbum.name}',
         body:
-            'This album does not contain any photo assets that can be displayed yet.',
+            'This album does not contain any assets that can be displayed yet.',
         accent: AppColors.textMuted,
       );
     }
@@ -1277,7 +1277,7 @@ class _AlbumAssetGrid extends StatelessWidget {
         ),
         SizedBox(height: scale.space(AppSpacing.xs, min: 8, max: 8)),
         Text(
-          '${assets.length} photos',
+          '${assets.length} assets',
           style: theme.textTheme.bodyLarge?.copyWith(
             color: AppColors.textSecondary,
             fontSize: scale.text(16, min: 14, max: 16),
@@ -1475,7 +1475,11 @@ class _SlideshowSectionViewState extends State<_SlideshowSectionView> {
       _albumAssetsFuture = context
           .read<MediaRepository>()
           .fetchAlbumAssetsPage(widget.session, albumId: album.id)
-          .then((response) => response.items);
+          .then(
+            (response) => response.items
+                .where((asset) => !asset.isVideo)
+                .toList(growable: false),
+          );
     });
   }
 }
@@ -1792,7 +1796,7 @@ class _AlbumSlideshowSourceView extends StatelessWidget {
                     width: scale.sizeOf(240, min: 220, max: 240),
                     child: _TvChoiceTile(
                       title: album.name,
-                      subtitle: '${album.assetCount} photos',
+                      subtitle: '${album.assetCount} assets',
                       badge: '${album.name} • ${album.assetCount}',
                       icon: Icons.photo_album_outlined,
                       isSelected: album.id == selectedAlbumValue.id,

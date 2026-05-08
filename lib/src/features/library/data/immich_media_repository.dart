@@ -69,7 +69,6 @@ class ImmichMediaRepository implements MediaRepository {
       items: items
           .map((item) => _mapAsset(item, session))
           .whereType<AssetSummary>()
-          .where((asset) => !asset.isVideo)
           .toList(growable: false),
       nextPage: _extractCountBasedNextPage(
         response.data,

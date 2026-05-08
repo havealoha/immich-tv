@@ -418,10 +418,12 @@ class FakeMediaRepository implements MediaRepository {
       [const AlbumSummary(id: 'album-1', name: 'Summer Trip', assetCount: 42)];
 
   @override
-  Future<List<AssetSummary>> fetchAlbumAssets(
+  Future<MediaPage<AssetSummary>> fetchAlbumAssetsPage(
     AuthenticatedSession session, {
     required String albumId,
-  }) async => _timelinePageOne;
+    String? page,
+    int pageSize = 120,
+  }) async => MediaPage(items: _timelinePageOne);
 
   @override
   Future<MediaPage<AssetSummary>> fetchFavoritesPage(

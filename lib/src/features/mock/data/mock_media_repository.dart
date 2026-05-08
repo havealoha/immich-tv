@@ -149,9 +149,7 @@ List<AlbumSummary> _buildAlbums() {
 }
 
 List<AssetSummary> _buildAlbumAssets(String albumId) {
-  final timeline = _buildTimeline()
-      .where((asset) => !asset.isVideo)
-      .toList(growable: false);
+  final timeline = _buildTimeline();
 
   final albumOffsets = <String, int>{
     'album-1': 0,
