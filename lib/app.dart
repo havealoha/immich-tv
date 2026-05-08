@@ -45,7 +45,7 @@ class ImmichTvApp extends StatelessWidget {
            ((useMockServices ?? false)
                ? MockServerRepository(normalizer: const ServerUrlNormalizer())
                : ImmichServerRepository(dio: ImmichDioFactory.create(), normalizer: const ServerUrlNormalizer())),
-       _assetImageRepository = assetImageRepository ?? const ImmichAssetImageRepository(),
+       _assetImageRepository = assetImageRepository ?? ImmichAssetImageRepository(),
        _mediaRepository = mediaRepository ?? ((useMockServices ?? false) ? MockMediaRepository() : ImmichMediaRepository(dio: ImmichDioFactory.create()));
 
   final AppEnvironment _environment;

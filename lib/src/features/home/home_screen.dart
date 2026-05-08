@@ -5,6 +5,7 @@ import '../../core/errors/app_exception.dart';
 import '../../core/models/album_summary.dart';
 import '../../core/models/asset_summary.dart';
 import '../../core/models/authenticated_session.dart';
+import '../../core/repositories/asset_image_repository.dart';
 import '../../core/repositories/media_repository.dart';
 import '../../shared/presentation/app_breakpoints.dart';
 import '../../shared/presentation/app_colors.dart';
@@ -98,12 +99,6 @@ class _Sidebar extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Image.asset(
-            'assets/png/tv-banner-icon.png',
-            width: scale.sizeOf(220, min: 170, max: 220),
-            fit: BoxFit.contain,
-          ),
-          SizedBox(height: scale.space(AppSpacing.lg, min: 20, max: 24)),
           Expanded(
             child: SingleChildScrollView(
               child: Column(
@@ -601,6 +596,7 @@ class _AssetSectionView extends StatelessWidget {
                 session: session,
                 asset: asset,
                 autofocus: index == 0,
+                prefetchUrls: _nearbyThumbnailUrls(assets, index),
                 onPressed: () => AssetViewerScreen.show(
                   context,
                   assets: assets,
@@ -656,6 +652,7 @@ class _TimelineDaySection extends StatelessWidget {
                   session: session,
                   asset: item.asset,
                   autofocus: item.globalIndex == 0,
+                  prefetchUrls: _nearbyThumbnailUrls(allAssets, item.globalIndex),
                   onPressed: () => AssetViewerScreen.show(
                     context,
                     assets: allAssets,
@@ -677,12 +674,14 @@ class _AssetTile extends StatefulWidget {
     required this.session,
     required this.asset,
     required this.autofocus,
+    required this.prefetchUrls,
     required this.onPressed,
   });
 
   final AuthenticatedSession session;
   final AssetSummary asset;
   final bool autofocus;
+  final List<List<String>> prefetchUrls;
   final VoidCallback onPressed;
 
   @override
@@ -690,6 +689,16 @@ class _AssetTile extends StatefulWidget {
 }
 
 class _AssetTileState extends State<_AssetTile> {
+  String? _lastPrefetchKey;
+
+  @override
+  void didUpdateWidget(covariant _AssetTile oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.asset.id != widget.asset.id) {
+      _lastPrefetchKey = null;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -697,6 +706,11 @@ class _AssetTileState extends State<_AssetTile> {
     return TvFocusable(
       autofocus: widget.autofocus,
       onPressed: widget.onPressed,
+      onFocusChange: (isFocused) {
+        if (isFocused) {
+          _prefetchNearbyThumbnails();
+        }
+      },
       builder: (context, focusState) {
         final isActive = focusState.isActive;
 
@@ -788,6 +802,25 @@ class _AssetTileState extends State<_AssetTile> {
     final month = value.month.toString().padLeft(2, '0');
     final day = value.day.toString().padLeft(2, '0');
     return '$year-$month-$day';
+  }
+
+  void _prefetchNearbyThumbnails() {
+    if (widget.prefetchUrls.isEmpty) {
+      return;
+    }
+
+    final prefetchKey = widget.prefetchUrls
+        .map((urls) => urls.isNotEmpty ? urls.first : '')
+        .join('|');
+    if (_lastPrefetchKey == prefetchKey) {
+      return;
+    }
+
+    _lastPrefetchKey = prefetchKey;
+    context.read<AssetImageRepository>().prefetchImages(
+      urls: widget.prefetchUrls,
+      accessToken: widget.session.accessToken,
+    );
   }
 }
 
@@ -1304,6 +1337,7 @@ class _AlbumAssetGrid extends StatelessWidget {
                       session: session,
                       asset: asset,
                       autofocus: index == 0,
+                      prefetchUrls: _nearbyThumbnailUrls(assets, index),
                       onPressed: () => AssetViewerScreen.show(
                         context,
                         assets: assets,
@@ -1646,6 +1680,29 @@ double _responsiveAlbumRailWidth(double contentWidth, AppScale scale) {
         scale.sizeOf(360, min: 320, max: 360),
       )
       .toDouble();
+}
+
+List<List<String>> _nearbyThumbnailUrls(
+  List<AssetSummary> assets,
+  int centerIndex,
+) {
+  const offsets = [-2, -1, 1, 2, 3];
+  final nearby = <List<String>>[];
+
+  for (final offset in offsets) {
+    final index = centerIndex + offset;
+    if (index < 0 || index >= assets.length) {
+      continue;
+    }
+
+    final thumbnails = assets[index].thumbnailUrls;
+    if (thumbnails.isEmpty) {
+      continue;
+    }
+    nearby.add(thumbnails);
+  }
+
+  return nearby;
 }
 
 List<int> _timelineYearRange() {

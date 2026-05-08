@@ -5,6 +5,7 @@ import 'package:video_player/video_player.dart';
 
 import '../../core/models/asset_summary.dart';
 import '../../core/network/immich_headers.dart';
+import '../../core/repositories/asset_image_repository.dart';
 import '../../shared/presentation/app_colors.dart';
 import '../slideshow/slideshow_player_screen.dart';
 import '../../shared/presentation/app_radii.dart';
@@ -81,6 +82,12 @@ class _AssetViewerViewState extends State<_AssetViewerView> {
     _viewerFocusNode = FocusNode(debugLabel: 'viewer-surface');
     _slideshowButtonFocusNode = FocusNode(debugLabel: 'viewer-slideshow');
     _closeButtonFocusNode = FocusNode(debugLabel: 'viewer-close');
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) {
+        return;
+      }
+      _prefetchNearbyViewerImages(context.read<AssetViewerCubit>().state);
+    });
   }
 
   @override
@@ -325,10 +332,36 @@ class _AssetViewerViewState extends State<_AssetViewerView> {
     }
 
     cubit.jumpTo(index);
+    _prefetchNearbyViewerImages(cubit.state.copyWith(currentIndex: index));
     _pageController.animateToPage(
       index,
       duration: const Duration(milliseconds: 240),
       curve: Curves.easeOutCubic,
+    );
+  }
+
+  void _prefetchNearbyViewerImages(AssetViewerState state) {
+    final nearby = <List<String>>[];
+    for (final offset in const [-1, 1, 2]) {
+      final targetIndex = state.currentIndex + offset;
+      if (targetIndex < 0 || targetIndex >= state.assets.length) {
+        continue;
+      }
+
+      final asset = state.assets[targetIndex];
+      if (asset.isVideo) {
+        continue;
+      }
+      nearby.add(asset.displayUrls);
+    }
+
+    if (nearby.isEmpty) {
+      return;
+    }
+
+    context.read<AssetImageRepository>().prefetchImages(
+      urls: nearby,
+      accessToken: widget.accessToken,
     );
   }
 }
