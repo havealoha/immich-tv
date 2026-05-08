@@ -430,6 +430,7 @@ class FakeMediaRepository implements MediaRepository {
     AuthenticatedSession session, {
     String? page,
     int pageSize = 60,
+    int? year,
   }) async {
     if (!paginatedTimeline) {
       return MediaPage(items: _timelinePageOne);
@@ -478,7 +479,7 @@ final List<AssetSummary> _timelinePageOne = [
       'https://photos.example.com/api/assets/asset-1/original',
     ],
     type: 'IMAGE',
-    createdAt: DateTime(2024, 11, 9),
+    createdAt: DateTime(2026, 11, 9),
   ),
   AssetSummary(
     id: 'asset-2',
@@ -490,7 +491,7 @@ final List<AssetSummary> _timelinePageOne = [
       'https://photos.example.com/api/assets/asset-2/original',
     ],
     type: 'IMAGE',
-    createdAt: DateTime(2024, 11, 10),
+    createdAt: DateTime(2026, 11, 10),
   ),
 ];
 
@@ -505,6 +506,6 @@ final List<AssetSummary> _timelinePageTwo = [
       'https://photos.example.com/api/assets/asset-3/original',
     ],
     type: 'IMAGE',
-    createdAt: DateTime(2024, 11, 11),
+    createdAt: DateTime(2026, 11, 11),
   ),
 ];

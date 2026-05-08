@@ -8,7 +8,7 @@ import 'library_state.dart';
 
 class LibraryCubit extends Cubit<LibraryState> {
   LibraryCubit(this._mediaRepository, this._session)
-    : super(const LibraryState());
+    : super(LibraryState(selectedTimelineYear: DateTime.now().year));
 
   final MediaRepository _mediaRepository;
   final AuthenticatedSession _session;
@@ -17,7 +17,10 @@ class LibraryCubit extends Cubit<LibraryState> {
     emit(state.copyWith(status: LibraryLoadStatus.loading, clearError: true));
 
     try {
-      final timelineFuture = _mediaRepository.fetchTimelinePage(_session);
+      final timelineFuture = _mediaRepository.fetchTimelinePage(
+        _session,
+        year: state.selectedTimelineYear,
+      );
       final favoritesFuture = _mediaRepository.fetchFavoritesPage(_session);
       final albumsFuture = _mediaRepository.fetchAlbums(_session);
 
@@ -77,7 +80,10 @@ class LibraryCubit extends Cubit<LibraryState> {
     try {
       switch (tab) {
         case LibraryTab.timeline:
-          final timeline = await _mediaRepository.fetchTimelinePage(_session);
+          final timeline = await _mediaRepository.fetchTimelinePage(
+            _session,
+            year: state.selectedTimelineYear,
+          );
           emit(
             state.copyWith(
               selectedTab: tab,
@@ -151,6 +157,54 @@ class LibraryCubit extends Cubit<LibraryState> {
     }
   }
 
+  Future<void> selectTimelineYear(int year) async {
+    if (state.selectedTimelineYear == year &&
+        state.selectedTab == LibraryTab.timeline &&
+        state.hasLoadedTimeline) {
+      return;
+    }
+
+    emit(
+      state.copyWith(
+        selectedTimelineYear: year,
+        selectedTab: LibraryTab.timeline,
+        status: LibraryLoadStatus.loading,
+        clearError: true,
+      ),
+    );
+
+    try {
+      final timeline = await _mediaRepository.fetchTimelinePage(
+        _session,
+        year: year,
+      );
+      emit(
+        state.copyWith(
+          selectedTimelineYear: year,
+          selectedTab: LibraryTab.timeline,
+          timeline: timeline.items,
+          timelineNextPage: timeline.nextPage,
+          clearTimelineNextPage: timeline.nextPage == null,
+          hasLoadedTimeline: true,
+          status: LibraryLoadStatus.success,
+          isLoadingMore: false,
+          clearError: true,
+        ),
+      );
+    } catch (error) {
+      emit(
+        state.copyWith(
+          selectedTimelineYear: year,
+          selectedTab: LibraryTab.timeline,
+          status: LibraryLoadStatus.failure,
+          errorMessage: error is AppException
+              ? error.message
+              : 'We could not load this year right now.',
+        ),
+      );
+    }
+  }
+
   Future<void> _appendTimelinePage(String page) async {
     emit(state.copyWith(isLoadingMore: true, clearError: true));
 
@@ -158,6 +212,7 @@ class LibraryCubit extends Cubit<LibraryState> {
       final response = await _mediaRepository.fetchTimelinePage(
         _session,
         page: page,
+        year: state.selectedTimelineYear,
       );
       emit(
         state.copyWith(

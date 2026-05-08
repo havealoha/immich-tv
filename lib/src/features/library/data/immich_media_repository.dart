@@ -122,14 +122,16 @@ class ImmichMediaRepository implements MediaRepository {
     AuthenticatedSession session, {
     String? page,
     int pageSize = 30,
+    int? year,
   }) async {
     logger.info(
-      'Fetching timeline assets for ${session.user.email} page ${page ?? '1'}',
+      'Fetching timeline assets for ${session.user.email} page ${page ?? '1'} year ${year?.toString() ?? 'all'}',
     );
     final searchTimeline = await _fetchTimelineViaSearchMetadata(
       session,
       page: page,
       pageSize: pageSize,
+      year: year,
     );
     if (searchTimeline.items.isNotEmpty || page != null) {
       logger.info(
@@ -138,10 +140,13 @@ class ImmichMediaRepository implements MediaRepository {
       return searchTimeline;
     }
 
-    logger.warning(
-      'Timeline search returned no assets, falling back to timeline bucket API',
-    );
-    final headers = ImmichHeaders.sessionToken(session.accessToken);
+      logger.warning(
+        'Timeline search returned no assets, falling back to timeline bucket API',
+      );
+      if (year != null) {
+        return const MediaPage(items: []);
+      }
+      final headers = ImmichHeaders.sessionToken(session.accessToken);
 
     final bucketCandidates = [
       {
@@ -210,14 +215,24 @@ class ImmichMediaRepository implements MediaRepository {
     AuthenticatedSession session, {
     String? page,
     required int pageSize,
+    int? year,
   }) async {
     try {
       final Map<String, dynamic> requestBody = {
         'size': pageSize,
         'withArchived': false,
+        'order': 'desc',
       };
       if (page != null) {
         requestBody['page'] = page;
+      }
+      if (year != null) {
+        requestBody['takenAfter'] = DateTime(year, 1, 1).toIso8601String();
+        requestBody['takenBefore'] = DateTime(
+          year + 1,
+          1,
+          1,
+        ).subtract(const Duration(milliseconds: 1)).toIso8601String();
       }
       final response = await _dio.post<dynamic>(
         session.serverConfig.apiEndpoint('search/metadata').toString(),

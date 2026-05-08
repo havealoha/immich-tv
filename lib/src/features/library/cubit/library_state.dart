@@ -10,6 +10,7 @@ enum LibraryLoadStatus { idle, loading, success, failure }
 class LibraryState extends Equatable {
   const LibraryState({
     this.selectedTab = LibraryTab.timeline,
+    this.selectedTimelineYear = 0,
     this.status = LibraryLoadStatus.idle,
     this.timeline = const [],
     this.albums = const [],
@@ -24,6 +25,7 @@ class LibraryState extends Equatable {
   });
 
   final LibraryTab selectedTab;
+  final int selectedTimelineYear;
   final LibraryLoadStatus status;
   final List<AssetSummary> timeline;
   final List<AlbumSummary> albums;
@@ -62,6 +64,7 @@ class LibraryState extends Equatable {
 
   LibraryState copyWith({
     LibraryTab? selectedTab,
+    int? selectedTimelineYear,
     LibraryLoadStatus? status,
     List<AssetSummary>? timeline,
     List<AlbumSummary>? albums,
@@ -79,6 +82,7 @@ class LibraryState extends Equatable {
   }) {
     return LibraryState(
       selectedTab: selectedTab ?? this.selectedTab,
+      selectedTimelineYear: selectedTimelineYear ?? this.selectedTimelineYear,
       status: status ?? this.status,
       timeline: timeline ?? this.timeline,
       albums: albums ?? this.albums,
@@ -100,6 +104,7 @@ class LibraryState extends Equatable {
   @override
   List<Object?> get props => [
     selectedTab,
+    selectedTimelineYear,
     status,
     timeline,
     albums,

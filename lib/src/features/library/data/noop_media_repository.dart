@@ -37,6 +37,7 @@ class NoopMediaRepository implements MediaRepository {
     AuthenticatedSession session, {
     String? page,
     int pageSize = 60,
+    int? year,
   }) async {
     await Future<void>.delayed(const Duration(milliseconds: 220));
     return const MediaPage(items: []);

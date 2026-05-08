@@ -384,6 +384,7 @@ class _LibraryContent extends StatelessWidget {
         session: session,
         title: 'Timeline',
         description: 'Browse your library grouped by day.',
+        selectedYear: state.selectedTimelineYear,
         status: state.status,
         errorMessage: state.errorMessage,
         assets: state.timeline,
@@ -417,6 +418,7 @@ class _TimelineSectionView extends StatelessWidget {
     required this.session,
     required this.title,
     required this.description,
+    required this.selectedYear,
     required this.status,
     required this.errorMessage,
     required this.assets,
@@ -428,6 +430,7 @@ class _TimelineSectionView extends StatelessWidget {
   final AuthenticatedSession session;
   final String title;
   final String description;
+  final int selectedYear;
   final LibraryLoadStatus status;
   final String? errorMessage;
   final List<AssetSummary> assets;
@@ -437,9 +440,12 @@ class _TimelineSectionView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return _SectionFrame(
+    return _TimelineSectionFrame(
       title: title,
       description: description,
+      years: _timelineYearRange(),
+      selectedYear: selectedYear,
+      onYearSelected: (year) => context.read<LibraryCubit>().selectTimelineYear(year),
       child: _buildBody(context),
     );
   }
@@ -459,12 +465,11 @@ class _TimelineSectionView extends StatelessWidget {
 
     if (assets.isEmpty) {
       return _InfoPanel(
-        title: 'Nothing here yet',
-        body: emptyMessage,
+        title: 'No assets in $selectedYear',
+        body: 'There are no timeline assets available for this year yet.',
         accent: AppColors.textMuted,
       );
     }
-
     final groups = _groupTimelineAssets(assets);
 
     return NotificationListener<ScrollNotification>(
@@ -1361,6 +1366,219 @@ class _SectionFrame extends StatelessWidget {
   }
 }
 
+class _TimelineSectionFrame extends StatelessWidget {
+  const _TimelineSectionFrame({
+    required this.title,
+    required this.description,
+    required this.years,
+    required this.selectedYear,
+    required this.onYearSelected,
+    required this.child,
+  });
+
+  final String title;
+  final String description;
+  final List<int> years;
+  final int? selectedYear;
+  final ValueChanged<int> onYearSelected;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scale = AppScale.of(context);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final useStackedLayout = constraints.maxWidth < 980;
+            final titleBlock = Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: theme.textTheme.headlineMedium?.copyWith(
+                    fontWeight: FontWeight.w800,
+                    fontSize: scale.text(34, min: 28, max: 34),
+                  ),
+                ),
+                SizedBox(height: scale.space(AppSpacing.xs, min: 8, max: 8)),
+                Text(
+                  description,
+                  style: theme.textTheme.bodyLarge?.copyWith(
+                    color: AppColors.textSecondary,
+                    height: 1.5,
+                    fontSize: scale.text(16, min: 14, max: 16),
+                  ),
+                ),
+              ],
+            );
+
+            final yearRail = _TimelineYearRail(
+              years: years,
+              selectedYear: selectedYear,
+              onYearSelected: onYearSelected,
+            );
+
+            if (useStackedLayout) {
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  titleBlock,
+                  SizedBox(height: scale.space(AppSpacing.lg, min: 20, max: 24)),
+                  yearRail,
+                ],
+              );
+            }
+
+            return Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(child: titleBlock),
+                SizedBox(width: scale.space(AppSpacing.xl, min: 24, max: 32)),
+                SizedBox(
+                  width: scale.sizeOf(420, min: 320, max: 460),
+                  child: yearRail,
+                ),
+              ],
+            );
+          },
+        ),
+        SizedBox(height: scale.space(AppSpacing.lg, min: 20, max: 24)),
+        Expanded(child: child),
+      ],
+    );
+  }
+}
+
+class _TimelineYearRail extends StatelessWidget {
+  const _TimelineYearRail({
+    required this.years,
+    required this.selectedYear,
+    required this.onYearSelected,
+  });
+
+  final List<int> years;
+  final int? selectedYear;
+  final ValueChanged<int> onYearSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scale = AppScale.of(context);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Years',
+          style: theme.textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.w800,
+            fontSize: scale.text(18, min: 15, max: 18),
+          ),
+        ),
+        SizedBox(height: scale.space(AppSpacing.sm, min: 10, max: 12)),
+        SizedBox(
+          height: scale.sizeOf(70, min: 62, max: 70),
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            itemCount: years.length,
+            separatorBuilder: (_, _) => SizedBox(
+              width: scale.space(AppSpacing.sm, min: 10, max: 12),
+            ),
+            itemBuilder: (context, index) {
+              final year = years[index];
+              return _TimelineYearChip(
+                year: year,
+                isSelected: year == selectedYear,
+                autofocus: year == selectedYear,
+                onPressed: () => onYearSelected(year),
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _TimelineYearChip extends StatefulWidget {
+  const _TimelineYearChip({
+    required this.year,
+    required this.isSelected,
+    required this.onPressed,
+    this.autofocus = false,
+  });
+
+  final int year;
+  final bool isSelected;
+  final bool autofocus;
+  final VoidCallback onPressed;
+
+  @override
+  State<_TimelineYearChip> createState() => _TimelineYearChipState();
+}
+
+class _TimelineYearChipState extends State<_TimelineYearChip> {
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scale = AppScale.of(context);
+
+    return TvFocusable(
+      autofocus: widget.autofocus,
+      onPressed: widget.onPressed,
+      builder: (context, focusState) {
+        final isFocused = focusState.isFocused;
+        final isSelected = widget.isSelected;
+
+        return AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          padding: EdgeInsets.symmetric(
+            horizontal: scale.space(AppSpacing.lg, min: 18, max: 22),
+            vertical: scale.space(AppSpacing.md, min: 14, max: 16),
+          ),
+          decoration: BoxDecoration(
+            color: isSelected
+                ? AppColors.focus.withValues(alpha: 0.18)
+                : const Color(0xFF0D1A21),
+            borderRadius: BorderRadius.circular(
+              scale.radius(AppRadii.pill, min: 999, max: 999),
+            ),
+            border: Border.all(
+              color: isFocused || isSelected
+                  ? AppColors.focus
+                  : AppColors.border,
+              width: isFocused ? 2.4 : (isSelected ? 1.8 : 1),
+            ),
+            boxShadow: isFocused
+                ? [
+                    BoxShadow(
+                      color: AppColors.focusGlow,
+                      blurRadius: 22,
+                      spreadRadius: 2,
+                    ),
+                  ]
+                : const [],
+          ),
+          child: Center(
+            child: Text(
+              '${widget.year}',
+              style: theme.textTheme.titleSmall?.copyWith(
+                fontWeight: FontWeight.w800,
+                color: Colors.white,
+                fontSize: scale.text(18, min: 15, max: 18),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
 class _InfoPanel extends StatelessWidget {
   const _InfoPanel({
     required this.title,
@@ -1431,6 +1649,11 @@ double _responsiveAlbumRailWidth(double contentWidth, AppScale scale) {
         scale.sizeOf(360, min: 320, max: 360),
       )
       .toDouble();
+}
+
+List<int> _timelineYearRange() {
+  final currentYear = DateTime.now().year;
+  return List<int>.generate(51, (index) => currentYear - index);
 }
 
 List<_TimelineDayGroup> _groupTimelineAssets(List<AssetSummary> assets) {

@@ -17,6 +17,7 @@ abstract class MediaRepository {
     AuthenticatedSession session, {
     String? page,
     int pageSize = 30,
+    int? year,
   });
 
   Future<MediaPage<AssetSummary>> fetchFavoritesPage(

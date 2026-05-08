@@ -52,9 +52,15 @@ class MockMediaRepository implements MediaRepository {
     AuthenticatedSession session, {
     String? page,
     int pageSize = _pageSizeDefault,
+    int? year,
   }) async {
     await Future<void>.delayed(const Duration(milliseconds: 340));
-    return _pageAssets(_timeline, page: page, pageSize: pageSize);
+    final filteredTimeline = year == null
+        ? _timeline
+        : _timeline
+            .where((asset) => asset.createdAt.year == year)
+            .toList(growable: false);
+    return _pageAssets(filteredTimeline, page: page, pageSize: pageSize);
   }
 
   MediaPage<AssetSummary> _pageAssets(
