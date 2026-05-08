@@ -13,6 +13,7 @@ import '../../shared/presentation/app_radii.dart';
 import '../../shared/presentation/app_scale.dart';
 import '../../shared/presentation/app_spacing.dart';
 import '../../shared/presentation/widgets/authenticated_asset_image.dart';
+import '../../shared/presentation/widgets/loading_skeleton.dart';
 import '../../shared/presentation/widgets/tv_focusable.dart';
 import '../app_flow/cubit/app_flow_cubit.dart';
 import '../library/cubit/library_cubit.dart';
@@ -437,14 +438,18 @@ class _TimelineSectionView extends StatelessWidget {
       description: description,
       years: _timelineYearRange(),
       selectedYear: selectedYear,
-      onYearSelected: (year) => context.read<LibraryCubit>().selectTimelineYear(year),
-      child: _buildBody(context),
+      onYearSelected: (year) =>
+          context.read<LibraryCubit>().selectTimelineYear(year),
+      child: _AnimatedSectionSwap(
+        switchKey: 'timeline-$selectedYear-${_sectionViewState(status, assets)}',
+        child: _buildBody(context),
+      ),
     );
   }
 
   Widget _buildBody(BuildContext context) {
     if (status == LibraryLoadStatus.loading) {
-      return const Center(child: CircularProgressIndicator());
+      return const _TimelineLoadingSkeleton();
     }
 
     if (status == LibraryLoadStatus.failure) {
@@ -539,13 +544,16 @@ class _AssetSectionView extends StatelessWidget {
     return _SectionFrame(
       title: title,
       description: description,
-      child: _buildBody(context),
+      child: _AnimatedSectionSwap(
+        switchKey: 'assets-$title-${_sectionViewState(status, assets)}',
+        child: _buildBody(context),
+      ),
     );
   }
 
   Widget _buildBody(BuildContext context) {
     if (status == LibraryLoadStatus.loading) {
-      return const Center(child: CircularProgressIndicator());
+      return const _AssetGridLoadingSkeleton();
     }
 
     if (status == LibraryLoadStatus.failure) {
@@ -974,7 +982,7 @@ class _AlbumBrowserState extends State<_AlbumBrowser> {
 
   Widget _buildBody(BuildContext context) {
     if (widget.status == LibraryLoadStatus.loading) {
-      return const Center(child: CircularProgressIndicator());
+      return const _AlbumBrowserLoadingSkeleton();
     }
 
     if (widget.status == LibraryLoadStatus.failure) {
@@ -1059,7 +1067,10 @@ class _AlbumBrowserState extends State<_AlbumBrowser> {
 
   Widget _buildAlbumContent(AlbumSummary selectedAlbum) {
     if (_isLoadingAlbumAssets && _albumAssets.isEmpty) {
-      return const Center(child: CircularProgressIndicator());
+      return const _AssetGridLoadingSkeleton(
+        leadingHeight: 20,
+        leadingWidth: 220,
+      );
     }
 
     if (_albumAssetsError != null && _albumAssets.isEmpty) {
@@ -1393,6 +1404,216 @@ class _SectionFrame extends StatelessWidget {
         SizedBox(height: scale.space(AppSpacing.lg, min: 20, max: 24)),
         Expanded(child: child),
       ],
+    );
+  }
+}
+
+class _AnimatedSectionSwap extends StatelessWidget {
+  const _AnimatedSectionSwap({
+    required this.switchKey,
+    required this.child,
+  });
+
+  final Object switchKey;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 260),
+      switchInCurve: Curves.easeOutCubic,
+      switchOutCurve: Curves.easeInCubic,
+      transitionBuilder: (child, animation) {
+        final offsetAnimation = Tween<Offset>(
+          begin: const Offset(0, 0.035),
+          end: Offset.zero,
+        ).animate(animation);
+        return FadeTransition(
+          opacity: animation,
+          child: SlideTransition(
+            position: offsetAnimation,
+            child: child,
+          ),
+        );
+      },
+      child: KeyedSubtree(key: ValueKey<Object>(switchKey), child: child),
+    );
+  }
+}
+
+class _TimelineLoadingSkeleton extends StatelessWidget {
+  const _TimelineLoadingSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    final scale = AppScale.of(context);
+
+    return ListView.separated(
+      itemCount: 4,
+      separatorBuilder: (_, _) =>
+          SizedBox(height: scale.space(AppSpacing.xl, min: 24, max: 32)),
+      itemBuilder: (context, index) {
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const LoadingSkeleton(width: 140, height: 20, borderRadius: 10),
+                SizedBox(width: scale.space(AppSpacing.sm, min: 10, max: 12)),
+                Expanded(
+                  child: LoadingSkeleton(
+                    height: 1,
+                    borderRadius: 1,
+                    baseColor: AppColors.border.withValues(alpha: 0.9),
+                    highlightColor: AppColors.border.withValues(alpha: 0.45),
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(height: scale.space(AppSpacing.md, min: 14, max: 16)),
+            SizedBox(
+              height: scale.sizeOf(180, min: 156, max: 180),
+              child: ListView.separated(
+                physics: const NeverScrollableScrollPhysics(),
+                scrollDirection: Axis.horizontal,
+                itemCount: 5,
+                separatorBuilder: (_, _) => const SizedBox(width: 8),
+                itemBuilder: (_, itemIndex) {
+                  final width = itemIndex == 0 ? 220.0 : 172.0;
+                  return LoadingSkeleton(
+                    width: width,
+                    height: scale.sizeOf(180, min: 156, max: 180),
+                    borderRadius: AppRadii.xl,
+                  );
+                },
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _AssetGridLoadingSkeleton extends StatelessWidget {
+  const _AssetGridLoadingSkeleton({
+    this.leadingWidth = 180,
+    this.leadingHeight = 18,
+  });
+
+  final double leadingWidth;
+  final double leadingHeight;
+
+  @override
+  Widget build(BuildContext context) {
+    final scale = AppScale.of(context);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        LoadingSkeleton(
+          width: leadingWidth,
+          height: leadingHeight,
+          borderRadius: 10,
+        ),
+        SizedBox(height: scale.space(AppSpacing.lg, min: 20, max: 24)),
+        Expanded(
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              return GridView.builder(
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: 12,
+                gridDelegate: _buildAssetGridDelegate(constraints.maxWidth),
+                itemBuilder: (context, index) => const LoadingSkeleton(
+                  borderRadius: AppRadii.xl,
+                ),
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _AlbumBrowserLoadingSkeleton extends StatelessWidget {
+  const _AlbumBrowserLoadingSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    final scale = AppScale.of(context);
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final useStackedLayout = constraints.maxWidth < 980;
+        final rail = _AlbumRailLoadingSkeleton(horizontal: useStackedLayout);
+        const content = _AssetGridLoadingSkeleton(
+          leadingWidth: 240,
+          leadingHeight: 20,
+        );
+
+        if (useStackedLayout) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SizedBox(
+                height: scale.sizeOf(172, min: 152, max: 172),
+                child: rail,
+              ),
+              SizedBox(height: scale.space(AppSpacing.lg, min: 20, max: 24)),
+              const Expanded(child: content),
+            ],
+          );
+        }
+
+        return Row(
+          children: [
+            SizedBox(
+              width: _responsiveAlbumRailWidth(constraints.maxWidth, scale),
+              child: rail,
+            ),
+            SizedBox(width: scale.space(AppSpacing.xl, min: 24, max: 32)),
+            const Expanded(child: content),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _AlbumRailLoadingSkeleton extends StatelessWidget {
+  const _AlbumRailLoadingSkeleton({required this.horizontal});
+
+  final bool horizontal;
+
+  @override
+  Widget build(BuildContext context) {
+    final scale = AppScale.of(context);
+
+    if (horizontal) {
+      return ListView.separated(
+        physics: const NeverScrollableScrollPhysics(),
+        scrollDirection: Axis.horizontal,
+        itemCount: 5,
+        separatorBuilder: (context, index) =>
+            SizedBox(width: scale.space(AppSpacing.md, min: 14, max: 16)),
+        itemBuilder: (context, index) => const LoadingSkeleton(
+          width: 220,
+          height: 160,
+          borderRadius: AppRadii.xl,
+        ),
+      );
+    }
+
+    return ListView.separated(
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: 5,
+      separatorBuilder: (context, index) =>
+          SizedBox(height: scale.space(AppSpacing.md, min: 14, max: 16)),
+      itemBuilder: (context, index) => const LoadingSkeleton(
+        height: 110,
+        borderRadius: AppRadii.xl,
+      ),
     );
   }
 }
@@ -1766,6 +1987,25 @@ class _TimelineAssetEntry {
 
   final AssetSummary asset;
   final int globalIndex;
+}
+
+String _sectionViewState(
+  LibraryLoadStatus status,
+  List<AssetSummary> assets,
+) {
+  if (status == LibraryLoadStatus.loading) {
+    return 'loading';
+  }
+
+  if (status == LibraryLoadStatus.failure) {
+    return 'failure';
+  }
+
+  if (assets.isEmpty) {
+    return 'empty';
+  }
+
+  return 'content';
 }
 
 SliverGridDelegate _buildAssetGridDelegate(double availableWidth) {

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../core/network/immich_headers.dart';
 import '../app_colors.dart';
 import '../app_spacing.dart';
+import 'loading_skeleton.dart';
 
 class AuthenticatedAssetImage extends StatefulWidget {
   const AuthenticatedAssetImage({
@@ -15,6 +16,7 @@ class AuthenticatedAssetImage extends StatefulWidget {
     this.borderRadius,
     this.placeholderIcon = Icons.image_outlined,
     this.filterQuality = FilterQuality.low,
+    this.loadingPlaceholder,
   });
 
   final List<String> imageUrls;
@@ -25,6 +27,7 @@ class AuthenticatedAssetImage extends StatefulWidget {
   final double? borderRadius;
   final IconData placeholderIcon;
   final FilterQuality filterQuality;
+  final Widget? loadingPlaceholder;
 
   @override
   State<AuthenticatedAssetImage> createState() =>
@@ -104,12 +107,10 @@ class _AuthenticatedAssetImageState extends State<AuthenticatedAssetImage> {
                 return child;
               }
 
-              return const _ImagePlaceholder(
-                child: SizedBox(
-                  width: 28,
-                  height: 28,
-                  child: CircularProgressIndicator(strokeWidth: 2.4),
-                ),
+              return _ImagePlaceholder(
+                child:
+                    widget.loadingPlaceholder ??
+                    const LoadingSkeleton(showBorder: true),
               );
             },
             errorBuilder: (context, error, stackTrace) {
@@ -230,7 +231,7 @@ class _ImagePlaceholder extends StatelessWidget {
     return DecoratedBox(
       decoration: const BoxDecoration(
         gradient: LinearGradient(
-          colors: [Color(0xFF17303A), Color(0xFF10232A)],
+          colors: [Color(0xFF020202), Color(0xFF090909)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),

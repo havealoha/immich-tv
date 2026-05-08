@@ -11,6 +11,7 @@ import '../slideshow/slideshow_player_screen.dart';
 import '../../shared/presentation/app_radii.dart';
 import '../../shared/presentation/app_spacing.dart';
 import '../../shared/presentation/widgets/authenticated_asset_image.dart';
+import '../../shared/presentation/widgets/loading_skeleton.dart';
 import '../../shared/presentation/widgets/tv_focusable.dart';
 import 'cubit/asset_viewer_cubit.dart';
 
@@ -678,7 +679,50 @@ class _ViewerPage extends StatelessWidget {
             heroTag: 'asset-${asset.id}',
             placeholderIcon: Icons.photo_outlined,
             filterQuality: FilterQuality.medium,
+            loadingPlaceholder: const _ViewerPhotoLoadingPlaceholder(),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ViewerPhotoLoadingPlaceholder extends StatelessWidget {
+  const _ViewerPhotoLoadingPlaceholder();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return ColoredBox(
+      color: Colors.black,
+      child: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.photo_outlined,
+              color: Colors.white.withValues(alpha: 0.92),
+              size: 44,
+            ),
+            const SizedBox(height: AppSpacing.md),
+            Text(
+              'Loading photo',
+              textAlign: TextAlign.center,
+              style: theme.textTheme.titleMedium?.copyWith(
+                color: Colors.white,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            const LoadingSkeleton(
+              width: 136,
+              height: 8,
+              borderRadius: 999,
+              baseColor: Color(0xFF111111),
+              highlightColor: Color(0xFF262626),
+            ),
+          ],
         ),
       ),
     );
@@ -726,14 +770,14 @@ class _ViewerVideoPlayerState extends State<_ViewerVideoPlayer> {
   Widget build(BuildContext context) {
     final controller = _controller;
     if (controller == null || _initializeFuture == null) {
-      return const Center(child: CircularProgressIndicator());
+      return const _VideoLoadingPlaceholder();
     }
 
     return FutureBuilder<void>(
       future: _initializeFuture,
       builder: (context, snapshot) {
         if (snapshot.connectionState != ConnectionState.done) {
-          return const Center(child: CircularProgressIndicator());
+          return const _VideoLoadingPlaceholder();
         }
 
         if (snapshot.hasError || !controller.value.isInitialized) {
@@ -893,6 +937,45 @@ class _ViewerVideoPlayerState extends State<_ViewerVideoPlayer> {
     if (controller != null) {
       await controller.dispose();
     }
+  }
+}
+
+class _VideoLoadingPlaceholder extends StatelessWidget {
+  const _VideoLoadingPlaceholder();
+
+  @override
+  Widget build(BuildContext context) {
+    return ColoredBox(
+      color: Colors.black,
+      child: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.videocam_outlined,
+              color: Colors.white.withValues(alpha: 0.92),
+              size: 44,
+            ),
+            const SizedBox(height: AppSpacing.md),
+            Text(
+              'Loading video',
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                color: Colors.white,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            const LoadingSkeleton(
+              width: 148,
+              height: 8,
+              borderRadius: 999,
+              baseColor: Color(0xFF111111),
+              highlightColor: Color(0xFF262626),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
 

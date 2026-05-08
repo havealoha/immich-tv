@@ -9,6 +9,7 @@ import '../../shared/presentation/app_colors.dart';
 import '../../shared/presentation/app_radii.dart';
 import '../../shared/presentation/app_spacing.dart';
 import '../../shared/presentation/widgets/authenticated_asset_image.dart';
+import '../../shared/presentation/widgets/loading_skeleton.dart';
 import '../../shared/presentation/widgets/tv_focusable.dart';
 
 class SlideshowPlayerScreen extends StatefulWidget {
@@ -155,6 +156,8 @@ class _SlideshowPlayerScreenState extends State<SlideshowPlayerScreen> {
                             heroTag: 'slideshow-${asset.id}',
                             placeholderIcon: Icons.photo_outlined,
                             filterQuality: FilterQuality.medium,
+                            loadingPlaceholder:
+                                const _SlideshowLoadingPlaceholder(),
                           ),
                         ),
                       ),
@@ -332,6 +335,48 @@ class _SlideshowPlayerScreenState extends State<SlideshowPlayerScreen> {
     final month = value.month.toString().padLeft(2, '0');
     final day = value.day.toString().padLeft(2, '0');
     return '$year-$month-$day';
+  }
+}
+
+class _SlideshowLoadingPlaceholder extends StatelessWidget {
+  const _SlideshowLoadingPlaceholder();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return ColoredBox(
+      color: Colors.black,
+      child: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.photo_outlined,
+              color: Colors.white.withValues(alpha: 0.92),
+              size: 44,
+            ),
+            const SizedBox(height: AppSpacing.md),
+            Text(
+              'Loading photo',
+              textAlign: TextAlign.center,
+              style: theme.textTheme.titleMedium?.copyWith(
+                color: Colors.white,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            const LoadingSkeleton(
+              width: 136,
+              height: 8,
+              borderRadius: 999,
+              baseColor: Color(0xFF111111),
+              highlightColor: Color(0xFF262626),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
 
