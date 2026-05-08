@@ -5,9 +5,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../core/models/asset_summary.dart';
+import '../../shared/presentation/app_colors.dart';
 import '../../shared/presentation/app_radii.dart';
 import '../../shared/presentation/app_spacing.dart';
 import '../../shared/presentation/widgets/authenticated_asset_image.dart';
+import '../../shared/presentation/widgets/tv_focusable.dart';
 
 class SlideshowPlayerScreen extends StatefulWidget {
   const SlideshowPlayerScreen({
@@ -56,13 +58,14 @@ class SlideshowPlayerScreen extends StatefulWidget {
 }
 
 class _SlideshowPlayerScreenState extends State<SlideshowPlayerScreen> {
-  static const _durationOptions = <int>[3, 5, 8, 12];
-
   late final List<AssetSummary> _assets;
   late int _durationSeconds;
   Timer? _advanceTimer;
   int _currentIndex = 0;
   bool _isPlaying = true;
+  late final FocusNode _slideshowFocusNode;
+  late final FocusNode _playPauseButtonFocusNode;
+  late final FocusNode _closeButtonFocusNode;
 
   @override
   void initState() {
@@ -73,12 +76,18 @@ class _SlideshowPlayerScreenState extends State<SlideshowPlayerScreen> {
     }
     _durationSeconds = widget.initialDurationSeconds;
     _currentIndex = _resolveInitialIndex(widget.initialIndex);
+    _slideshowFocusNode = FocusNode(debugLabel: 'slideshow-surface');
+    _playPauseButtonFocusNode = FocusNode(debugLabel: 'slideshow-play');
+    _closeButtonFocusNode = FocusNode(debugLabel: 'slideshow-close');
     _scheduleAdvance();
   }
 
   @override
   void dispose() {
     _advanceTimer?.cancel();
+    _slideshowFocusNode.dispose();
+    _playPauseButtonFocusNode.dispose();
+    _closeButtonFocusNode.dispose();
     super.dispose();
   }
 
@@ -90,17 +99,27 @@ class _SlideshowPlayerScreenState extends State<SlideshowPlayerScreen> {
       shortcuts: const <ShortcutActivator, Intent>{
         SingleActivator(LogicalKeyboardKey.arrowLeft): _PreviousIntent(),
         SingleActivator(LogicalKeyboardKey.arrowRight): _NextIntent(),
+        SingleActivator(LogicalKeyboardKey.arrowDown): _FocusSlideshowActionsIntent(),
+        SingleActivator(LogicalKeyboardKey.arrowUp): _FocusSlideshowSurfaceIntent(),
         SingleActivator(LogicalKeyboardKey.space): _TogglePlaybackIntent(),
         SingleActivator(LogicalKeyboardKey.escape): DismissIntent(),
       },
       child: Actions(
         actions: <Type, Action<Intent>>{
           _PreviousIntent: CallbackAction<_PreviousIntent>(
-            onInvoke: (_) => _moveTo(_currentIndex - 1),
+            onInvoke: (_) => _handlePrevious(),
           ),
           _NextIntent: CallbackAction<_NextIntent>(
-            onInvoke: (_) => _moveTo(_currentIndex + 1),
+            onInvoke: (_) => _handleNext(),
           ),
+          _FocusSlideshowActionsIntent:
+              CallbackAction<_FocusSlideshowActionsIntent>(
+                onInvoke: (_) => _focusActionButtons(),
+              ),
+          _FocusSlideshowSurfaceIntent:
+              CallbackAction<_FocusSlideshowSurfaceIntent>(
+                onInvoke: (_) => _focusSlideshowSurface(),
+              ),
           _TogglePlaybackIntent: CallbackAction<_TogglePlaybackIntent>(
             onInvoke: (_) => _togglePlayback(),
           ),
@@ -109,6 +128,7 @@ class _SlideshowPlayerScreenState extends State<SlideshowPlayerScreen> {
           ),
         },
         child: Focus(
+          focusNode: _slideshowFocusNode,
           autofocus: true,
           child: Scaffold(
             backgroundColor: Colors.black,
@@ -169,30 +189,34 @@ class _SlideshowPlayerScreenState extends State<SlideshowPlayerScreen> {
                   ),
                 ),
                 Positioned(
-                  top: 48,
-                  right: AppSpacing.lg,
-                  child: _FloatingControlButton(
-                    icon: Icons.close_rounded,
-                    label: 'Close',
-                    onPressed: () => Navigator.of(context).maybePop(),
-                  ),
-                ),
-                Positioned(
                   left: AppSpacing.xl,
                   right: AppSpacing.xl,
-                  bottom: AppSpacing.xl,
-                  child: SafeArea(
-                    top: false,
-                    child: _SlideshowTransportBar(
-                      currentIndex: _currentIndex,
-                      totalAssets: _assets.length,
-                      isPlaying: _isPlaying,
-                      durationSeconds: _durationSeconds,
-                      durationOptions: _durationOptions,
-                      onPrevious: () => _moveTo(_currentIndex - 1),
-                      onNext: () => _moveTo(_currentIndex + 1),
-                      onTogglePlayback: _togglePlayback,
-                      onDurationSelected: _setDuration,
+                  bottom: 48,
+                  child: Align(
+                    child: SafeArea(
+                      top: false,
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          _SlideshowActionButton(
+                            width: 124,
+                            icon: _isPlaying
+                                ? Icons.pause_rounded
+                                : Icons.play_arrow_rounded,
+                            label: _isPlaying ? 'Pause' : 'Play',
+                            focusNode: _playPauseButtonFocusNode,
+                            onPressed: _togglePlayback,
+                          ),
+                          const SizedBox(width: AppSpacing.sm),
+                          _SlideshowActionButton(
+                            width: 124,
+                            icon: Icons.close_rounded,
+                            label: 'Close',
+                            focusNode: _closeButtonFocusNode,
+                            onPressed: () => Navigator.of(context).maybePop(),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ),
@@ -202,6 +226,50 @@ class _SlideshowPlayerScreenState extends State<SlideshowPlayerScreen> {
         ),
       ),
     );
+  }
+
+  Object? _handlePrevious() {
+    if (_closeButtonFocusNode.hasFocus) {
+      _playPauseButtonFocusNode.requestFocus();
+      return null;
+    }
+
+    if (_playPauseButtonFocusNode.hasFocus) {
+      return null;
+    }
+
+    _moveTo(_currentIndex - 1);
+    return null;
+  }
+
+  Object? _handleNext() {
+    if (_playPauseButtonFocusNode.hasFocus) {
+      _closeButtonFocusNode.requestFocus();
+      return null;
+    }
+
+    if (_closeButtonFocusNode.hasFocus) {
+      return null;
+    }
+
+    _moveTo(_currentIndex + 1);
+    return null;
+  }
+
+  Object? _focusActionButtons() {
+    if (_playPauseButtonFocusNode.hasFocus || _closeButtonFocusNode.hasFocus) {
+      return null;
+    }
+
+    _playPauseButtonFocusNode.requestFocus();
+    return null;
+  }
+
+  Object? _focusSlideshowSurface() {
+    if (_playPauseButtonFocusNode.hasFocus || _closeButtonFocusNode.hasFocus) {
+      _slideshowFocusNode.requestFocus();
+    }
+    return null;
   }
 
   void _moveTo(int index) {
@@ -227,13 +295,6 @@ class _SlideshowPlayerScreenState extends State<SlideshowPlayerScreen> {
     } else {
       _advanceTimer?.cancel();
     }
-  }
-
-  void _setDuration(int seconds) {
-    setState(() {
-      _durationSeconds = seconds;
-    });
-    _scheduleAdvance();
   }
 
   void _scheduleAdvance() {
@@ -274,182 +335,86 @@ class _SlideshowPlayerScreenState extends State<SlideshowPlayerScreen> {
   }
 }
 
-class _SlideshowTransportBar extends StatelessWidget {
-  const _SlideshowTransportBar({
-    required this.currentIndex,
-    required this.totalAssets,
-    required this.isPlaying,
-    required this.durationSeconds,
-    required this.durationOptions,
-    required this.onPrevious,
-    required this.onNext,
-    required this.onTogglePlayback,
-    required this.onDurationSelected,
+class _SlideshowActionButton extends StatefulWidget {
+  const _SlideshowActionButton({
+    required this.width,
+    required this.icon,
+    required this.label,
+    required this.onPressed,
+    this.focusNode,
   });
 
-  final int currentIndex;
-  final int totalAssets;
-  final bool isPlaying;
-  final int durationSeconds;
-  final List<int> durationOptions;
-  final VoidCallback onPrevious;
-  final VoidCallback onNext;
-  final VoidCallback onTogglePlayback;
-  final ValueChanged<int> onDurationSelected;
+  final double width;
+  final IconData icon;
+  final String label;
+  final VoidCallback onPressed;
+  final FocusNode? focusNode;
+
+  @override
+  State<_SlideshowActionButton> createState() => _SlideshowActionButtonState();
+}
+
+class _SlideshowActionButtonState extends State<_SlideshowActionButton> {
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.2),
-        borderRadius: BorderRadius.circular(AppRadii.pill),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.lg,
-          vertical: AppSpacing.md,
-        ),
-        child: Wrap(
-          spacing: AppSpacing.md,
-          runSpacing: AppSpacing.md,
-          crossAxisAlignment: WrapCrossAlignment.center,
-          alignment: WrapAlignment.spaceBetween,
-          children: [
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  Icons.photo_library_outlined,
-                  color: Colors.white.withValues(alpha: 0.92),
-                  size: 18,
-                ),
-                const SizedBox(width: AppSpacing.sm),
-                Text(
-                  'Photo ${currentIndex + 1} of $totalAssets',
-                  style: theme.textTheme.titleSmall?.copyWith(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ],
-            ),
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                _FloatingIconButton(
-                  icon: Icons.chevron_left_rounded,
-                  tooltip: 'Previous photo',
-                  onPressed: onPrevious,
-                ),
-                const SizedBox(width: AppSpacing.sm),
-                _FloatingControlButton(
-                  icon: isPlaying
-                      ? Icons.pause_rounded
-                      : Icons.play_arrow_rounded,
-                  label: isPlaying ? 'Pause' : 'Play',
-                  onPressed: onTogglePlayback,
-                ),
-                const SizedBox(width: AppSpacing.sm),
-                _FloatingIconButton(
-                  icon: Icons.chevron_right_rounded,
-                  tooltip: 'Next photo',
-                  onPressed: onNext,
-                ),
-              ],
-            ),
-            Wrap(
-              spacing: AppSpacing.sm,
-              runSpacing: AppSpacing.sm,
-              children: durationOptions
-                  .map((seconds) {
-                    final selected = seconds == durationSeconds;
-                    return ChoiceChip(
-                      label: Text('${seconds}s'),
-                      selected: selected,
-                      onSelected: (_) => onDurationSelected(seconds),
-                      labelStyle: theme.textTheme.labelLarge?.copyWith(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w700,
-                      ),
-                      selectedColor: Colors.white.withValues(alpha: 0.18),
-                      backgroundColor: Colors.white.withValues(alpha: 0.08),
-                      side: BorderSide(
-                        color: selected
-                            ? Colors.white.withValues(alpha: 0.32)
-                            : Colors.transparent,
-                      ),
-                      showCheckmark: false,
-                    );
-                  })
-                  .toList(growable: false),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _FloatingControlButton extends StatelessWidget {
-  const _FloatingControlButton({
-    required this.icon,
-    required this.label,
-    required this.onPressed,
-  });
-
-  final IconData icon;
-  final String label;
-  final VoidCallback onPressed;
-
-  @override
-  Widget build(BuildContext context) {
     return SizedBox(
-      width: 116,
-      child: FilledButton.icon(
-        style: FilledButton.styleFrom(
-          backgroundColor: Colors.black.withValues(alpha: 0.18),
-          foregroundColor: Colors.white,
-          elevation: 0,
-          padding: const EdgeInsets.symmetric(
-            horizontal: AppSpacing.md,
-            vertical: AppSpacing.sm,
-          ),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(AppRadii.pill),
-          ),
-        ),
-        onPressed: onPressed,
-        icon: Icon(icon, size: 18),
-        label: Text(label),
+      width: widget.width,
+      child: TvFocusable(
+        focusNode: widget.focusNode,
+        onPressed: widget.onPressed,
+        builder: (context, focusState) {
+          final isFocused = focusState.isFocused;
+
+          return AnimatedContainer(
+            duration: const Duration(milliseconds: 160),
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.lg,
+              vertical: AppSpacing.md,
+            ),
+            decoration: BoxDecoration(
+              color: isFocused
+                  ? AppColors.focus.withValues(alpha: 0.24)
+                  : Colors.black.withValues(alpha: 0.18),
+              borderRadius: BorderRadius.circular(AppRadii.pill),
+              border: Border.all(
+                color: isFocused
+                    ? AppColors.focus
+                    : Colors.white.withValues(alpha: 0.14),
+                width: isFocused ? 2.4 : 1.2,
+              ),
+              boxShadow: isFocused
+                  ? [
+                      BoxShadow(
+                        color: AppColors.focusGlow,
+                        blurRadius: 22,
+                        spreadRadius: 2,
+                      ),
+                    ]
+                  : const [],
+            ),
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(widget.icon, size: 18, color: Colors.white),
+                  const SizedBox(width: AppSpacing.sm),
+                  Text(
+                    widget.label,
+                    style: theme.textTheme.titleSmall?.copyWith(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
       ),
-    );
-  }
-}
-
-class _FloatingIconButton extends StatelessWidget {
-  const _FloatingIconButton({
-    required this.icon,
-    required this.tooltip,
-    required this.onPressed,
-  });
-
-  final IconData icon;
-  final String tooltip;
-  final VoidCallback onPressed;
-
-  @override
-  Widget build(BuildContext context) {
-    return IconButton(
-      onPressed: onPressed,
-      tooltip: tooltip,
-      style: IconButton.styleFrom(
-        backgroundColor: Colors.black.withValues(alpha: 0.18),
-        foregroundColor: Colors.white,
-        minimumSize: const Size(44, 44),
-      ),
-      icon: Icon(icon),
     );
   }
 }
@@ -464,4 +429,12 @@ class _NextIntent extends Intent {
 
 class _TogglePlaybackIntent extends Intent {
   const _TogglePlaybackIntent();
+}
+
+class _FocusSlideshowActionsIntent extends Intent {
+  const _FocusSlideshowActionsIntent();
+}
+
+class _FocusSlideshowSurfaceIntent extends Intent {
+  const _FocusSlideshowSurfaceIntent();
 }

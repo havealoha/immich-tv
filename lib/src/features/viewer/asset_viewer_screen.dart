@@ -67,7 +67,7 @@ class _AssetViewerView extends StatefulWidget {
 }
 
 class _AssetViewerViewState extends State<_AssetViewerView> {
-  static const _slideshowDurationOptions = <int>[3, 5, 8, 12];
+  static const _slideshowDurationOptions = <int>[5, 8, 12];
   late final PageController _pageController;
   late final FocusNode _viewerFocusNode;
   late final FocusNode _slideshowButtonFocusNode;
@@ -351,14 +351,6 @@ class _SlideshowConfigDialog extends StatefulWidget {
 }
 
 class _SlideshowConfigDialogState extends State<_SlideshowConfigDialog> {
-  late int _selectedDuration;
-
-  @override
-  void initState() {
-    super.initState();
-    _selectedDuration = widget.durationOptions.first;
-  }
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -382,18 +374,33 @@ class _SlideshowConfigDialogState extends State<_SlideshowConfigDialog> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  'Start slideshow',
-                  style: theme.textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.w800,
-                    color: Colors.white,
-                  ),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        'Start slideshow',
+                        style: theme.textTheme.headlineSmall?.copyWith(
+                          fontWeight: FontWeight.w800,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                    IconButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      tooltip: 'Cancel',
+                      style: IconButton.styleFrom(
+                        backgroundColor: Colors.white.withValues(alpha: 0.06),
+                        foregroundColor: Colors.white,
+                      ),
+                      icon: const Icon(Icons.close_rounded),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: AppSpacing.sm),
                 Text(
                   widget.currentAssetIsVideo
                       ? 'Videos are skipped in slideshow mode. Playback will begin from the first photo in this set.'
-                      : 'Choose how long each photo stays on screen before playback begins.',
+                      : 'Choose how long each photo stays on screen. Selecting an interval starts playback immediately.',
                   style: theme.textTheme.bodyLarge?.copyWith(
                     color: Colors.white.withValues(alpha: 0.82),
                     height: 1.5,
@@ -414,56 +421,11 @@ class _SlideshowConfigDialogState extends State<_SlideshowConfigDialog> {
                   children: widget.durationOptions.map((seconds) {
                     return _SlideshowDurationOption(
                       seconds: seconds,
-                      isSelected: seconds == _selectedDuration,
-                      autofocus: seconds == _selectedDuration,
-                      onPressed: () {
-                        setState(() {
-                          _selectedDuration = seconds;
-                        });
-                      },
+                      isSelected: false,
+                      autofocus: seconds == widget.durationOptions.first,
+                      onPressed: () => Navigator.of(context).pop(seconds),
                     );
                   }).toList(growable: false),
-                ),
-                const SizedBox(height: AppSpacing.lg),
-                DecoratedBox(
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.04),
-                    borderRadius: BorderRadius.circular(AppRadii.lg),
-                    border: Border.all(
-                      color: Colors.white.withValues(alpha: 0.08),
-                    ),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(AppSpacing.lg),
-                    child: Text(
-                      '${widget.photoCount} photo${widget.photoCount == 1 ? '' : 's'} ready'
-                      '${widget.totalAssetCount > widget.photoCount ? ' from ${widget.totalAssetCount} assets' : ''}.',
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: Colors.white.withValues(alpha: 0.72),
-                        height: 1.45,
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.xl),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    _ViewerActionButton(
-                      width: 132,
-                      icon: Icons.close_rounded,
-                      label: 'Cancel',
-                      onPressed: () => Navigator.of(context).pop(),
-                    ),
-                    const SizedBox(width: AppSpacing.sm),
-                    _ViewerActionButton(
-                      width: 172,
-                      icon: Icons.play_arrow_rounded,
-                      label: 'Start now',
-                      onPressed: () =>
-                          Navigator.of(context).pop(_selectedDuration),
-                    ),
-                  ],
                 ),
               ],
             ),
