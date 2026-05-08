@@ -56,22 +56,22 @@ class ImmichTvApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final baseTextTheme = GoogleFonts.manropeTextTheme().copyWith(
-      displayLarge: GoogleFonts.manrope(fontSize: 57, fontWeight: FontWeight.w700, letterSpacing: -1.2, height: 1.0),
-      displayMedium: GoogleFonts.manrope(fontSize: 45, fontWeight: FontWeight.w700, letterSpacing: -0.9, height: 1.02),
-      displaySmall: GoogleFonts.manrope(fontSize: 36, fontWeight: FontWeight.w700, letterSpacing: -0.6, height: 1.05),
-      headlineLarge: GoogleFonts.manrope(fontSize: 32, fontWeight: FontWeight.w700, letterSpacing: -0.45, height: 1.08),
-      headlineMedium: GoogleFonts.manrope(fontSize: 28, fontWeight: FontWeight.w700, letterSpacing: -0.35, height: 1.08),
-      headlineSmall: GoogleFonts.manrope(fontSize: 24, fontWeight: FontWeight.w700, letterSpacing: -0.25, height: 1.1),
-      titleLarge: GoogleFonts.manrope(fontSize: 22, fontWeight: FontWeight.w700, letterSpacing: -0.2, height: 1.12),
-      titleMedium: GoogleFonts.manrope(fontSize: 16, fontWeight: FontWeight.w700, letterSpacing: -0.1, height: 1.18),
-      titleSmall: GoogleFonts.manrope(fontSize: 14, fontWeight: FontWeight.w700, letterSpacing: -0.05, height: 1.2),
-      bodyLarge: GoogleFonts.manrope(fontSize: 16, fontWeight: FontWeight.w500, letterSpacing: 0, height: 1.45),
-      bodyMedium: GoogleFonts.manrope(fontSize: 14, fontWeight: FontWeight.w500, letterSpacing: 0, height: 1.45),
-      bodySmall: GoogleFonts.manrope(fontSize: 12, fontWeight: FontWeight.w500, letterSpacing: 0.05, height: 1.4),
-      labelLarge: GoogleFonts.manrope(fontSize: 14, fontWeight: FontWeight.w700, letterSpacing: 0.1, height: 1.2),
-      labelMedium: GoogleFonts.manrope(fontSize: 12, fontWeight: FontWeight.w700, letterSpacing: 0.1, height: 1.2),
-      labelSmall: GoogleFonts.manrope(fontSize: 11, fontWeight: FontWeight.w700, letterSpacing: 0.15, height: 1.2),
+    final baseTextTheme = GoogleFonts.interTextTheme().copyWith(
+      displayLarge: GoogleFonts.inter(fontSize: 57, fontWeight: FontWeight.w700, letterSpacing: -1.2, height: 1.0),
+      displayMedium: GoogleFonts.inter(fontSize: 45, fontWeight: FontWeight.w700, letterSpacing: -0.9, height: 1.02),
+      displaySmall: GoogleFonts.inter(fontSize: 36, fontWeight: FontWeight.w700, letterSpacing: -0.6, height: 1.05),
+      headlineLarge: GoogleFonts.inter(fontSize: 32, fontWeight: FontWeight.w700, letterSpacing: -0.45, height: 1.08),
+      headlineMedium: GoogleFonts.inter(fontSize: 28, fontWeight: FontWeight.w700, letterSpacing: -0.35, height: 1.08),
+      headlineSmall: GoogleFonts.inter(fontSize: 24, fontWeight: FontWeight.w700, letterSpacing: -0.25, height: 1.1),
+      titleLarge: GoogleFonts.inter(fontSize: 22, fontWeight: FontWeight.w700, letterSpacing: -0.2, height: 1.12),
+      titleMedium: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w700, letterSpacing: -0.1, height: 1.18),
+      titleSmall: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w700, letterSpacing: -0.05, height: 1.2),
+      bodyLarge: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w500, letterSpacing: 0, height: 1.45),
+      bodyMedium: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w500, letterSpacing: 0, height: 1.45),
+      bodySmall: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w500, letterSpacing: 0.05, height: 1.4),
+      labelLarge: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w700, letterSpacing: 0.1, height: 1.2),
+      labelMedium: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w700, letterSpacing: 0.1, height: 1.2),
+      labelSmall: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w700, letterSpacing: 0.15, height: 1.2),
     );
 
     final baseTheme = ThemeData(

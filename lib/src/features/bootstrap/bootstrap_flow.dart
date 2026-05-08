@@ -19,7 +19,7 @@ class BootstrapFlow extends StatelessWidget {
           child: Text(
             'Immich TV',
             textAlign: TextAlign.center,
-            style: GoogleFonts.manrope(
+            style: GoogleFonts.inter(
               color: Colors.white,
               fontSize: fontSize,
               fontWeight: FontWeight.w700,
