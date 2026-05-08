@@ -210,12 +210,6 @@ void main() {
     await tester.tap(find.text('Favorites').first, warnIfMissed: false);
     await tester.pumpAndSettle();
     expect(find.text('Asset favorite-1'), findsOneWidget);
-
-    await tester.ensureVisible(find.text('Slideshow').first);
-    await tester.tap(find.text('Slideshow').first, warnIfMissed: false);
-    await tester.pumpAndSettle();
-    expect(find.text('Start slideshow'), findsOneWidget);
-    expect(find.text('Timeline • 2'), findsOneWidget);
   });
 
   testWidgets('loads the next timeline page as the grid scrolls', (
@@ -270,36 +264,20 @@ void main() {
 
     await _pumpSignedInApp(tester, mediaRepository: FakeMediaRepository());
 
-    await tester.ensureVisible(find.text('Slideshow').first);
-    await tester.tap(find.text('Slideshow').first, warnIfMissed: false);
+    final firstAssetLabel = find.text('Asset asset-1').first;
+    await tester.ensureVisible(firstAssetLabel);
+    await tester.tap(firstAssetLabel, warnIfMissed: false);
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Start slideshow'));
+    await tester.tap(find.text('Slideshow'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Start'));
     await tester.pumpAndSettle();
 
     expect(find.text('Photo 1 of 2'), findsOneWidget);
     expect(find.text('Pause'), findsOneWidget);
     expect(find.text('Close'), findsOneWidget);
-  });
-
-  testWidgets('starts a slideshow from an album', (tester) async {
-    tester.view.physicalSize = const Size(1280, 720);
-    tester.view.devicePixelRatio = 1.0;
-    addTearDown(tester.view.reset);
-
-    await _pumpSignedInApp(tester, mediaRepository: FakeMediaRepository());
-
-    await tester.ensureVisible(find.text('Slideshow').first);
-    await tester.tap(find.text('Slideshow').first, warnIfMissed: false);
-    await tester.pumpAndSettle();
-
-    await tester.tap(find.textContaining('Albums •'));
-    await tester.pumpAndSettle();
-
-    await tester.tap(find.text('Start slideshow'));
-    await tester.pumpAndSettle();
-
-    expect(find.text('Photo 1 of 2'), findsOneWidget);
   });
 }
 

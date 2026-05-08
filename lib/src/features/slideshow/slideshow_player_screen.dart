@@ -15,12 +15,14 @@ class SlideshowPlayerScreen extends StatefulWidget {
     required this.assets,
     required this.accessToken,
     required this.initialDurationSeconds,
+    this.initialIndex = 0,
     this.shuffle = false,
   });
 
   final List<AssetSummary> assets;
   final String accessToken;
   final int initialDurationSeconds;
+  final int initialIndex;
   final bool shuffle;
 
   static Future<void> show(
@@ -28,6 +30,7 @@ class SlideshowPlayerScreen extends StatefulWidget {
     required List<AssetSummary> assets,
     required String accessToken,
     required int initialDurationSeconds,
+    int initialIndex = 0,
     bool shuffle = false,
   }) {
     return Navigator.of(context).push(
@@ -38,6 +41,7 @@ class SlideshowPlayerScreen extends StatefulWidget {
               assets: assets,
               accessToken: accessToken,
               initialDurationSeconds: initialDurationSeconds,
+              initialIndex: initialIndex,
               shuffle: shuffle,
             ),
         transitionsBuilder: (context, animation, secondaryAnimation, child) {
@@ -68,6 +72,7 @@ class _SlideshowPlayerScreenState extends State<SlideshowPlayerScreen> {
       _assets.shuffle(Random(17));
     }
     _durationSeconds = widget.initialDurationSeconds;
+    _currentIndex = _resolveInitialIndex(widget.initialIndex);
     _scheduleAdvance();
   }
 
@@ -243,6 +248,22 @@ class _SlideshowPlayerScreenState extends State<SlideshowPlayerScreen> {
       }
       _moveTo(_currentIndex + 1);
     });
+  }
+
+  int _resolveInitialIndex(int index) {
+    if (_assets.isEmpty) {
+      return 0;
+    }
+
+    if (index < 0) {
+      return 0;
+    }
+
+    if (index >= _assets.length) {
+      return _assets.length - 1;
+    }
+
+    return index;
   }
 
   String _formatDate(DateTime value) {

@@ -74,17 +74,6 @@ class LibraryCubit extends Cubit<LibraryState> {
       ),
     );
 
-    if (tab == LibraryTab.slideshow) {
-      emit(
-        state.copyWith(
-          selectedTab: tab,
-          status: LibraryLoadStatus.success,
-          clearError: true,
-        ),
-      );
-      return;
-    }
-
     try {
       switch (tab) {
         case LibraryTab.timeline:
@@ -127,8 +116,6 @@ class LibraryCubit extends Cubit<LibraryState> {
               clearError: true,
             ),
           );
-        case LibraryTab.slideshow:
-          break;
       }
     } catch (error) {
       emit(
@@ -160,7 +147,6 @@ class LibraryCubit extends Cubit<LibraryState> {
         }
         await _appendFavoritesPage(state.favoritesNextPage!);
       case LibraryTab.albums:
-      case LibraryTab.slideshow:
         return;
     }
   }
@@ -244,7 +230,6 @@ class LibraryCubit extends Cubit<LibraryState> {
       LibraryTab.timeline => state.hasLoadedTimeline,
       LibraryTab.albums => state.hasLoadedAlbums,
       LibraryTab.favorites => state.hasLoadedFavorites,
-      LibraryTab.slideshow => true,
     };
   }
 }

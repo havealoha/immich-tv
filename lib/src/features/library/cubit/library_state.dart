@@ -3,7 +3,7 @@ import 'package:equatable/equatable.dart';
 import '../../../core/models/album_summary.dart';
 import '../../../core/models/asset_summary.dart';
 
-enum LibraryTab { timeline, albums, favorites, slideshow }
+enum LibraryTab { timeline, albums, favorites }
 
 enum LibraryLoadStatus { idle, loading, success, failure }
 
@@ -48,7 +48,7 @@ class LibraryState extends Equatable {
     return switch (selectedTab) {
       LibraryTab.timeline => hasMoreTimeline,
       LibraryTab.favorites => hasMoreFavorites,
-      LibraryTab.albums || LibraryTab.slideshow => false,
+      LibraryTab.albums => false,
     };
   }
 
@@ -57,7 +57,6 @@ class LibraryState extends Equatable {
       LibraryTab.timeline => timeline,
       LibraryTab.albums => albums,
       LibraryTab.favorites => favorites,
-      LibraryTab.slideshow => const [],
     };
   }
 

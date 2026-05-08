@@ -5,9 +5,12 @@ import 'package:video_player/video_player.dart';
 
 import '../../core/models/asset_summary.dart';
 import '../../core/network/immich_headers.dart';
+import '../../shared/presentation/app_colors.dart';
+import '../slideshow/slideshow_player_screen.dart';
 import '../../shared/presentation/app_radii.dart';
 import '../../shared/presentation/app_spacing.dart';
 import '../../shared/presentation/widgets/authenticated_asset_image.dart';
+import '../../shared/presentation/widgets/tv_focusable.dart';
 import 'cubit/asset_viewer_cubit.dart';
 
 class AssetViewerScreen extends StatelessWidget {
@@ -64,18 +67,28 @@ class _AssetViewerView extends StatefulWidget {
 }
 
 class _AssetViewerViewState extends State<_AssetViewerView> {
+  static const _slideshowDurationOptions = <int>[3, 5, 8, 12];
   late final PageController _pageController;
+  late final FocusNode _viewerFocusNode;
+  late final FocusNode _slideshowButtonFocusNode;
+  late final FocusNode _closeButtonFocusNode;
 
   @override
   void initState() {
     super.initState();
     final initialIndex = context.read<AssetViewerCubit>().state.currentIndex;
     _pageController = PageController(initialPage: initialIndex);
+    _viewerFocusNode = FocusNode(debugLabel: 'viewer-surface');
+    _slideshowButtonFocusNode = FocusNode(debugLabel: 'viewer-slideshow');
+    _closeButtonFocusNode = FocusNode(debugLabel: 'viewer-close');
   }
 
   @override
   void dispose() {
     _pageController.dispose();
+    _viewerFocusNode.dispose();
+    _slideshowButtonFocusNode.dispose();
+    _closeButtonFocusNode.dispose();
     super.dispose();
   }
 
@@ -87,21 +100,30 @@ class _AssetViewerViewState extends State<_AssetViewerView> {
           shortcuts: const <ShortcutActivator, Intent>{
             SingleActivator(LogicalKeyboardKey.arrowLeft): _PreviousIntent(),
             SingleActivator(LogicalKeyboardKey.arrowRight): _NextIntent(),
+            SingleActivator(LogicalKeyboardKey.arrowDown): _FocusActionsIntent(),
+            SingleActivator(LogicalKeyboardKey.arrowUp): _FocusViewerIntent(),
             SingleActivator(LogicalKeyboardKey.escape): DismissIntent(),
           },
           child: Actions(
             actions: <Type, Action<Intent>>{
               _PreviousIntent: CallbackAction<_PreviousIntent>(
-                onInvoke: (_) => _moveTo(state.currentIndex - 1),
+                onInvoke: (_) => _handlePrevious(state),
               ),
               _NextIntent: CallbackAction<_NextIntent>(
-                onInvoke: (_) => _moveTo(state.currentIndex + 1),
+                onInvoke: (_) => _handleNext(state),
+              ),
+              _FocusActionsIntent: CallbackAction<_FocusActionsIntent>(
+                onInvoke: (_) => _focusActionButtons(state),
+              ),
+              _FocusViewerIntent: CallbackAction<_FocusViewerIntent>(
+                onInvoke: (_) => _focusViewerSurface(),
               ),
               DismissIntent: CallbackAction<DismissIntent>(
                 onInvoke: (_) => Navigator.of(context).maybePop(),
               ),
             },
             child: Focus(
+              focusNode: _viewerFocusNode,
               autofocus: true,
               child: Scaffold(
                 backgroundColor: Colors.black,
@@ -172,29 +194,26 @@ class _AssetViewerViewState extends State<_AssetViewerView> {
                       right: 0,
                       left: 0,
                       child: Align(
-                        child: SizedBox(
-                          width: 108,
-                          child: FilledButton.icon(
-                            style: FilledButton.styleFrom(
-                              backgroundColor: Colors.black.withValues(
-                                alpha: 0.12,
-                              ),
-                              foregroundColor: Colors.white,
-                              elevation: 0,
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: AppSpacing.md,
-                                vertical: AppSpacing.sm,
-                              ),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(
-                                  AppRadii.pill,
-                                ),
-                              ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            _ViewerActionButton(
+                              width: 184,
+                              icon: Icons.slideshow_rounded,
+                              label: 'Slideshow',
+                              enabled: state.assets.any((asset) => !asset.isVideo),
+                              focusNode: _slideshowButtonFocusNode,
+                              onPressed: () => _startSlideshow(state),
                             ),
-                            icon: const Icon(Icons.close_rounded, size: 18),
-                            label: const Text('Close'),
-                            onPressed: () => Navigator.of(context).maybePop(),
-                          ),
+                            const SizedBox(width: AppSpacing.sm),
+                            _ViewerActionButton(
+                              width: 124,
+                              icon: Icons.close_rounded,
+                              label: 'Close',
+                              focusNode: _closeButtonFocusNode,
+                              onPressed: () => Navigator.of(context).maybePop(),
+                            ),
+                          ],
                         ),
                       ),
                     ),
@@ -208,6 +227,97 @@ class _AssetViewerViewState extends State<_AssetViewerView> {
     );
   }
 
+  Future<void> _startSlideshow(AssetViewerState state) async {
+    final slideshowAssets = state.assets
+        .where((asset) => !asset.isVideo)
+        .toList(growable: false);
+    if (slideshowAssets.isEmpty) {
+      return;
+    }
+
+    final durationSeconds = await showDialog<int>(
+      context: context,
+      builder: (dialogContext) => _SlideshowConfigDialog(
+        durationOptions: _slideshowDurationOptions,
+        photoCount: slideshowAssets.length,
+        currentAssetIsVideo: state.currentAsset.isVideo,
+        totalAssetCount: state.assets.length,
+      ),
+    );
+
+    if (!mounted || durationSeconds == null) {
+      return;
+    }
+
+    final initialSlideshowIndex = slideshowAssets.indexWhere(
+      (asset) => asset.id == state.currentAsset.id,
+    );
+
+    await SlideshowPlayerScreen.show(
+      context,
+      assets: slideshowAssets,
+      accessToken: widget.accessToken,
+      initialDurationSeconds: durationSeconds,
+      initialIndex: initialSlideshowIndex >= 0 ? initialSlideshowIndex : 0,
+    );
+  }
+
+  Object? _handlePrevious(AssetViewerState state) {
+    if (_closeButtonFocusNode.hasFocus) {
+      _slideshowButtonFocusNode.requestFocus();
+      return null;
+    }
+
+    if (_slideshowButtonFocusNode.hasFocus) {
+      return null;
+    }
+
+    _moveTo(state.currentIndex - 1);
+    return null;
+  }
+
+  Object? _handleNext(AssetViewerState state) {
+    final slideshowEnabled = state.assets.any((asset) => !asset.isVideo);
+
+    if (_slideshowButtonFocusNode.hasFocus) {
+      _closeButtonFocusNode.requestFocus();
+      return null;
+    }
+
+    if (_closeButtonFocusNode.hasFocus) {
+      return null;
+    }
+
+    if (!slideshowEnabled && _viewerFocusNode.hasFocus) {
+      _closeButtonFocusNode.requestFocus();
+      return null;
+    }
+
+    _moveTo(state.currentIndex + 1);
+    return null;
+  }
+
+  Object? _focusActionButtons(AssetViewerState state) {
+    final slideshowEnabled = state.assets.any((asset) => !asset.isVideo);
+    if (_slideshowButtonFocusNode.hasFocus || _closeButtonFocusNode.hasFocus) {
+      return null;
+    }
+
+    if (slideshowEnabled) {
+      _slideshowButtonFocusNode.requestFocus();
+    } else {
+      _closeButtonFocusNode.requestFocus();
+    }
+    return null;
+  }
+
+  Object? _focusViewerSurface() {
+    if (_slideshowButtonFocusNode.hasFocus || _closeButtonFocusNode.hasFocus) {
+      _viewerFocusNode.requestFocus();
+    }
+    return null;
+  }
+
   void _moveTo(int index) {
     final cubit = context.read<AssetViewerCubit>();
     if (index < 0 || index >= cubit.state.assets.length) {
@@ -219,6 +329,327 @@ class _AssetViewerViewState extends State<_AssetViewerView> {
       index,
       duration: const Duration(milliseconds: 240),
       curve: Curves.easeOutCubic,
+    );
+  }
+}
+
+class _SlideshowConfigDialog extends StatefulWidget {
+  const _SlideshowConfigDialog({
+    required this.durationOptions,
+    required this.photoCount,
+    required this.currentAssetIsVideo,
+    required this.totalAssetCount,
+  });
+
+  final List<int> durationOptions;
+  final int photoCount;
+  final bool currentAssetIsVideo;
+  final int totalAssetCount;
+
+  @override
+  State<_SlideshowConfigDialog> createState() => _SlideshowConfigDialogState();
+}
+
+class _SlideshowConfigDialogState extends State<_SlideshowConfigDialog> {
+  late int _selectedDuration;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedDuration = widget.durationOptions.first;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Dialog(
+      backgroundColor: const Color(0xFF0D1A21),
+      insetPadding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.xl,
+        vertical: AppSpacing.xl,
+      ),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppRadii.xl),
+        side: const BorderSide(color: Color(0xFF22353F)),
+      ),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 560),
+        child: Padding(
+          padding: const EdgeInsets.all(AppSpacing.xl),
+          child: FocusTraversalGroup(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Start slideshow',
+                  style: theme.textTheme.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.w800,
+                    color: Colors.white,
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.sm),
+                Text(
+                  widget.currentAssetIsVideo
+                      ? 'Videos are skipped in slideshow mode. Playback will begin from the first photo in this set.'
+                      : 'Choose how long each photo stays on screen before playback begins.',
+                  style: theme.textTheme.bodyLarge?.copyWith(
+                    color: Colors.white.withValues(alpha: 0.82),
+                    height: 1.5,
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.lg),
+                Text(
+                  'Interval',
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.sm),
+                Wrap(
+                  spacing: AppSpacing.sm,
+                  runSpacing: AppSpacing.sm,
+                  children: widget.durationOptions.map((seconds) {
+                    return _SlideshowDurationOption(
+                      seconds: seconds,
+                      isSelected: seconds == _selectedDuration,
+                      autofocus: seconds == _selectedDuration,
+                      onPressed: () {
+                        setState(() {
+                          _selectedDuration = seconds;
+                        });
+                      },
+                    );
+                  }).toList(growable: false),
+                ),
+                const SizedBox(height: AppSpacing.lg),
+                DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.04),
+                    borderRadius: BorderRadius.circular(AppRadii.lg),
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.08),
+                    ),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(AppSpacing.lg),
+                    child: Text(
+                      '${widget.photoCount} photo${widget.photoCount == 1 ? '' : 's'} ready'
+                      '${widget.totalAssetCount > widget.photoCount ? ' from ${widget.totalAssetCount} assets' : ''}.',
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: Colors.white.withValues(alpha: 0.72),
+                        height: 1.45,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.xl),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    _ViewerActionButton(
+                      width: 132,
+                      icon: Icons.close_rounded,
+                      label: 'Cancel',
+                      onPressed: () => Navigator.of(context).pop(),
+                    ),
+                    const SizedBox(width: AppSpacing.sm),
+                    _ViewerActionButton(
+                      width: 172,
+                      icon: Icons.play_arrow_rounded,
+                      label: 'Start now',
+                      onPressed: () =>
+                          Navigator.of(context).pop(_selectedDuration),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ViewerActionButton extends StatefulWidget {
+  const _ViewerActionButton({
+    required this.width,
+    required this.icon,
+    required this.label,
+    required this.onPressed,
+    this.enabled = true,
+    this.focusNode,
+  });
+
+  final double width;
+  final IconData icon;
+  final String label;
+  final VoidCallback onPressed;
+  final bool enabled;
+  final FocusNode? focusNode;
+
+  @override
+  State<_ViewerActionButton> createState() => _ViewerActionButtonState();
+}
+
+class _ViewerActionButtonState extends State<_ViewerActionButton> {
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return SizedBox(
+      width: widget.width,
+      child: TvFocusable(
+        enabled: widget.enabled,
+        focusNode: widget.focusNode,
+        onPressed: widget.onPressed,
+        builder: (context, focusState) {
+          final isFocused = focusState.isFocused;
+          final isEnabled = focusState.enabled;
+
+          return AnimatedContainer(
+            duration: const Duration(milliseconds: 160),
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.lg,
+              vertical: AppSpacing.md,
+            ),
+            decoration: BoxDecoration(
+              color: isEnabled
+                  ? (isFocused
+                        ? AppColors.focus.withValues(alpha: 0.24)
+                        : Colors.black.withValues(alpha: 0.18))
+                  : Colors.black.withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(AppRadii.pill),
+              border: Border.all(
+                color: isFocused
+                    ? AppColors.focus
+                    : Colors.white.withValues(alpha: isEnabled ? 0.14 : 0.06),
+                width: isFocused ? 2.4 : 1.2,
+              ),
+              boxShadow: isFocused
+                  ? [
+                      BoxShadow(
+                        color: AppColors.focusGlow,
+                        blurRadius: 22,
+                        spreadRadius: 2,
+                      ),
+                    ]
+                  : const [],
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  widget.icon,
+                  size: 18,
+                  color: isEnabled
+                      ? Colors.white
+                      : Colors.white.withValues(alpha: 0.36),
+                ),
+                const SizedBox(width: AppSpacing.sm),
+                Text(
+                  widget.label,
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    color: isEnabled
+                        ? Colors.white
+                        : Colors.white.withValues(alpha: 0.36),
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _SlideshowDurationOption extends StatefulWidget {
+  const _SlideshowDurationOption({
+    required this.seconds,
+    required this.isSelected,
+    required this.onPressed,
+    this.autofocus = false,
+  });
+
+  final int seconds;
+  final bool isSelected;
+  final bool autofocus;
+  final VoidCallback onPressed;
+
+  @override
+  State<_SlideshowDurationOption> createState() =>
+      _SlideshowDurationOptionState();
+}
+
+class _SlideshowDurationOptionState extends State<_SlideshowDurationOption> {
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return SizedBox(
+      width: 112,
+      child: TvFocusable(
+        autofocus: widget.autofocus,
+        onPressed: widget.onPressed,
+        builder: (context, focusState) {
+          final isFocused = focusState.isFocused;
+          final isSelected = widget.isSelected;
+
+          return AnimatedContainer(
+            duration: const Duration(milliseconds: 160),
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.md,
+              vertical: AppSpacing.lg,
+            ),
+            decoration: BoxDecoration(
+              color: isSelected
+                  ? AppColors.focus.withValues(alpha: 0.18)
+                  : Colors.white.withValues(alpha: 0.05),
+              borderRadius: BorderRadius.circular(AppRadii.lg),
+              border: Border.all(
+                color: isFocused || isSelected
+                    ? AppColors.focus
+                    : Colors.white.withValues(alpha: 0.1),
+                width: isFocused ? 2.4 : (isSelected ? 1.8 : 1),
+              ),
+              boxShadow: isFocused
+                  ? [
+                      BoxShadow(
+                        color: AppColors.focusGlow,
+                        blurRadius: 22,
+                        spreadRadius: 2,
+                      ),
+                    ]
+                  : const [],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  '${widget.seconds}',
+                  style: theme.textTheme.headlineSmall?.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'seconds',
+                  style: theme.textTheme.labelMedium?.copyWith(
+                    color: Colors.white.withValues(alpha: 0.72),
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
     );
   }
 }
@@ -544,6 +975,14 @@ class _PreviousIntent extends Intent {
 
 class _NextIntent extends Intent {
   const _NextIntent();
+}
+
+class _FocusActionsIntent extends Intent {
+  const _FocusActionsIntent();
+}
+
+class _FocusViewerIntent extends Intent {
+  const _FocusViewerIntent();
 }
 
 String _formatDate(DateTime value) {
