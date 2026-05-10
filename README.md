@@ -72,6 +72,25 @@ flutter run
 flutter analyze
 ```
 
+### Demo Access
+
+Immich TV includes a built-in demo mode for testers.
+
+Enter this exact server URL in the onboarding flow:
+
+```text
+https://demo.immichtv.local
+```
+
+Then sign in with:
+
+```text
+Email: demo@immich.tv
+Password: demo1234
+```
+
+Demo content is only triggered when that exact URL is entered.
+
 ## Screens and Branding
 
 The repository includes packaged brand assets under `assets/png/`.

@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:dio/dio.dart';
 
+import '../../../core/config/demo_mode.dart';
 import '../../../core/errors/app_exception.dart';
 import '../../../core/models/authenticated_session.dart';
 import '../../../core/models/saved_profile.dart';
@@ -10,6 +11,7 @@ import '../../../core/models/server_config.dart';
 import '../../../core/models/user_profile.dart';
 import '../../../core/network/immich_headers.dart';
 import '../../../core/repositories/auth_repository.dart';
+import '../../../features/mock/data/mock_auth_repository.dart';
 import '../../../platform/storage/profile_storage.dart';
 
 class ImmichAuthRepository implements AuthRepository {
@@ -33,6 +35,22 @@ class ImmichAuthRepository implements AuthRepository {
       throw const AppException(
         'Enter both email and password to sign in.',
         code: 'missing_credentials',
+      );
+    }
+
+    if (DemoMode.matchesServerUrl(serverConfig.serverUrl)) {
+      if (!DemoMode.matchesCredentials(email: trimmedEmail, password: password)) {
+        throw AppException(
+          'Use the demo credentials for ${DemoMode.serverUrl}.',
+          code: 'invalid_demo_credentials',
+        );
+      }
+      return MockAuthRepository(
+        profileStorage: _profileStorage,
+      ).signIn(
+        serverConfig: serverConfig,
+        email: trimmedEmail,
+        password: password,
       );
     }
 

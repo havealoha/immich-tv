@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 
+import '../../../core/config/demo_mode.dart';
 import '../../../core/errors/app_exception.dart';
 import '../../../core/models/server_config.dart';
 import '../../../core/models/server_validation_result.dart';
@@ -19,6 +20,12 @@ class ImmichServerRepository implements ServerRepository {
   @override
   Future<ServerValidationResult> validateServer(String rawInput) async {
     var config = _normalizer.normalize(rawInput);
+    if (DemoMode.matchesServerUrl(config.serverUrl)) {
+      return ServerValidationResult(
+        serverConfig: config,
+        pingPath: 'demo/ping',
+      );
+    }
     config = await _discoverApiEndpoint(config);
 
     final pingPath = await _pingCompatibleEndpoint(config);

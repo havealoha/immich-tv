@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 
+import '../../../core/config/demo_mode.dart';
 import '../../../core/logging/app_logger.dart';
 import '../../../core/models/album_summary.dart';
 import '../../../core/models/authenticated_session.dart';
@@ -7,14 +8,22 @@ import '../../../core/models/asset_summary.dart';
 import '../../../core/models/media_page.dart';
 import '../../../core/network/immich_headers.dart';
 import '../../../core/repositories/media_repository.dart';
+import '../../mock/data/mock_media_repository.dart';
 
 class ImmichMediaRepository implements MediaRepository {
-  ImmichMediaRepository({required Dio dio}) : _dio = dio;
+  ImmichMediaRepository({required Dio dio})
+    : _dio = dio,
+      _mockMediaRepository = MockMediaRepository();
 
   final Dio _dio;
+  final MockMediaRepository _mockMediaRepository;
 
   @override
   Future<List<AlbumSummary>> fetchAlbums(AuthenticatedSession session) async {
+    if (DemoMode.matchesServerUrl(session.serverConfig.serverUrl)) {
+      return _mockMediaRepository.fetchAlbums(session);
+    }
+
     final response = await _dio.get<List<dynamic>>(
       session.serverConfig.apiEndpoint('albums').toString(),
       options: Options(
@@ -47,6 +56,15 @@ class ImmichMediaRepository implements MediaRepository {
     String? page,
     int pageSize = 120,
   }) async {
+    if (DemoMode.matchesServerUrl(session.serverConfig.serverUrl)) {
+      return _mockMediaRepository.fetchAlbumAssetsPage(
+        session,
+        albumId: albumId,
+        page: page,
+        pageSize: pageSize,
+      );
+    }
+
     final pageNumber = int.tryParse(page ?? '1') ?? 1;
     final response = await _dio.post<dynamic>(
       session.serverConfig.apiEndpoint('search/metadata').toString(),
@@ -85,6 +103,14 @@ class ImmichMediaRepository implements MediaRepository {
     String? page,
     int pageSize = 30,
   }) async {
+    if (DemoMode.matchesServerUrl(session.serverConfig.serverUrl)) {
+      return _mockMediaRepository.fetchFavoritesPage(
+        session,
+        page: page,
+        pageSize: pageSize,
+      );
+    }
+
     logger.info(
       'Fetching favorite assets for ${session.user.email} page ${page ?? '1'}',
     );
@@ -124,6 +150,15 @@ class ImmichMediaRepository implements MediaRepository {
     int pageSize = 30,
     int? year,
   }) async {
+    if (DemoMode.matchesServerUrl(session.serverConfig.serverUrl)) {
+      return _mockMediaRepository.fetchTimelinePage(
+        session,
+        page: page,
+        pageSize: pageSize,
+        year: year,
+      );
+    }
+
     logger.info(
       'Fetching timeline assets for ${session.user.email} page ${page ?? '1'} year ${year?.toString() ?? 'all'}',
     );
