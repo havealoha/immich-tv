@@ -52,6 +52,9 @@ const faqs = [
 
 const repoUrl = 'https://github.com/WorkWithAfridi/immich-tv';
 const issuesUrl = 'https://github.com/WorkWithAfridi/immich-tv/issues';
+const releasesUrl = 'https://github.com/WorkWithAfridi/immich-tv/releases';
+const latestApkUrl =
+  'https://github.com/WorkWithAfridi/immich-tv/releases/download/master-latest/ImmichTV-latest.apk';
 
 function GithubIcon() {
   return (
@@ -118,6 +121,7 @@ export default function App() {
 
           <div className="topbar-links">
             <a href="#features">Features</a>
+            <a href="#download">Download</a>
             <a href="#demo">Demo</a>
             <a href="#github">GitHub</a>
             <a href="#faq">FAQ</a>
@@ -135,12 +139,12 @@ export default function App() {
             </p>
 
             <div className="hero-actions">
-              <a className="primary-cta" href={repoUrl} target="_blank" rel="noreferrer">
+              <a className="primary-cta" href={latestApkUrl} rel="noreferrer">
+                Download APK
+              </a>
+              <a className="secondary-cta" href={repoUrl} target="_blank" rel="noreferrer">
                 <GithubIcon />
                 View on GitHub
-              </a>
-              <a className="secondary-cta" href="#demo">
-                Try demo mode
               </a>
             </div>
 
@@ -193,6 +197,36 @@ export default function App() {
               <li key={detail}>{detail}</li>
             ))}
           </ul>
+        </section>
+
+        <section className="download-section" id="download">
+          <div className="section-heading">
+            <p className="eyebrow">Download APK</p>
+            <h2>Install the latest signed Android TV build directly from GitHub Releases.</h2>
+            <p>
+              Each push to the `master` branch builds a signed release APK and
+              updates the public download asset. Use the direct download button
+              for the newest build or open releases to browse specific versions.
+            </p>
+          </div>
+
+          <div className="download-panel">
+            <div className="download-copy">
+              <p className="repo-label">Latest public file</p>
+              <a className="repo-link" href={latestApkUrl} rel="noreferrer">
+                ImmichTV-latest.apk
+              </a>
+            </div>
+
+            <div className="github-actions">
+              <a className="primary-cta" href={latestApkUrl} rel="noreferrer">
+                Download latest APK
+              </a>
+              <a className="secondary-cta" href={releasesUrl} target="_blank" rel="noreferrer">
+                Browse releases
+              </a>
+            </div>
+          </div>
         </section>
 
         <section className="demo-section" id="demo">
