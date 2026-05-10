@@ -54,9 +54,8 @@ const faqs = [
 const repoUrl = 'https://github.com/WorkWithAfridi/immich-tv';
 const issuesUrl = 'https://github.com/WorkWithAfridi/immich-tv/issues';
 const releasesUrl = 'https://github.com/WorkWithAfridi/immich-tv/releases';
-const latestApkUrl =
-  'https://github.com/WorkWithAfridi/immich-tv/releases/download/master-latest/ImmichTV-latest.apk';
 const themeStorageKey = 'immich-tv-marketing-theme';
+const releaseApiUrl = 'https://api.github.com/repos/WorkWithAfridi/immich-tv/releases/tags/master-latest';
 
 function GithubIcon() {
   return (
@@ -128,6 +127,8 @@ function ThemeIcon({ theme }: { theme: 'light' | 'dark' }) {
 export default function App() {
   const featureIcons = [<TvIcon key="tv" />, <ImageIcon key="image" />, <SlideshowIcon key="slideshow" />];
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
+  const [downloadUrl, setDownloadUrl] = useState(releasesUrl);
+  const [downloadLabel, setDownloadLabel] = useState('Latest release on GitHub');
 
   useEffect(() => {
     const savedTheme = window.localStorage.getItem(themeStorageKey);
@@ -146,6 +147,47 @@ export default function App() {
     document.documentElement.setAttribute('data-theme', theme);
     window.localStorage.setItem(themeStorageKey, theme);
   }, [theme]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadReleaseAsset = async () => {
+      try {
+        const response = await fetch(releaseApiUrl, {
+          headers: {
+            Accept: 'application/vnd.github+json',
+          },
+        });
+
+        if (!response.ok) {
+          return;
+        }
+
+        const release = await response.json();
+        const versionedAsset = release.assets?.find(
+          (asset: { name?: string; browser_download_url?: string }) =>
+            typeof asset.name === 'string' &&
+            /^ImmichTV-\d+\.\d+\.\d+-\d+\.apk$/.test(asset.name) &&
+            typeof asset.browser_download_url === 'string',
+        );
+
+        if (!isMounted || !versionedAsset) {
+          return;
+        }
+
+        setDownloadUrl(versionedAsset.browser_download_url);
+        setDownloadLabel(versionedAsset.name);
+      } catch {
+        // Fall back to the releases page when release metadata cannot be loaded.
+      }
+    };
+
+    void loadReleaseAsset();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const toggleTheme = () => {
     setTheme((currentTheme) => (currentTheme === 'light' ? 'dark' : 'light'));
@@ -190,7 +232,7 @@ export default function App() {
             </p>
 
             <div className="hero-actions">
-              <a className="primary-cta" href={latestApkUrl} rel="noreferrer">
+              <a className="primary-cta" href={downloadUrl} target="_blank" rel="noreferrer">
                 Download APK
               </a>
               <a className="secondary-cta" href={repoUrl} target="_blank" rel="noreferrer">
@@ -264,13 +306,13 @@ export default function App() {
           <div className="download-panel">
             <div className="download-copy">
               <p className="repo-label">Latest public file</p>
-              <a className="repo-link" href={latestApkUrl} rel="noreferrer">
-                ImmichTV-latest.apk
+              <a className="repo-link" href={downloadUrl} target="_blank" rel="noreferrer">
+                {downloadLabel}
               </a>
             </div>
 
             <div className="github-actions">
-              <a className="primary-cta" href={latestApkUrl} rel="noreferrer">
+              <a className="primary-cta" href={downloadUrl} target="_blank" rel="noreferrer">
                 Download latest APK
               </a>
               <a className="secondary-cta" href={releasesUrl} target="_blank" rel="noreferrer">
