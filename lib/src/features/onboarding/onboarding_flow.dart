@@ -19,13 +19,9 @@ class OnboardingFlow extends StatefulWidget {
 }
 
 class _OnboardingFlowState extends State<OnboardingFlow> {
-  final _serverController = TextEditingController(
-    text: 'http://192.168.0.243:2283',
-  );
-  final _emailController = TextEditingController(
-    text: 'afridi.khondakar@gmail.com',
-  );
-  final _passwordController = TextEditingController(text: '#Noobshit911');
+  final _serverController = TextEditingController();
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
   final _pinController = TextEditingController();
   final _confirmPinController = TextEditingController();
   final _serverFieldFocusNode = FocusNode(debugLabel: 'serverField');
@@ -36,7 +32,6 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
   late final List<FocusNode> _pinDigitFocusNodes;
   late final List<FocusNode> _confirmPinDigitFocusNodes;
   final _actionButtonFocusNode = FocusNode(debugLabel: 'primaryAction');
-  bool _hasAppliedInitialValues = false;
   bool _isConfirmingPin = false;
 
   FocusNode get _pinFieldFocusNode => _pinDigitFocusNodes.first;
@@ -58,26 +53,6 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
       4,
       (index) => FocusNode(debugLabel: 'confirmPinField.$index'),
     );
-  }
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    if (_hasAppliedInitialValues) {
-      return;
-    }
-
-    final useMockServices = context.read<AppEnvironment>().useMockServices;
-    _serverController.text = useMockServices
-        ? 'https://demo.immichtv.local'
-        : 'http://192.168.0.243:2283';
-    _emailController.text = useMockServices
-        ? 'livingroom@demo.immichtv'
-        : 'afridi.khondakar@gmail.com';
-    _passwordController.text = useMockServices
-        ? 'demo-password'
-        : '#Noobshit911';
-    _hasAppliedInitialValues = true;
   }
 
   @override
