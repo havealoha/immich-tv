@@ -1,6 +1,34 @@
 @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Instrument+Serif:ital@0;1&display=swap');
 
 :root {
+  color-scheme: light;
+  --bg: #f7fbfd;
+  --surface: rgba(255, 255, 255, 0.78);
+  --surface-strong: rgba(255, 255, 255, 0.92);
+  --line: rgba(18, 42, 56, 0.1);
+  --line-strong: rgba(18, 42, 56, 0.18);
+  --text: #10212d;
+  --muted: #586b77;
+  --accent: #0e9c78;
+  --accent-strong: #10212d;
+  --accent-soft: #6d93ff;
+  --shadow: 0 24px 64px rgba(34, 65, 83, 0.12);
+  --grid-line: rgba(16, 33, 45, 0.045);
+  --bg-gradient:
+    radial-gradient(circle at top left, rgba(14, 156, 120, 0.08), transparent 24%),
+    radial-gradient(circle at 100% 8%, rgba(109, 147, 255, 0.08), transparent 22%),
+    linear-gradient(180deg, #ffffff 0%, #f7fbfd 42%, #eff6fa 100%);
+  --orb-a: rgba(14, 156, 120, 0.1);
+  --orb-b: rgba(109, 147, 255, 0.12);
+  --chip-bg: rgba(255, 255, 255, 0.82);
+  --chip-text: #39505d;
+  --hero-frame-bg: linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(244, 249, 252, 0.86));
+  --secondary-bg: rgba(255, 255, 255, 0.52);
+  --primary-bg: #10212d;
+  --primary-text: #f7fbfd;
+}
+
+:root[data-theme='dark'] {
   color-scheme: dark;
   --bg: #071017;
   --surface: rgba(13, 23, 30, 0.72);
@@ -13,6 +41,16 @@
   --accent-strong: #f0f8ee;
   --accent-soft: #8db5ff;
   --shadow: 0 26px 70px rgba(0, 0, 0, 0.24);
+  --grid-line: rgba(255, 255, 255, 0.025);
+  --bg-gradient: linear-gradient(180deg, #050c11 0%, #091219 38%, #070f15 100%);
+  --orb-a: rgba(145, 221, 197, 0.14);
+  --orb-b: rgba(141, 181, 255, 0.16);
+  --chip-bg: rgba(255, 255, 255, 0.03);
+  --chip-text: #9db2bc;
+  --hero-frame-bg: linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.02));
+  --secondary-bg: rgba(255, 255, 255, 0.02);
+  --primary-bg: #f0f8ee;
+  --primary-text: #06232c;
 }
 
 * {
@@ -26,10 +64,10 @@ html {
 body {
   margin: 0;
   min-width: 320px;
-  background:
-    linear-gradient(180deg, #050c11 0%, #091219 38%, #070f15 100%);
+  background: var(--bg-gradient);
   color: var(--text);
   font-family: 'Manrope', sans-serif;
+  transition: background 220ms ease, color 220ms ease;
 }
 
 a {
@@ -65,7 +103,7 @@ img {
   width: 28rem;
   height: 28rem;
   border-radius: 999px;
-  background: rgba(145, 221, 197, 0.14);
+  background: var(--orb-a);
 }
 
 .orb-b {
@@ -73,13 +111,13 @@ img {
   width: 24rem;
   height: 24rem;
   border-radius: 999px;
-  background: rgba(141, 181, 255, 0.16);
+  background: var(--orb-b);
 }
 
 .background-grid {
   background:
-    linear-gradient(rgba(255, 255, 255, 0.025) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.025) 1px, transparent 1px);
+    linear-gradient(var(--grid-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
   background-size: 44px 44px;
   mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.6), transparent 82%);
   opacity: 0.35;
@@ -141,11 +179,33 @@ main section {
   gap: 1.15rem;
   color: var(--muted);
   font-size: 0.94rem;
+  align-items: center;
 }
 
 .topbar-links a:hover,
 .repo-link:hover {
   color: var(--text);
+}
+
+.theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  padding: 0;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  background: var(--surface-strong);
+  color: var(--text);
+  font: inherit;
+  cursor: pointer;
+  box-shadow: var(--shadow);
+  transition: transform 180ms ease, background 180ms ease, border-color 180ms ease;
+}
+
+.theme-toggle:hover {
+  transform: translateY(-1px);
 }
 
 .icon {
@@ -224,13 +284,13 @@ main section {
 }
 
 .primary-cta {
-  background: var(--accent-strong);
-  color: #06232c;
+  background: var(--primary-bg);
+  color: var(--primary-text);
 }
 
 .secondary-cta {
   border: 1px solid var(--line-strong);
-  background: rgba(255, 255, 255, 0.02);
+  background: var(--secondary-bg);
 }
 
 .hero-inline-points {
@@ -243,7 +303,7 @@ main section {
 .hero-inline-points span,
 .detail-grid li {
   border: 1px solid var(--line);
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--chip-bg);
 }
 
 .hero-inline-points span {
@@ -252,7 +312,7 @@ main section {
   min-height: 2.6rem;
   padding: 0.7rem 1rem;
   border-radius: 999px;
-  color: var(--muted);
+  color: var(--chip-text);
   font-size: 0.92rem;
 }
 
@@ -265,7 +325,7 @@ main section {
   width: 100%;
   padding: 1rem;
   border-radius: 1.75rem;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.02));
+  background: var(--hero-frame-bg);
   border: 1px solid var(--line);
   box-shadow: var(--shadow);
 }
@@ -327,7 +387,7 @@ main section {
   height: 2.7rem;
   margin-bottom: 1rem;
   border-radius: 999px;
-  background: rgba(145, 221, 197, 0.1);
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
   color: var(--accent);
 }
 
@@ -414,13 +474,26 @@ main section {
 @media (max-width: 719px) {
   .hero,
   main section {
-    width: min(1120px, calc(100% - 1.25rem));
+    width: min(1120px, calc(100% - 2rem));
   }
 
   .topbar {
     flex-direction: column;
     align-items: flex-start;
     padding-bottom: 3rem;
+  }
+
+  .topbar-links {
+    width: 100%;
+    gap: 0.85rem 1rem;
+  }
+
+  .topbar-links a {
+    font-size: 0.92rem;
+  }
+
+  .theme-toggle {
+    margin-left: auto;
   }
 
   .hero {
@@ -438,5 +511,139 @@ main section {
 
   .hero-copy h2 {
     max-width: none;
+  }
+
+  .hero-copy,
+  .demo-copy,
+  .experience-copy,
+  .section-heading {
+    text-align: left;
+  }
+
+  .hero-actions,
+  .github-actions {
+    width: 100%;
+    flex-direction: column;
+  }
+
+  .primary-cta,
+  .secondary-cta {
+    width: 100%;
+  }
+
+  .hero-inline-points {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+
+  .hero-inline-points span {
+    width: auto;
+    max-width: 100%;
+    justify-content: center;
+    text-align: center;
+    min-height: auto;
+    padding: 0.65rem 0.9rem;
+    border-radius: 999px;
+    font-size: 0.84rem;
+    line-height: 1.25;
+  }
+
+  .hero-frame {
+    padding: 0.75rem;
+    border-radius: 1.25rem;
+  }
+
+  .hero-frame img {
+    border-radius: 0.9rem;
+  }
+
+  .feature-card,
+  .faq-card,
+  .credentials-card,
+  .download-panel,
+  .github-panel {
+    padding: 1.25rem;
+    border-radius: 1.1rem;
+  }
+
+  .feature-card h3,
+  .faq-card h3 {
+    font-size: 1.06rem;
+  }
+
+  .detail-grid li {
+    padding: 1rem 1.05rem;
+  }
+
+  .download-panel,
+  .github-panel {
+    gap: 1.25rem;
+  }
+
+  .repo-link {
+    font-size: 0.98rem;
+    line-height: 1.5;
+  }
+}
+
+@media (max-width: 479px) {
+  .hero,
+  main section {
+    width: calc(100% - 1.5rem);
+  }
+
+  .hero {
+    padding-top: 1rem;
+    padding-bottom: 4rem;
+  }
+
+  .topbar {
+    padding-bottom: 2.4rem;
+  }
+
+  .brand-lockup {
+    gap: 0.75rem;
+  }
+
+  .brand-icon {
+    width: 2.65rem;
+    height: 2.65rem;
+  }
+
+  .hero-copy h2,
+  .section-heading h2,
+  .experience-copy h2,
+  .demo-copy h2 {
+    font-size: clamp(1.8rem, 9vw, 2.45rem);
+    margin-bottom: 1rem;
+  }
+
+  .hero-body,
+  .section-heading p,
+  .experience-copy p,
+  .demo-copy p,
+  .feature-card p,
+  .faq-card p {
+    font-size: 0.96rem;
+    line-height: 1.72;
+  }
+
+  .feature-section,
+  .experience-section,
+  .download-section,
+  .demo-section,
+  .github-section,
+  .faq-section {
+    padding: 3.35rem 0;
+  }
+
+  .hero-inline-points span {
+    padding: 0.62rem 0.82rem;
+    font-size: 0.8rem;
+  }
+
+  .credentials-card strong {
+    font-size: 0.94rem;
   }
 }

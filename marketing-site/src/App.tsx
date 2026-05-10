@@ -1,5 +1,6 @@
 import bannerImage from '../../assets/png/banner.png';
 import launcherImage from '../../assets/png/playstore.png';
+import { useEffect, useState } from 'react';
 
 const coreFeatures = [
   {
@@ -55,6 +56,7 @@ const issuesUrl = 'https://github.com/WorkWithAfridi/immich-tv/issues';
 const releasesUrl = 'https://github.com/WorkWithAfridi/immich-tv/releases';
 const latestApkUrl =
   'https://github.com/WorkWithAfridi/immich-tv/releases/download/master-latest/ImmichTV-latest.apk';
+const themeStorageKey = 'immich-tv-marketing-theme';
 
 function GithubIcon() {
   return (
@@ -100,8 +102,54 @@ function SlideshowIcon() {
   );
 }
 
+function ThemeIcon({ theme }: { theme: 'light' | 'dark' }) {
+  if (theme === 'dark') {
+    return (
+      <svg viewBox="0 0 24 24" aria-hidden="true" className="icon glyph-icon">
+        <path
+          fill="currentColor"
+          d="M12 5.75a.75.75 0 0 1 .75.75v1.5a.75.75 0 0 1-1.5 0V6.5a.75.75 0 0 1 .75-.75Zm0 10.25a.75.75 0 0 1 .75.75v1.5a.75.75 0 0 1-1.5 0v-1.5A.75.75 0 0 1 12 16Zm6.25-4.75a.75.75 0 0 1 0 1.5h-1.5a.75.75 0 0 1 0-1.5h1.5ZM8 12a.75.75 0 0 1-.75.75h-1.5a.75.75 0 0 1 0-1.5h1.5A.75.75 0 0 1 8 12Zm6.03-4.97a.75.75 0 0 1 1.06 0l1.06 1.06a.75.75 0 1 1-1.06 1.06l-1.06-1.06a.75.75 0 0 1 0-1.06Zm-6.12 6.12a.75.75 0 0 1 1.06 0l1.06 1.06a.75.75 0 0 1-1.06 1.06l-1.06-1.06a.75.75 0 0 1 0-1.06Zm7.18 1.06a.75.75 0 0 1 1.06-1.06l1.06 1.06a.75.75 0 0 1-1.06 1.06l-1.06-1.06ZM8.97 7.03a.75.75 0 0 1 0 1.06L7.91 9.15A.75.75 0 0 1 6.85 8.1l1.06-1.07a.75.75 0 0 1 1.06 0ZM12 9.25A2.75 2.75 0 1 0 12 14.75 2.75 2.75 0 0 0 12 9.25Z"
+        />
+      </svg>
+    );
+  }
+
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true" className="icon glyph-icon">
+      <path
+        fill="currentColor"
+        d="M14.7 3.3a.75.75 0 0 1 .88.98 7.25 7.25 0 0 0 8.14 9.22.75.75 0 0 1 .7 1.2A9 9 0 1 1 14.5 2.6a.75.75 0 0 1 .2.7Z"
+        transform="translate(-2)"
+      />
+    </svg>
+  );
+}
+
 export default function App() {
   const featureIcons = [<TvIcon key="tv" />, <ImageIcon key="image" />, <SlideshowIcon key="slideshow" />];
+  const [theme, setTheme] = useState<'light' | 'dark'>('light');
+
+  useEffect(() => {
+    const savedTheme = window.localStorage.getItem(themeStorageKey);
+    if (savedTheme === 'light' || savedTheme === 'dark') {
+      setTheme(savedTheme);
+      return;
+    }
+
+    const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches
+      ? 'dark'
+      : 'light';
+    setTheme(systemTheme);
+  }, []);
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+    window.localStorage.setItem(themeStorageKey, theme);
+  }, [theme]);
+
+  const toggleTheme = () => {
+    setTheme((currentTheme) => (currentTheme === 'light' ? 'dark' : 'light'));
+  };
 
   return (
     <div className="site-shell">
@@ -125,6 +173,9 @@ export default function App() {
             <a href="#demo">Demo</a>
             <a href="#github">GitHub</a>
             <a href="#faq">FAQ</a>
+            <button className="theme-toggle" type="button" onClick={toggleTheme} aria-label="Toggle color theme">
+              <ThemeIcon theme={theme} />
+            </button>
           </div>
         </nav>
 
