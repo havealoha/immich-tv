@@ -173,18 +173,9 @@ main section {
   font-weight: 800;
 }
 
-.topbar-links {
+.topbar-actions {
   display: flex;
-  flex-wrap: wrap;
-  gap: 1.15rem;
-  color: var(--muted);
-  font-size: 0.94rem;
   align-items: center;
-}
-
-.topbar-links a:hover,
-.repo-link:hover {
-  color: var(--text);
 }
 
 .theme-toggle {
@@ -471,6 +462,10 @@ main section {
   }
 }
 
+.repo-link:hover {
+  color: var(--text);
+}
+
 @media (max-width: 719px) {
   .hero,
   main section {
@@ -483,17 +478,8 @@ main section {
     padding-bottom: 3rem;
   }
 
-  .topbar-links {
-    width: 100%;
-    gap: 0.85rem 1rem;
-  }
-
-  .topbar-links a {
-    font-size: 0.92rem;
-  }
-
   .theme-toggle {
-    margin-left: auto;
+    align-self: flex-end;
   }
 
   .hero {

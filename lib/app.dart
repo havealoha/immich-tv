@@ -6,7 +6,6 @@ import 'package:google_fonts/google_fonts.dart';
 
 import 'src/app_shell.dart';
 import 'src/core/config/app_environment.dart';
-import 'src/core/config/marketing_site_config.dart';
 import 'src/core/network/immich_dio_factory.dart';
 import 'src/core/repositories/asset_image_repository.dart';
 import 'src/core/repositories/auth_repository.dart';
@@ -194,10 +193,7 @@ class _AdaptiveViewportGateState extends State<_AdaptiveViewportGate> {
         (defaultTargetPlatform == TargetPlatform.android ||
             defaultTargetPlatform == TargetPlatform.iOS);
     final isPhoneLayout = shortestSide < AppBreakpoints.phone;
-    final shouldShowMarketingScreen =
-        isMobilePlatform &&
-        isPhoneLayout &&
-        MarketingSiteConfig.url.isNotEmpty;
+    final shouldShowMarketingScreen = isMobilePlatform && isPhoneLayout;
 
     if (isMobilePlatform && _lastPhoneLayout != isPhoneLayout) {
       _lastPhoneLayout = isPhoneLayout;

@@ -134,13 +134,7 @@ export default function App() {
     const savedTheme = window.localStorage.getItem(themeStorageKey);
     if (savedTheme === 'light' || savedTheme === 'dark') {
       setTheme(savedTheme);
-      return;
     }
-
-    const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches
-      ? 'dark'
-      : 'light';
-    setTheme(systemTheme);
   }, []);
 
   useEffect(() => {
@@ -209,12 +203,7 @@ export default function App() {
             </div>
           </a>
 
-          <div className="topbar-links">
-            <a href="#features">Features</a>
-            <a href="#download">Download</a>
-            <a href="#demo">Demo</a>
-            <a href="#github">GitHub</a>
-            <a href="#faq">FAQ</a>
+          <div className="topbar-actions">
             <button className="theme-toggle" type="button" onClick={toggleTheme} aria-label="Toggle color theme">
               <ThemeIcon theme={theme} />
             </button>
