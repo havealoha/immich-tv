@@ -20,7 +20,7 @@ class ImmichServerRepository implements ServerRepository {
   @override
   Future<ServerValidationResult> validateServer(String rawInput) async {
     var config = _normalizer.normalize(rawInput);
-    if (DemoMode.matchesServerUrl(config.serverUrl)) {
+    if (DemoMode.matchesRawInput(rawInput)) {
       return ServerValidationResult(
         serverConfig: config,
         pingPath: 'demo/ping',
