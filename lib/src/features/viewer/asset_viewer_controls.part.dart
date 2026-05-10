@@ -1,0 +1,333 @@
+part of 'asset_viewer_screen.dart';
+
+class _SlideshowConfigDialog extends StatefulWidget {
+  const _SlideshowConfigDialog({
+    required this.durationOptions,
+    required this.photoCount,
+    required this.currentAssetIsVideo,
+    required this.totalAssetCount,
+  });
+
+  final List<int> durationOptions;
+  final int photoCount;
+  final bool currentAssetIsVideo;
+  final int totalAssetCount;
+
+  @override
+  State<_SlideshowConfigDialog> createState() => _SlideshowConfigDialogState();
+}
+
+class _SlideshowConfigDialogState extends State<_SlideshowConfigDialog> {
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Dialog(
+      backgroundColor: const Color(0xFF0D1A21),
+      insetPadding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.xl,
+        vertical: AppSpacing.xl,
+      ),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppRadii.xl),
+        side: const BorderSide(color: Color(0xFF22353F)),
+      ),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 560),
+        child: Padding(
+          padding: const EdgeInsets.all(AppSpacing.xl),
+          child: FocusTraversalGroup(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        'Start slideshow',
+                        style: theme.textTheme.headlineSmall?.copyWith(
+                          fontWeight: FontWeight.w800,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                    IconButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      tooltip: 'Cancel',
+                      style: IconButton.styleFrom(
+                        backgroundColor: Colors.white.withValues(alpha: 0.06),
+                        foregroundColor: Colors.white,
+                      ),
+                      icon: const Icon(Icons.close_rounded),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: AppSpacing.sm),
+                Text(
+                  widget.currentAssetIsVideo
+                      ? 'Videos are skipped in slideshow mode. Playback will begin from the first photo in this set.'
+                      : 'Choose how long each photo stays on screen. Selecting an interval starts playback immediately.',
+                  style: theme.textTheme.bodyLarge?.copyWith(
+                    color: Colors.white.withValues(alpha: 0.82),
+                    height: 1.5,
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.lg),
+                Text(
+                  'Interval',
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.sm),
+                Wrap(
+                  spacing: AppSpacing.sm,
+                  runSpacing: AppSpacing.sm,
+                  children: widget.durationOptions.map((seconds) {
+                    return _SlideshowDurationOption(
+                      seconds: seconds,
+                      isSelected: false,
+                      autofocus: seconds == widget.durationOptions.first,
+                      onPressed: () => Navigator.of(context).pop(seconds),
+                    );
+                  }).toList(growable: false),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ViewerActionButton extends StatefulWidget {
+  const _ViewerActionButton({
+    required this.width,
+    required this.icon,
+    required this.label,
+    required this.onPressed,
+    this.enabled = true,
+    this.focusNode,
+  });
+
+  final double width;
+  final IconData icon;
+  final String label;
+  final VoidCallback onPressed;
+  final bool enabled;
+  final FocusNode? focusNode;
+
+  @override
+  State<_ViewerActionButton> createState() => _ViewerActionButtonState();
+}
+
+class _ViewerActionButtonState extends State<_ViewerActionButton> {
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return SizedBox(
+      width: widget.width,
+      child: TvFocusable(
+        enabled: widget.enabled,
+        focusNode: widget.focusNode,
+        onPressed: widget.onPressed,
+        builder: (context, focusState) {
+          final isFocused = focusState.isFocused;
+          final isEnabled = focusState.enabled;
+
+          return AnimatedContainer(
+            duration: const Duration(milliseconds: 160),
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.lg,
+              vertical: AppSpacing.md,
+            ),
+            decoration: BoxDecoration(
+              color: isEnabled
+                  ? (isFocused
+                        ? AppColors.focus.withValues(alpha: 0.24)
+                        : Colors.black.withValues(alpha: 0.18))
+                  : Colors.black.withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(AppRadii.pill),
+              border: Border.all(
+                color: isFocused
+                    ? AppColors.focus
+                    : Colors.white.withValues(alpha: isEnabled ? 0.14 : 0.06),
+                width: isFocused ? 2.4 : 1.2,
+              ),
+              boxShadow: isFocused
+                  ? [
+                      BoxShadow(
+                        color: AppColors.focusGlow,
+                        blurRadius: 22,
+                        spreadRadius: 2,
+                      ),
+                    ]
+                  : const [],
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  widget.icon,
+                  size: 18,
+                  color: isEnabled
+                      ? Colors.white
+                      : Colors.white.withValues(alpha: 0.36),
+                ),
+                const SizedBox(width: AppSpacing.sm),
+                Text(
+                  widget.label,
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    color: isEnabled
+                        ? Colors.white
+                        : Colors.white.withValues(alpha: 0.36),
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _SlideshowDurationOption extends StatefulWidget {
+  const _SlideshowDurationOption({
+    required this.seconds,
+    required this.isSelected,
+    required this.onPressed,
+    this.autofocus = false,
+  });
+
+  final int seconds;
+  final bool isSelected;
+  final bool autofocus;
+  final VoidCallback onPressed;
+
+  @override
+  State<_SlideshowDurationOption> createState() =>
+      _SlideshowDurationOptionState();
+}
+
+class _SlideshowDurationOptionState extends State<_SlideshowDurationOption> {
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return SizedBox(
+      width: 112,
+      child: TvFocusable(
+        autofocus: widget.autofocus,
+        onPressed: widget.onPressed,
+        builder: (context, focusState) {
+          final isFocused = focusState.isFocused;
+          final isSelected = widget.isSelected;
+
+          return AnimatedContainer(
+            duration: const Duration(milliseconds: 160),
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.md,
+              vertical: AppSpacing.lg,
+            ),
+            decoration: BoxDecoration(
+              color: isSelected
+                  ? AppColors.focus.withValues(alpha: 0.18)
+                  : Colors.white.withValues(alpha: 0.05),
+              borderRadius: BorderRadius.circular(AppRadii.lg),
+              border: Border.all(
+                color: isFocused || isSelected
+                    ? AppColors.focus
+                    : Colors.white.withValues(alpha: 0.1),
+                width: isFocused ? 2.4 : (isSelected ? 1.8 : 1),
+              ),
+              boxShadow: isFocused
+                  ? [
+                      BoxShadow(
+                        color: AppColors.focusGlow,
+                        blurRadius: 22,
+                        spreadRadius: 2,
+                      ),
+                    ]
+                  : const [],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  '${widget.seconds}',
+                  style: theme.textTheme.headlineSmall?.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'seconds',
+                  style: theme.textTheme.labelMedium?.copyWith(
+                    color: Colors.white.withValues(alpha: 0.72),
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _ViewerArrow extends StatelessWidget {
+  const _ViewerArrow({
+    required this.icon,
+    required this.enabled,
+    required this.onPressed,
+  });
+
+  final IconData icon;
+  final bool enabled;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: IconButton.filledTonal(
+        onPressed: enabled ? onPressed : null,
+        iconSize: 36,
+        style: IconButton.styleFrom(
+          backgroundColor: const Color(0xB30C151A),
+          disabledBackgroundColor: const Color(0x400C151A),
+          foregroundColor: Colors.white,
+          disabledForegroundColor: Colors.white54,
+          minimumSize: const Size(64, 64),
+          fixedSize: const Size(64, 64),
+          shape: const CircleBorder(),
+          padding: EdgeInsets.zero,
+        ),
+        icon: Icon(icon),
+      ),
+    );
+  }
+}
+
+class _PreviousIntent extends Intent {
+  const _PreviousIntent();
+}
+
+class _NextIntent extends Intent {
+  const _NextIntent();
+}
+
+class _FocusActionsIntent extends Intent {
+  const _FocusActionsIntent();
+}
+
+class _FocusViewerIntent extends Intent {
+  const _FocusViewerIntent();
+}
