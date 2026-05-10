@@ -1,4 +1,6 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -14,12 +16,14 @@ import 'src/features/app_flow/cubit/app_flow_cubit.dart';
 import 'src/features/auth/data/immich_auth_repository.dart';
 import 'src/features/library/data/immich_asset_image_repository.dart';
 import 'src/features/library/data/immich_media_repository.dart';
+import 'src/features/mobile_marketing/mobile_marketing_screen.dart';
 import 'src/features/mock/data/mock_auth_repository.dart';
 import 'src/features/mock/data/mock_media_repository.dart';
 import 'src/features/mock/data/mock_server_repository.dart';
 import 'src/features/onboarding/data/immich_server_repository.dart';
 import 'src/platform/storage/platform_profile_storage.dart';
 import 'src/shared/presentation/app_colors.dart';
+import 'src/shared/presentation/app_breakpoints.dart';
 import 'src/shared/presentation/app_radii.dart';
 
 void runImmichTvApp() {
@@ -152,8 +156,69 @@ class ImmichTvApp extends StatelessWidget {
           progressIndicatorTheme: const ProgressIndicatorThemeData(color: AppColors.immichBlue, linearTrackColor: AppColors.darkSurfaceSoft),
           textButtonTheme: TextButtonThemeData(style: TextButton.styleFrom(foregroundColor: AppColors.textPrimary)),
         ),
-        home: BlocProvider(create: (_) => AppFlowCubit(_authRepository)..initialize(), child: const AppShell()),
+        home: _AdaptiveAppEntry(authRepository: _authRepository),
       ),
+    );
+  }
+}
+
+class _AdaptiveAppEntry extends StatelessWidget {
+  const _AdaptiveAppEntry({required this.authRepository});
+
+  final AuthRepository authRepository;
+
+  @override
+  Widget build(BuildContext context) {
+    return _AdaptiveViewportGate(authRepository: authRepository);
+  }
+}
+
+class _AdaptiveViewportGate extends StatefulWidget {
+  const _AdaptiveViewportGate({required this.authRepository});
+
+  final AuthRepository authRepository;
+
+  @override
+  State<_AdaptiveViewportGate> createState() => _AdaptiveViewportGateState();
+}
+
+class _AdaptiveViewportGateState extends State<_AdaptiveViewportGate> {
+  bool? _lastPhoneLayout;
+
+  @override
+  Widget build(BuildContext context) {
+    final shortestSide = MediaQuery.sizeOf(context).shortestSide;
+    final isMobilePlatform =
+        !kIsWeb &&
+        (defaultTargetPlatform == TargetPlatform.android ||
+            defaultTargetPlatform == TargetPlatform.iOS);
+    final isPhoneLayout = shortestSide < AppBreakpoints.phone;
+    final shouldShowMarketingScreen = isMobilePlatform && isPhoneLayout;
+
+    if (isMobilePlatform && _lastPhoneLayout != isPhoneLayout) {
+      _lastPhoneLayout = isPhoneLayout;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) {
+          return;
+        }
+        SystemChrome.setPreferredOrientations(
+          isPhoneLayout
+              ? const [DeviceOrientation.portraitUp]
+              : const [
+                  DeviceOrientation.landscapeLeft,
+                  DeviceOrientation.landscapeRight,
+                ],
+        );
+      });
+    }
+
+    if (shouldShowMarketingScreen) {
+      return const MobileMarketingScreen();
+    }
+
+    return BlocProvider(
+      create: (_) => AppFlowCubit(widget.authRepository)..initialize(),
+      child: const AppShell(),
     );
   }
 }

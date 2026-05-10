@@ -1,5 +1,6 @@
 import bannerImage from '../../assets/png/banner.png';
 import launcherImage from '../../assets/png/playstore.png';
+import { useEffect, useState } from 'react';
 
 const coreFeatures = [
   {
@@ -53,8 +54,8 @@ const faqs = [
 const repoUrl = 'https://github.com/WorkWithAfridi/immich-tv';
 const issuesUrl = 'https://github.com/WorkWithAfridi/immich-tv/issues';
 const releasesUrl = 'https://github.com/WorkWithAfridi/immich-tv/releases';
-const latestApkUrl =
-  'https://github.com/WorkWithAfridi/immich-tv/releases/download/master-latest/ImmichTV-latest.apk';
+const themeStorageKey = 'immich-tv-marketing-theme';
+const releaseApiUrl = 'https://api.github.com/repos/WorkWithAfridi/immich-tv/releases/tags/master-latest';
 
 function GithubIcon() {
   return (
@@ -100,8 +101,91 @@ function SlideshowIcon() {
   );
 }
 
+function ThemeIcon({ theme }: { theme: 'light' | 'dark' }) {
+  if (theme === 'dark') {
+    return (
+      <svg viewBox="0 0 24 24" aria-hidden="true" className="icon glyph-icon">
+        <path
+          fill="currentColor"
+          d="M12 5.75a.75.75 0 0 1 .75.75v1.5a.75.75 0 0 1-1.5 0V6.5a.75.75 0 0 1 .75-.75Zm0 10.25a.75.75 0 0 1 .75.75v1.5a.75.75 0 0 1-1.5 0v-1.5A.75.75 0 0 1 12 16Zm6.25-4.75a.75.75 0 0 1 0 1.5h-1.5a.75.75 0 0 1 0-1.5h1.5ZM8 12a.75.75 0 0 1-.75.75h-1.5a.75.75 0 0 1 0-1.5h1.5A.75.75 0 0 1 8 12Zm6.03-4.97a.75.75 0 0 1 1.06 0l1.06 1.06a.75.75 0 1 1-1.06 1.06l-1.06-1.06a.75.75 0 0 1 0-1.06Zm-6.12 6.12a.75.75 0 0 1 1.06 0l1.06 1.06a.75.75 0 0 1-1.06 1.06l-1.06-1.06a.75.75 0 0 1 0-1.06Zm7.18 1.06a.75.75 0 0 1 1.06-1.06l1.06 1.06a.75.75 0 0 1-1.06 1.06l-1.06-1.06ZM8.97 7.03a.75.75 0 0 1 0 1.06L7.91 9.15A.75.75 0 0 1 6.85 8.1l1.06-1.07a.75.75 0 0 1 1.06 0ZM12 9.25A2.75 2.75 0 1 0 12 14.75 2.75 2.75 0 0 0 12 9.25Z"
+        />
+      </svg>
+    );
+  }
+
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true" className="icon glyph-icon">
+      <path
+        fill="currentColor"
+        d="M14.7 3.3a.75.75 0 0 1 .88.98 7.25 7.25 0 0 0 8.14 9.22.75.75 0 0 1 .7 1.2A9 9 0 1 1 14.5 2.6a.75.75 0 0 1 .2.7Z"
+        transform="translate(-2)"
+      />
+    </svg>
+  );
+}
+
 export default function App() {
   const featureIcons = [<TvIcon key="tv" />, <ImageIcon key="image" />, <SlideshowIcon key="slideshow" />];
+  const [theme, setTheme] = useState<'light' | 'dark'>('light');
+  const [downloadUrl, setDownloadUrl] = useState(releasesUrl);
+  const [downloadLabel, setDownloadLabel] = useState('Latest release on GitHub');
+
+  useEffect(() => {
+    const savedTheme = window.localStorage.getItem(themeStorageKey);
+    if (savedTheme === 'light' || savedTheme === 'dark') {
+      setTheme(savedTheme);
+    }
+  }, []);
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+    window.localStorage.setItem(themeStorageKey, theme);
+  }, [theme]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadReleaseAsset = async () => {
+      try {
+        const response = await fetch(releaseApiUrl, {
+          headers: {
+            Accept: 'application/vnd.github+json',
+          },
+        });
+
+        if (!response.ok) {
+          return;
+        }
+
+        const release = await response.json();
+        const versionedAsset = release.assets?.find(
+          (asset: { name?: string; browser_download_url?: string }) =>
+            typeof asset.name === 'string' &&
+            /^ImmichTV-\d+\.\d+\.\d+-\d+\.apk$/.test(asset.name) &&
+            typeof asset.browser_download_url === 'string',
+        );
+
+        if (!isMounted || !versionedAsset) {
+          return;
+        }
+
+        setDownloadUrl(versionedAsset.browser_download_url);
+        setDownloadLabel(versionedAsset.name);
+      } catch {
+        // Fall back to the releases page when release metadata cannot be loaded.
+      }
+    };
+
+    void loadReleaseAsset();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const toggleTheme = () => {
+    setTheme((currentTheme) => (currentTheme === 'light' ? 'dark' : 'light'));
+  };
 
   return (
     <div className="site-shell">
@@ -119,12 +203,10 @@ export default function App() {
             </div>
           </a>
 
-          <div className="topbar-links">
-            <a href="#features">Features</a>
-            <a href="#download">Download</a>
-            <a href="#demo">Demo</a>
-            <a href="#github">GitHub</a>
-            <a href="#faq">FAQ</a>
+          <div className="topbar-actions">
+            <button className="theme-toggle" type="button" onClick={toggleTheme} aria-label="Toggle color theme">
+              <ThemeIcon theme={theme} />
+            </button>
           </div>
         </nav>
 
@@ -139,7 +221,7 @@ export default function App() {
             </p>
 
             <div className="hero-actions">
-              <a className="primary-cta" href={latestApkUrl} rel="noreferrer">
+              <a className="primary-cta" href={downloadUrl} target="_blank" rel="noreferrer">
                 Download APK
               </a>
               <a className="secondary-cta" href={repoUrl} target="_blank" rel="noreferrer">
@@ -213,13 +295,13 @@ export default function App() {
           <div className="download-panel">
             <div className="download-copy">
               <p className="repo-label">Latest public file</p>
-              <a className="repo-link" href={latestApkUrl} rel="noreferrer">
-                ImmichTV-latest.apk
+              <a className="repo-link" href={downloadUrl} target="_blank" rel="noreferrer">
+                {downloadLabel}
               </a>
             </div>
 
             <div className="github-actions">
-              <a className="primary-cta" href={latestApkUrl} rel="noreferrer">
+              <a className="primary-cta" href={downloadUrl} target="_blank" rel="noreferrer">
                 Download latest APK
               </a>
               <a className="secondary-cta" href={releasesUrl} target="_blank" rel="noreferrer">
