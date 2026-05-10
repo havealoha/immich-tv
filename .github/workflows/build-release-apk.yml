@@ -1,0 +1,62 @@
+name: Build Release APK
+
+on:
+  push:
+    branches:
+      - master
+  workflow_dispatch:
+
+jobs:
+  build-release-apk:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Read app version
+        id: version
+        shell: bash
+        run: |
+          version_line="$(grep '^version:' pubspec.yaml | awk '{print $2}')"
+          version_name="${version_line%%+*}"
+          build_number="${version_line##*+}"
+          apk_name="ImmichTV-${version_name}-${build_number}.apk"
+
+          echo "version_name=${version_name}" >> "$GITHUB_OUTPUT"
+          echo "build_number=${build_number}" >> "$GITHUB_OUTPUT"
+          echo "apk_name=${apk_name}" >> "$GITHUB_OUTPUT"
+
+      - name: Build release APK
+        run: >
+          flutter build apk --release
+          --build-name "${{ steps.version.outputs.version_name }}"
+          --build-number "${{ steps.version.outputs.build_number }}"
+
+      - name: Rename APK
+        shell: bash
+        run: |
+          mv build/app/outputs/flutter-apk/app-release.apk \
+            "build/app/outputs/flutter-apk/${{ steps.version.outputs.apk_name }}"
+
+      - name: Upload release APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.version.outputs.apk_name }}
+          path: build/app/outputs/flutter-apk/${{ steps.version.outputs.apk_name }}
+          if-no-files-found: error
