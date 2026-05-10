@@ -352,7 +352,9 @@ class _ContentPane extends StatelessWidget {
           min: 24,
           max: 32,
         );
-        final verticalPadding = scale.space(20, min: 16, max: 20);
+        final verticalPadding = constraints.maxWidth >= AppBreakpoints.tv
+            ? scale.space(12, min: 10, max: 14)
+            : scale.space(20, min: 16, max: 20);
 
         return Padding(
           padding: EdgeInsets.fromLTRB(

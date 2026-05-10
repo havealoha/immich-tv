@@ -15,6 +15,7 @@ class _SectionFrame extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scale = AppScale.of(context);
+    final compactChrome = _useCompactTvChrome(scale);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -22,19 +23,31 @@ class _SectionFrame extends StatelessWidget {
           title,
           style: theme.textTheme.headlineMedium?.copyWith(
             fontWeight: FontWeight.w800,
-            fontSize: scale.text(34, min: 28, max: 34),
+            fontSize: compactChrome
+                ? scale.text(28, min: 24, max: 28)
+                : scale.text(34, min: 28, max: 34),
           ),
         ),
-        SizedBox(height: scale.space(AppSpacing.xs, min: 8, max: 8)),
+        SizedBox(
+          height: compactChrome
+              ? scale.space(4, min: 4, max: 6)
+              : scale.space(AppSpacing.xs, min: 8, max: 8),
+        ),
         Text(
           description,
           style: theme.textTheme.bodyLarge?.copyWith(
             color: AppColors.textSecondary,
-            height: 1.5,
-            fontSize: scale.text(16, min: 14, max: 16),
+            height: compactChrome ? 1.35 : 1.5,
+            fontSize: compactChrome
+                ? scale.text(14, min: 13, max: 14)
+                : scale.text(16, min: 14, max: 16),
           ),
         ),
-        SizedBox(height: scale.space(AppSpacing.lg, min: 20, max: 24)),
+        SizedBox(
+          height: compactChrome
+              ? scale.space(14, min: 12, max: 16)
+              : scale.space(AppSpacing.lg, min: 20, max: 24),
+        ),
         Expanded(child: child),
       ],
     );
@@ -272,6 +285,7 @@ class _TimelineSectionFrame extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scale = AppScale.of(context);
+    final compactChrome = _useCompactTvChrome(scale);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -286,16 +300,24 @@ class _TimelineSectionFrame extends StatelessWidget {
                   title,
                   style: theme.textTheme.headlineMedium?.copyWith(
                     fontWeight: FontWeight.w800,
-                    fontSize: scale.text(34, min: 28, max: 34),
+                    fontSize: compactChrome
+                        ? scale.text(28, min: 24, max: 28)
+                        : scale.text(34, min: 28, max: 34),
                   ),
                 ),
-                SizedBox(height: scale.space(AppSpacing.xs, min: 8, max: 8)),
+                SizedBox(
+                  height: compactChrome
+                      ? scale.space(4, min: 4, max: 6)
+                      : scale.space(AppSpacing.xs, min: 8, max: 8),
+                ),
                 Text(
                   description,
                   style: theme.textTheme.bodyLarge?.copyWith(
                     color: AppColors.textSecondary,
-                    height: 1.5,
-                    fontSize: scale.text(16, min: 14, max: 16),
+                    height: compactChrome ? 1.35 : 1.5,
+                    fontSize: compactChrome
+                        ? scale.text(14, min: 13, max: 14)
+                        : scale.text(16, min: 14, max: 16),
                   ),
                 ),
               ],
@@ -312,7 +334,11 @@ class _TimelineSectionFrame extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   titleBlock,
-                  SizedBox(height: scale.space(AppSpacing.lg, min: 20, max: 24)),
+                  SizedBox(
+                    height: compactChrome
+                        ? scale.space(14, min: 12, max: 16)
+                        : scale.space(AppSpacing.lg, min: 20, max: 24),
+                  ),
                   yearRail,
                 ],
               );
@@ -331,7 +357,11 @@ class _TimelineSectionFrame extends StatelessWidget {
             );
           },
         ),
-        SizedBox(height: scale.space(AppSpacing.lg, min: 20, max: 24)),
+        SizedBox(
+          height: compactChrome
+              ? scale.space(14, min: 12, max: 16)
+              : scale.space(AppSpacing.lg, min: 20, max: 24),
+        ),
         Expanded(child: child),
       ],
     );
@@ -353,6 +383,7 @@ class _TimelineYearRail extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scale = AppScale.of(context);
+    final compactChrome = _useCompactTvChrome(scale);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -361,12 +392,20 @@ class _TimelineYearRail extends StatelessWidget {
           'Years',
           style: theme.textTheme.titleMedium?.copyWith(
             fontWeight: FontWeight.w800,
-            fontSize: scale.text(18, min: 15, max: 18),
+            fontSize: compactChrome
+                ? scale.text(16, min: 14, max: 16)
+                : scale.text(18, min: 15, max: 18),
           ),
         ),
-        SizedBox(height: scale.space(AppSpacing.sm, min: 10, max: 12)),
         SizedBox(
-          height: scale.sizeOf(70, min: 62, max: 70),
+          height: compactChrome
+              ? scale.space(8, min: 6, max: 8)
+              : scale.space(AppSpacing.sm, min: 10, max: 12),
+        ),
+        SizedBox(
+          height: compactChrome
+              ? scale.sizeOf(58, min: 52, max: 60)
+              : scale.sizeOf(70, min: 62, max: 70),
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
             itemCount: years.length,
@@ -643,11 +682,42 @@ String _sectionViewState(
 
 SliverGridDelegate _buildAssetGridDelegate(double availableWidth) {
   const spacing = 8.0;
+  final crossAxisCount = _resolveGridCrossAxisCount(availableWidth);
+  final aspectRatio = availableWidth >= 3200
+      ? 1.14
+      : availableWidth >= 2400
+      ? 1.08
+      : availableWidth >= 1600
+      ? 1.02
+      : 1.0;
 
   return SliverGridDelegateWithFixedCrossAxisCount(
-    crossAxisCount: 6,
+    crossAxisCount: crossAxisCount,
     mainAxisSpacing: spacing,
     crossAxisSpacing: spacing,
-    childAspectRatio: 1,
+    childAspectRatio: aspectRatio,
   );
+}
+
+int _resolveGridCrossAxisCount(double availableWidth) {
+  if (availableWidth >= 3200) {
+    return 10;
+  }
+  if (availableWidth >= 2600) {
+    return 8;
+  }
+  if (availableWidth >= 1900) {
+    return 7;
+  }
+  if (availableWidth >= 1400) {
+    return 6;
+  }
+  if (availableWidth >= 1100) {
+    return 5;
+  }
+  return 4;
+}
+
+bool _useCompactTvChrome(AppScale scale) {
+  return scale.isTvLayout && scale.size.height >= 900;
 }
