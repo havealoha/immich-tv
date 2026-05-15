@@ -8,6 +8,7 @@ class _AlbumSectionView extends StatelessWidget {
     required this.albums,
     required this.isSidebarOpen,
     required this.menuToggleFocusNode,
+    required this.primaryContentFocusNode,
     required this.onToggleSidebar,
   });
 
@@ -17,6 +18,7 @@ class _AlbumSectionView extends StatelessWidget {
   final List<AlbumSummary> albums;
   final bool isSidebarOpen;
   final FocusNode menuToggleFocusNode;
+  final FocusNode primaryContentFocusNode;
   final VoidCallback onToggleSidebar;
 
   @override
@@ -32,6 +34,7 @@ class _AlbumSectionView extends StatelessWidget {
         status: status,
         errorMessage: errorMessage,
         albums: albums,
+        primaryContentFocusNode: primaryContentFocusNode,
       ),
     );
   }
@@ -43,12 +46,14 @@ class _AlbumBrowser extends StatefulWidget {
     required this.status,
     required this.errorMessage,
     required this.albums,
+    required this.primaryContentFocusNode,
   });
 
   final AuthenticatedSession session;
   final LibraryLoadStatus status;
   final String? errorMessage;
   final List<AlbumSummary> albums;
+  final FocusNode primaryContentFocusNode;
 
   @override
   State<_AlbumBrowser> createState() => _AlbumBrowserState();
@@ -121,6 +126,7 @@ class _AlbumBrowserState extends State<_AlbumBrowser> {
           selectedAlbum: selectedAlbum,
           onAlbumSelected: _selectAlbum,
           horizontal: useStackedLayout,
+          primaryContentFocusNode: widget.primaryContentFocusNode,
         );
         final albumContent = _buildAlbumContent(selectedAlbum);
 
@@ -278,12 +284,14 @@ class _AlbumRail extends StatelessWidget {
     required this.selectedAlbum,
     required this.onAlbumSelected,
     required this.horizontal,
+    required this.primaryContentFocusNode,
   });
 
   final List<AlbumSummary> albums;
   final AlbumSummary selectedAlbum;
   final ValueChanged<AlbumSummary> onAlbumSelected;
   final bool horizontal;
+  final FocusNode primaryContentFocusNode;
 
   @override
   Widget build(BuildContext context) {
@@ -302,6 +310,7 @@ class _AlbumRail extends StatelessWidget {
           child: _AlbumSummaryTile(
             album: album,
             isSelected: album.id == selectedAlbum.id,
+            focusNode: index == 0 ? primaryContentFocusNode : null,
             onPressed: () => onAlbumSelected(album),
           ),
         );
@@ -314,11 +323,13 @@ class _AlbumSummaryTile extends StatefulWidget {
   const _AlbumSummaryTile({
     required this.album,
     required this.isSelected,
+    this.focusNode,
     required this.onPressed,
   });
 
   final AlbumSummary album;
   final bool isSelected;
+  final FocusNode? focusNode;
   final VoidCallback onPressed;
 
   @override
@@ -331,6 +342,7 @@ class _AlbumSummaryTileState extends State<_AlbumSummaryTile> {
     final theme = Theme.of(context);
     final scale = AppScale.of(context);
     return TvFocusable(
+      focusNode: widget.focusNode,
       onPressed: widget.onPressed,
       builder: (context, focusState) {
         final isActive = widget.isSelected || focusState.isActive;

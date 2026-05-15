@@ -37,6 +37,9 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   late final FocusNode _menuToggleFocusNode;
   late final List<FocusNode> _drawerFocusNodes;
+  late final FocusNode _timelineContentFocusNode;
+  late final FocusNode _albumsContentFocusNode;
+  late final FocusNode _favoritesContentFocusNode;
   bool _isSidebarOpen = false;
 
   @override
@@ -47,6 +50,9 @@ class _HomeScreenState extends State<HomeScreen> {
       5,
       (index) => FocusNode(debugLabel: 'home-drawer-$index'),
     );
+    _timelineContentFocusNode = FocusNode(debugLabel: 'home-timeline-content');
+    _albumsContentFocusNode = FocusNode(debugLabel: 'home-albums-content');
+    _favoritesContentFocusNode = FocusNode(debugLabel: 'home-favorites-content');
   }
 
   @override
@@ -55,6 +61,9 @@ class _HomeScreenState extends State<HomeScreen> {
     for (final node in _drawerFocusNodes) {
       node.dispose();
     }
+    _timelineContentFocusNode.dispose();
+    _albumsContentFocusNode.dispose();
+    _favoritesContentFocusNode.dispose();
     super.dispose();
   }
 
@@ -76,7 +85,10 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
-  void _closeSidebar() {
+  void _closeSidebar({
+    bool focusMenuToggle = true,
+    LibraryTab? focusContentTab,
+  }) {
     if (!_isSidebarOpen) {
       return;
     }
@@ -85,8 +97,27 @@ class _HomeScreenState extends State<HomeScreen> {
       if (!mounted) {
         return;
       }
-      _menuToggleFocusNode.requestFocus();
+      if (focusContentTab != null && _requestContentFocus(focusContentTab)) {
+        return;
+      }
+      if (focusMenuToggle) {
+        _menuToggleFocusNode.requestFocus();
+      }
     });
+  }
+
+  bool _requestContentFocus(LibraryTab tab) {
+    final focusNode = switch (tab) {
+      LibraryTab.timeline => _timelineContentFocusNode,
+      LibraryTab.albums => _albumsContentFocusNode,
+      LibraryTab.favorites => _favoritesContentFocusNode,
+    };
+
+    if (focusNode.context == null || !focusNode.canRequestFocus) {
+      return false;
+    }
+    focusNode.requestFocus();
+    return true;
   }
 
   @override
@@ -118,6 +149,9 @@ class _HomeScreenState extends State<HomeScreen> {
                           state: state,
                           isSidebarOpen: _isSidebarOpen,
                           menuToggleFocusNode: _menuToggleFocusNode,
+                          timelineContentFocusNode: _timelineContentFocusNode,
+                          albumsContentFocusNode: _albumsContentFocusNode,
+                          favoritesContentFocusNode: _favoritesContentFocusNode,
                           onToggleSidebar: _toggleSidebar,
                         ),
                       ),
@@ -131,19 +165,22 @@ class _HomeScreenState extends State<HomeScreen> {
                             curve: Curves.easeOutCubic,
                             alignment: Alignment.centerLeft,
                             widthFactor: _isSidebarOpen ? 1 : 0,
-                            child: IgnorePointer(
-                              ignoring: !_isSidebarOpen,
-                              child: SizedBox(
-                                width: sidebarWidth,
-                                child: AnimatedOpacity(
-                                  duration: const Duration(milliseconds: 160),
-                                  opacity: _isSidebarOpen ? 1 : 0,
-                                  child: _Sidebar(
-                                    session: widget.session,
-                                    state: state,
-                                    width: sidebarWidth,
-                                    focusNodes: _drawerFocusNodes,
-                                    onCloseSidebar: _closeSidebar,
+                            child: ExcludeFocus(
+                              excluding: !_isSidebarOpen,
+                              child: IgnorePointer(
+                                ignoring: !_isSidebarOpen,
+                                child: SizedBox(
+                                  width: sidebarWidth,
+                                  child: AnimatedOpacity(
+                                    duration: const Duration(milliseconds: 160),
+                                    opacity: _isSidebarOpen ? 1 : 0,
+                                    child: _Sidebar(
+                                      session: widget.session,
+                                      state: state,
+                                      width: sidebarWidth,
+                                      focusNodes: _drawerFocusNodes,
+                                      onCloseSidebar: _closeSidebar,
+                                    ),
                                   ),
                                 ),
                               ),
@@ -176,7 +213,10 @@ class _Sidebar extends StatelessWidget {
   final LibraryState state;
   final double width;
   final List<FocusNode> focusNodes;
-  final VoidCallback onCloseSidebar;
+  final void Function({
+    bool focusMenuToggle,
+    LibraryTab? focusContentTab,
+  }) onCloseSidebar;
 
   @override
   Widget build(BuildContext context) {
@@ -207,7 +247,10 @@ class _Sidebar extends StatelessWidget {
           ),
           _CloseDrawerIntent: CallbackAction<_CloseDrawerIntent>(
             onInvoke: (_) {
-              onCloseSidebar();
+              onCloseSidebar(
+                focusMenuToggle: false,
+                focusContentTab: state.selectedTab,
+              );
               return null;
             },
           ),
@@ -247,7 +290,10 @@ class _Sidebar extends StatelessWidget {
                         isSelected: state.selectedTab == LibraryTab.timeline,
                         onPressed: () {
                           context.read<LibraryCubit>().selectTab(LibraryTab.timeline);
-                          onCloseSidebar();
+                          onCloseSidebar(
+                            focusMenuToggle: false,
+                            focusContentTab: LibraryTab.timeline,
+                          );
                         },
                         focusNode: focusNodes[0],
                       ),
@@ -259,7 +305,10 @@ class _Sidebar extends StatelessWidget {
                         isSelected: state.selectedTab == LibraryTab.albums,
                         onPressed: () {
                           context.read<LibraryCubit>().selectTab(LibraryTab.albums);
-                          onCloseSidebar();
+                          onCloseSidebar(
+                            focusMenuToggle: false,
+                            focusContentTab: LibraryTab.albums,
+                          );
                         },
                         focusNode: focusNodes[1],
                       ),
@@ -273,7 +322,10 @@ class _Sidebar extends StatelessWidget {
                           context.read<LibraryCubit>().selectTab(
                             LibraryTab.favorites,
                           );
-                          onCloseSidebar();
+                          onCloseSidebar(
+                            focusMenuToggle: false,
+                            focusContentTab: LibraryTab.favorites,
+                          );
                         },
                         focusNode: focusNodes[2],
                       ),
@@ -530,6 +582,9 @@ class _ContentPane extends StatelessWidget {
     required this.state,
     required this.isSidebarOpen,
     required this.menuToggleFocusNode,
+    required this.timelineContentFocusNode,
+    required this.albumsContentFocusNode,
+    required this.favoritesContentFocusNode,
     required this.onToggleSidebar,
   });
 
@@ -537,6 +592,9 @@ class _ContentPane extends StatelessWidget {
   final LibraryState state;
   final bool isSidebarOpen;
   final FocusNode menuToggleFocusNode;
+  final FocusNode timelineContentFocusNode;
+  final FocusNode albumsContentFocusNode;
+  final FocusNode favoritesContentFocusNode;
   final VoidCallback onToggleSidebar;
 
   @override
@@ -565,6 +623,9 @@ class _ContentPane extends StatelessWidget {
             session: session,
             isSidebarOpen: isSidebarOpen,
             menuToggleFocusNode: menuToggleFocusNode,
+            timelineContentFocusNode: timelineContentFocusNode,
+            albumsContentFocusNode: albumsContentFocusNode,
+            favoritesContentFocusNode: favoritesContentFocusNode,
             onToggleSidebar: onToggleSidebar,
           ),
         );
@@ -640,6 +701,9 @@ class _LibraryContent extends StatelessWidget {
     required this.session,
     required this.isSidebarOpen,
     required this.menuToggleFocusNode,
+    required this.timelineContentFocusNode,
+    required this.albumsContentFocusNode,
+    required this.favoritesContentFocusNode,
     required this.onToggleSidebar,
   });
 
@@ -647,6 +711,9 @@ class _LibraryContent extends StatelessWidget {
   final AuthenticatedSession session;
   final bool isSidebarOpen;
   final FocusNode menuToggleFocusNode;
+  final FocusNode timelineContentFocusNode;
+  final FocusNode albumsContentFocusNode;
+  final FocusNode favoritesContentFocusNode;
   final VoidCallback onToggleSidebar;
 
   @override
@@ -665,6 +732,7 @@ class _LibraryContent extends StatelessWidget {
         emptyMessage: 'No timeline assets are available yet.',
         isSidebarOpen: isSidebarOpen,
         menuToggleFocusNode: menuToggleFocusNode,
+        primaryContentFocusNode: timelineContentFocusNode,
         onToggleSidebar: onToggleSidebar,
       ),
       LibraryTab.albums => _AlbumSectionView(
@@ -674,6 +742,7 @@ class _LibraryContent extends StatelessWidget {
         albums: state.albums,
         isSidebarOpen: isSidebarOpen,
         menuToggleFocusNode: menuToggleFocusNode,
+        primaryContentFocusNode: albumsContentFocusNode,
         onToggleSidebar: onToggleSidebar,
       ),
       LibraryTab.favorites => _AssetSectionView(
@@ -688,6 +757,7 @@ class _LibraryContent extends StatelessWidget {
         emptyMessage: 'No favorite assets are available yet.',
         isSidebarOpen: isSidebarOpen,
         menuToggleFocusNode: menuToggleFocusNode,
+        primaryContentFocusNode: favoritesContentFocusNode,
         onToggleSidebar: onToggleSidebar,
       ),
     };

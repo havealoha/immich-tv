@@ -14,6 +14,7 @@ class _TimelineSectionView extends StatelessWidget {
     required this.emptyMessage,
     required this.isSidebarOpen,
     required this.menuToggleFocusNode,
+    required this.primaryContentFocusNode,
     required this.onToggleSidebar,
   });
 
@@ -29,6 +30,7 @@ class _TimelineSectionView extends StatelessWidget {
   final String emptyMessage;
   final bool isSidebarOpen;
   final FocusNode menuToggleFocusNode;
+  final FocusNode primaryContentFocusNode;
   final VoidCallback onToggleSidebar;
 
   @override
@@ -111,6 +113,7 @@ class _TimelineSectionView extends StatelessWidget {
               session: session,
               group: group,
               allAssets: assets,
+              primaryContentFocusNode: primaryContentFocusNode,
             ),
           );
         },
@@ -132,6 +135,7 @@ class _AssetSectionView extends StatelessWidget {
     required this.emptyMessage,
     required this.isSidebarOpen,
     required this.menuToggleFocusNode,
+    required this.primaryContentFocusNode,
     required this.onToggleSidebar,
   });
 
@@ -146,6 +150,7 @@ class _AssetSectionView extends StatelessWidget {
   final String emptyMessage;
   final bool isSidebarOpen;
   final FocusNode menuToggleFocusNode;
+  final FocusNode primaryContentFocusNode;
   final VoidCallback onToggleSidebar;
 
   @override
@@ -216,6 +221,7 @@ class _AssetSectionView extends StatelessWidget {
                 session: session,
                 asset: asset,
                 autofocus: index == 0,
+                focusNode: index == 0 ? primaryContentFocusNode : null,
                 prefetchUrls: _nearbyThumbnailUrls(assets, index),
                 onPressed: () => AssetViewerScreen.show(
                   context,
@@ -237,11 +243,13 @@ class _TimelineDaySection extends StatelessWidget {
     required this.session,
     required this.group,
     required this.allAssets,
+    required this.primaryContentFocusNode,
   });
 
   final AuthenticatedSession session;
   final _TimelineDayGroup group;
   final List<AssetSummary> allAssets;
+  final FocusNode primaryContentFocusNode;
 
   @override
   Widget build(BuildContext context) {
@@ -272,6 +280,7 @@ class _TimelineDaySection extends StatelessWidget {
                   session: session,
                   asset: item.asset,
                   autofocus: item.globalIndex == 0,
+                  focusNode: item.globalIndex == 0 ? primaryContentFocusNode : null,
                   prefetchUrls: _nearbyThumbnailUrls(
                     allAssets,
                     item.globalIndex,
@@ -297,6 +306,7 @@ class _AssetTile extends StatefulWidget {
     required this.session,
     required this.asset,
     required this.autofocus,
+    this.focusNode,
     required this.prefetchUrls,
     required this.onPressed,
   });
@@ -304,6 +314,7 @@ class _AssetTile extends StatefulWidget {
   final AuthenticatedSession session;
   final AssetSummary asset;
   final bool autofocus;
+  final FocusNode? focusNode;
   final List<List<String>> prefetchUrls;
   final VoidCallback onPressed;
 
@@ -327,6 +338,7 @@ class _AssetTileState extends State<_AssetTile> {
     final theme = Theme.of(context);
     final scale = AppScale.of(context);
     return TvFocusable(
+      focusNode: widget.focusNode,
       autofocus: widget.autofocus,
       onPressed: widget.onPressed,
       onFocusChange: (isFocused) {
