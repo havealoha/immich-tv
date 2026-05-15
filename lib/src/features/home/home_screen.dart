@@ -96,21 +96,27 @@ class _HomeScreenState extends State<HomeScreen> {
 
                   return Row(
                     children: [
-                      AnimatedContainer(
-                        duration: const Duration(milliseconds: 220),
-                        curve: Curves.easeOutCubic,
-                        width: _isSidebarOpen ? sidebarWidth : 0,
-                        child: IgnorePointer(
-                          ignoring: !_isSidebarOpen,
-                          child: AnimatedOpacity(
-                            duration: const Duration(milliseconds: 160),
-                            opacity: _isSidebarOpen ? 1 : 0,
-                            child: _Sidebar(
-                              session: widget.session,
-                              state: state,
+                      ClipRect(
+                        child: AnimatedAlign(
+                          duration: const Duration(milliseconds: 220),
+                          curve: Curves.easeOutCubic,
+                          alignment: Alignment.centerLeft,
+                          widthFactor: _isSidebarOpen ? 1 : 0,
+                          child: IgnorePointer(
+                            ignoring: !_isSidebarOpen,
+                            child: SizedBox(
                               width: sidebarWidth,
-                              primaryFocusNode: _sidebarPrimaryFocusNode,
-                              onToggleSidebar: _toggleSidebar,
+                              child: AnimatedOpacity(
+                                duration: const Duration(milliseconds: 160),
+                                opacity: _isSidebarOpen ? 1 : 0,
+                                child: _Sidebar(
+                                  session: widget.session,
+                                  state: state,
+                                  width: sidebarWidth,
+                                  primaryFocusNode: _sidebarPrimaryFocusNode,
+                                  onToggleSidebar: _toggleSidebar,
+                                ),
+                              ),
                             ),
                           ),
                         ),
@@ -202,9 +208,10 @@ class _Sidebar extends StatelessWidget {
                     subtitle: 'All photos',
                     icon: Icons.grid_view_rounded,
                     isSelected: state.selectedTab == LibraryTab.timeline,
-                    onPressed: () => context.read<LibraryCubit>().selectTab(
-                      LibraryTab.timeline,
-                    ),
+                    onPressed: () {
+                      context.read<LibraryCubit>().selectTab(LibraryTab.timeline);
+                      onToggleSidebar();
+                    },
                     focusNode: primaryFocusNode,
                   ),
                   SizedBox(height: scale.space(AppSpacing.xs, min: 8, max: 8)),
@@ -213,9 +220,10 @@ class _Sidebar extends StatelessWidget {
                     subtitle: 'Curated collections',
                     icon: Icons.photo_album_outlined,
                     isSelected: state.selectedTab == LibraryTab.albums,
-                    onPressed: () => context.read<LibraryCubit>().selectTab(
-                      LibraryTab.albums,
-                    ),
+                    onPressed: () {
+                      context.read<LibraryCubit>().selectTab(LibraryTab.albums);
+                      onToggleSidebar();
+                    },
                   ),
                   SizedBox(height: scale.space(AppSpacing.xs, min: 8, max: 8)),
                   _SidebarMenuButton(
@@ -223,9 +231,12 @@ class _Sidebar extends StatelessWidget {
                     subtitle: 'Saved highlights',
                     icon: Icons.favorite_border,
                     isSelected: state.selectedTab == LibraryTab.favorites,
-                    onPressed: () => context.read<LibraryCubit>().selectTab(
-                      LibraryTab.favorites,
-                    ),
+                    onPressed: () {
+                      context.read<LibraryCubit>().selectTab(
+                        LibraryTab.favorites,
+                      );
+                      onToggleSidebar();
+                    },
                   ),
                 ],
               ),
