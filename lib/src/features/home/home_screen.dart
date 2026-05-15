@@ -75,14 +75,28 @@ class _HomeScreenState extends State<HomeScreen> {
     _openSidebar();
   }
 
-  void _openSidebar() {
+  void _openSidebar({int? focusIndex}) {
     setState(() => _isSidebarOpen = true);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) {
         return;
       }
-      _drawerFocusNodes.first.requestFocus();
+      final drawerIndex = switch (focusIndex) {
+        final int index when index >= 0 && index < _drawerFocusNodes.length => index,
+        _ => 0,
+      };
+      _drawerFocusNodes[drawerIndex].requestFocus();
     });
+  }
+
+  void _openSidebarForTab(LibraryTab tab) {
+    _openSidebar(
+      focusIndex: switch (tab) {
+        LibraryTab.timeline => 0,
+        LibraryTab.albums => 1,
+        LibraryTab.favorites => 2,
+      },
+    );
   }
 
   void _closeSidebar({
@@ -153,6 +167,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           albumsContentFocusNode: _albumsContentFocusNode,
                           favoritesContentFocusNode: _favoritesContentFocusNode,
                           onToggleSidebar: _toggleSidebar,
+                          onOpenSidebarForTab: _openSidebarForTab,
                         ),
                       ),
                       Positioned(
@@ -586,6 +601,7 @@ class _ContentPane extends StatelessWidget {
     required this.albumsContentFocusNode,
     required this.favoritesContentFocusNode,
     required this.onToggleSidebar,
+    required this.onOpenSidebarForTab,
   });
 
   final AuthenticatedSession session;
@@ -596,6 +612,7 @@ class _ContentPane extends StatelessWidget {
   final FocusNode albumsContentFocusNode;
   final FocusNode favoritesContentFocusNode;
   final VoidCallback onToggleSidebar;
+  final ValueChanged<LibraryTab> onOpenSidebarForTab;
 
   @override
   Widget build(BuildContext context) {
@@ -627,6 +644,7 @@ class _ContentPane extends StatelessWidget {
             albumsContentFocusNode: albumsContentFocusNode,
             favoritesContentFocusNode: favoritesContentFocusNode,
             onToggleSidebar: onToggleSidebar,
+            onOpenSidebarForTab: onOpenSidebarForTab,
           ),
         );
       },
@@ -705,6 +723,7 @@ class _LibraryContent extends StatelessWidget {
     required this.albumsContentFocusNode,
     required this.favoritesContentFocusNode,
     required this.onToggleSidebar,
+    required this.onOpenSidebarForTab,
   });
 
   final LibraryState state;
@@ -715,6 +734,7 @@ class _LibraryContent extends StatelessWidget {
   final FocusNode albumsContentFocusNode;
   final FocusNode favoritesContentFocusNode;
   final VoidCallback onToggleSidebar;
+  final ValueChanged<LibraryTab> onOpenSidebarForTab;
 
   @override
   Widget build(BuildContext context) {
@@ -734,6 +754,7 @@ class _LibraryContent extends StatelessWidget {
         menuToggleFocusNode: menuToggleFocusNode,
         primaryContentFocusNode: timelineContentFocusNode,
         onToggleSidebar: onToggleSidebar,
+        onOpenSidebar: () => onOpenSidebarForTab(LibraryTab.timeline),
       ),
       LibraryTab.albums => _AlbumSectionView(
         session: session,
@@ -744,6 +765,7 @@ class _LibraryContent extends StatelessWidget {
         menuToggleFocusNode: menuToggleFocusNode,
         primaryContentFocusNode: albumsContentFocusNode,
         onToggleSidebar: onToggleSidebar,
+        onOpenSidebar: () => onOpenSidebarForTab(LibraryTab.albums),
       ),
       LibraryTab.favorites => _AssetSectionView(
         session: session,
@@ -759,6 +781,7 @@ class _LibraryContent extends StatelessWidget {
         menuToggleFocusNode: menuToggleFocusNode,
         primaryContentFocusNode: favoritesContentFocusNode,
         onToggleSidebar: onToggleSidebar,
+        onOpenSidebar: () => onOpenSidebarForTab(LibraryTab.favorites),
       ),
     };
   }
@@ -772,4 +795,8 @@ class _DrawerMoveIntent extends Intent {
   const _DrawerMoveIntent(this.delta);
 
   final int delta;
+}
+
+class _OpenDrawerIntent extends Intent {
+  const _OpenDrawerIntent();
 }

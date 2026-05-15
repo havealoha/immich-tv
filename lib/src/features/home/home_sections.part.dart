@@ -16,6 +16,7 @@ class _TimelineSectionView extends StatelessWidget {
     required this.menuToggleFocusNode,
     required this.primaryContentFocusNode,
     required this.onToggleSidebar,
+    required this.onOpenSidebar,
   });
 
   final AuthenticatedSession session;
@@ -32,6 +33,7 @@ class _TimelineSectionView extends StatelessWidget {
   final FocusNode menuToggleFocusNode;
   final FocusNode primaryContentFocusNode;
   final VoidCallback onToggleSidebar;
+  final VoidCallback onOpenSidebar;
 
   @override
   Widget build(BuildContext context) {
@@ -114,6 +116,7 @@ class _TimelineSectionView extends StatelessWidget {
               group: group,
               allAssets: assets,
               primaryContentFocusNode: primaryContentFocusNode,
+              onOpenSidebar: onOpenSidebar,
             ),
           );
         },
@@ -137,6 +140,7 @@ class _AssetSectionView extends StatelessWidget {
     required this.menuToggleFocusNode,
     required this.primaryContentFocusNode,
     required this.onToggleSidebar,
+    required this.onOpenSidebar,
   });
 
   final AuthenticatedSession session;
@@ -152,6 +156,7 @@ class _AssetSectionView extends StatelessWidget {
   final FocusNode menuToggleFocusNode;
   final FocusNode primaryContentFocusNode;
   final VoidCallback onToggleSidebar;
+  final VoidCallback onOpenSidebar;
 
   @override
   Widget build(BuildContext context) {
@@ -204,6 +209,7 @@ class _AssetSectionView extends StatelessWidget {
       },
       child: LayoutBuilder(
         builder: (context, constraints) {
+          final crossAxisCount = _resolveGridCrossAxisCount(constraints.maxWidth);
           return GridView.builder(
             cacheExtent: 240,
             gridDelegate: _buildAssetGridDelegate(constraints.maxWidth),
@@ -222,6 +228,8 @@ class _AssetSectionView extends StatelessWidget {
                 asset: asset,
                 autofocus: index == 0,
                 focusNode: index == 0 ? primaryContentFocusNode : null,
+                openDrawerOnLeft: index % crossAxisCount == 0,
+                onOpenDrawer: onOpenSidebar,
                 prefetchUrls: _nearbyThumbnailUrls(assets, index),
                 onPressed: () => AssetViewerScreen.show(
                   context,
@@ -244,12 +252,14 @@ class _TimelineDaySection extends StatelessWidget {
     required this.group,
     required this.allAssets,
     required this.primaryContentFocusNode,
+    required this.onOpenSidebar,
   });
 
   final AuthenticatedSession session;
   final _TimelineDayGroup group;
   final List<AssetSummary> allAssets;
   final FocusNode primaryContentFocusNode;
+  final VoidCallback onOpenSidebar;
 
   @override
   Widget build(BuildContext context) {
@@ -257,6 +267,7 @@ class _TimelineDaySection extends StatelessWidget {
     final scale = AppScale.of(context);
     return LayoutBuilder(
       builder: (context, constraints) {
+        final crossAxisCount = _resolveGridCrossAxisCount(constraints.maxWidth);
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -281,6 +292,8 @@ class _TimelineDaySection extends StatelessWidget {
                   asset: item.asset,
                   autofocus: item.globalIndex == 0,
                   focusNode: item.globalIndex == 0 ? primaryContentFocusNode : null,
+                  openDrawerOnLeft: index % crossAxisCount == 0,
+                  onOpenDrawer: onOpenSidebar,
                   prefetchUrls: _nearbyThumbnailUrls(
                     allAssets,
                     item.globalIndex,
@@ -307,6 +320,8 @@ class _AssetTile extends StatefulWidget {
     required this.asset,
     required this.autofocus,
     this.focusNode,
+    this.openDrawerOnLeft = false,
+    this.onOpenDrawer,
     required this.prefetchUrls,
     required this.onPressed,
   });
@@ -315,6 +330,8 @@ class _AssetTile extends StatefulWidget {
   final AssetSummary asset;
   final bool autofocus;
   final FocusNode? focusNode;
+  final bool openDrawerOnLeft;
+  final VoidCallback? onOpenDrawer;
   final List<List<String>> prefetchUrls;
   final VoidCallback onPressed;
 
@@ -337,7 +354,7 @@ class _AssetTileState extends State<_AssetTile> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scale = AppScale.of(context);
-    return TvFocusable(
+    final tile = TvFocusable(
       focusNode: widget.focusNode,
       autofocus: widget.autofocus,
       onPressed: widget.onPressed,
@@ -429,6 +446,27 @@ class _AssetTileState extends State<_AssetTile> {
           ),
         );
       },
+    );
+
+    if (!widget.openDrawerOnLeft || widget.onOpenDrawer == null) {
+      return tile;
+    }
+
+    return Shortcuts(
+      shortcuts: const <ShortcutActivator, Intent>{
+        SingleActivator(LogicalKeyboardKey.arrowLeft): _OpenDrawerIntent(),
+      },
+      child: Actions(
+        actions: <Type, Action<Intent>>{
+          _OpenDrawerIntent: CallbackAction<_OpenDrawerIntent>(
+            onInvoke: (_) {
+              widget.onOpenDrawer?.call();
+              return null;
+            },
+          ),
+        },
+        child: tile,
+      ),
     );
   }
 

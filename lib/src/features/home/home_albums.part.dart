@@ -10,6 +10,7 @@ class _AlbumSectionView extends StatelessWidget {
     required this.menuToggleFocusNode,
     required this.primaryContentFocusNode,
     required this.onToggleSidebar,
+    required this.onOpenSidebar,
   });
 
   final AuthenticatedSession session;
@@ -20,6 +21,7 @@ class _AlbumSectionView extends StatelessWidget {
   final FocusNode menuToggleFocusNode;
   final FocusNode primaryContentFocusNode;
   final VoidCallback onToggleSidebar;
+  final VoidCallback onOpenSidebar;
 
   @override
   Widget build(BuildContext context) {
@@ -35,6 +37,7 @@ class _AlbumSectionView extends StatelessWidget {
         errorMessage: errorMessage,
         albums: albums,
         primaryContentFocusNode: primaryContentFocusNode,
+        onOpenSidebar: onOpenSidebar,
       ),
     );
   }
@@ -47,6 +50,7 @@ class _AlbumBrowser extends StatefulWidget {
     required this.errorMessage,
     required this.albums,
     required this.primaryContentFocusNode,
+    required this.onOpenSidebar,
   });
 
   final AuthenticatedSession session;
@@ -54,6 +58,7 @@ class _AlbumBrowser extends StatefulWidget {
   final String? errorMessage;
   final List<AlbumSummary> albums;
   final FocusNode primaryContentFocusNode;
+  final VoidCallback onOpenSidebar;
 
   @override
   State<_AlbumBrowser> createState() => _AlbumBrowserState();
@@ -204,6 +209,7 @@ class _AlbumBrowserState extends State<_AlbumBrowser> {
       hasMore: _albumAssetsNextPage != null && _albumAssetsNextPage!.isNotEmpty,
       isLoadingMore: _isLoadingAlbumAssets && _albumAssets.isNotEmpty,
       onLoadMore: _loadMoreAlbumAssets,
+      onOpenSidebar: widget.onOpenSidebar,
     );
   }
 
@@ -396,6 +402,7 @@ class _AlbumAssetGrid extends StatelessWidget {
     required this.hasMore,
     required this.isLoadingMore,
     required this.onLoadMore,
+    required this.onOpenSidebar,
   });
 
   final AuthenticatedSession session;
@@ -404,6 +411,7 @@ class _AlbumAssetGrid extends StatelessWidget {
   final bool hasMore;
   final bool isLoadingMore;
   final VoidCallback onLoadMore;
+  final VoidCallback onOpenSidebar;
 
   @override
   Widget build(BuildContext context) {
@@ -444,6 +452,9 @@ class _AlbumAssetGrid extends StatelessWidget {
             },
             child: LayoutBuilder(
               builder: (context, constraints) {
+                final crossAxisCount = _resolveGridCrossAxisCount(
+                  constraints.maxWidth,
+                );
                 return GridView.builder(
                   cacheExtent: 240,
                   gridDelegate: _buildAssetGridDelegate(constraints.maxWidth),
@@ -461,6 +472,8 @@ class _AlbumAssetGrid extends StatelessWidget {
                       session: session,
                       asset: asset,
                       autofocus: index == 0,
+                      openDrawerOnLeft: index % crossAxisCount == 0,
+                      onOpenDrawer: onOpenSidebar,
                       prefetchUrls: _nearbyThumbnailUrls(assets, index),
                       onPressed: () => AssetViewerScreen.show(
                         context,
