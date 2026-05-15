@@ -4,11 +4,19 @@ class _SectionFrame extends StatelessWidget {
   const _SectionFrame({
     required this.title,
     required this.description,
+    required this.isSidebarOpen,
+    required this.menuToggleFocusNode,
+    required this.onToggleSidebar,
+    required this.onContentFocus,
     required this.child,
   });
 
   final String title;
   final String description;
+  final bool isSidebarOpen;
+  final FocusNode menuToggleFocusNode;
+  final VoidCallback onToggleSidebar;
+  final VoidCallback onContentFocus;
   final Widget child;
 
   @override
@@ -19,14 +27,31 @@ class _SectionFrame extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          title,
-          style: theme.textTheme.headlineMedium?.copyWith(
-            fontWeight: FontWeight.w800,
-            fontSize: compactChrome
-                ? scale.text(28, min: 24, max: 28)
-                : scale.text(34, min: 28, max: 34),
-          ),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            _MenuToggleButton(
+              focusNode: menuToggleFocusNode,
+              icon: isSidebarOpen
+                  ? Icons.menu_open_rounded
+                  : Icons.menu_rounded,
+              label: 'Menu',
+              compact: true,
+              onPressed: onToggleSidebar,
+            ),
+            SizedBox(width: scale.space(AppSpacing.sm, min: 10, max: 12)),
+            Expanded(
+              child: Text(
+                title,
+                style: theme.textTheme.headlineMedium?.copyWith(
+                  fontWeight: FontWeight.w800,
+                  fontSize: compactChrome
+                      ? scale.text(28, min: 24, max: 28)
+                      : scale.text(34, min: 28, max: 34),
+                ),
+              ),
+            ),
+          ],
         ),
         SizedBox(
           height: compactChrome
@@ -271,6 +296,10 @@ class _TimelineSectionFrame extends StatelessWidget {
     required this.years,
     required this.selectedYear,
     required this.onYearSelected,
+    required this.isSidebarOpen,
+    required this.menuToggleFocusNode,
+    required this.onToggleSidebar,
+    required this.onContentFocus,
     required this.child,
   });
 
@@ -279,6 +308,10 @@ class _TimelineSectionFrame extends StatelessWidget {
   final List<int> years;
   final int? selectedYear;
   final ValueChanged<int> onYearSelected;
+  final bool isSidebarOpen;
+  final FocusNode menuToggleFocusNode;
+  final VoidCallback onToggleSidebar;
+  final VoidCallback onContentFocus;
   final Widget child;
 
   @override
@@ -296,14 +329,33 @@ class _TimelineSectionFrame extends StatelessWidget {
             final titleBlock = Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  title,
-                  style: theme.textTheme.headlineMedium?.copyWith(
-                    fontWeight: FontWeight.w800,
-                    fontSize: compactChrome
-                        ? scale.text(28, min: 24, max: 28)
-                        : scale.text(34, min: 28, max: 34),
-                  ),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    _MenuToggleButton(
+                      focusNode: menuToggleFocusNode,
+                      icon: isSidebarOpen
+                          ? Icons.menu_open_rounded
+                          : Icons.menu_rounded,
+                      label: 'Menu',
+                      compact: true,
+                      onPressed: onToggleSidebar,
+                    ),
+                    SizedBox(
+                      width: scale.space(AppSpacing.sm, min: 10, max: 12),
+                    ),
+                    Expanded(
+                      child: Text(
+                        title,
+                        style: theme.textTheme.headlineMedium?.copyWith(
+                          fontWeight: FontWeight.w800,
+                          fontSize: compactChrome
+                              ? scale.text(28, min: 24, max: 28)
+                              : scale.text(34, min: 28, max: 34),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
                 SizedBox(
                   height: compactChrome
@@ -327,6 +379,7 @@ class _TimelineSectionFrame extends StatelessWidget {
               years: years,
               selectedYear: selectedYear,
               onYearSelected: onYearSelected,
+              onYearFocused: onContentFocus,
             );
 
             if (useStackedLayout) {
@@ -373,11 +426,13 @@ class _TimelineYearRail extends StatelessWidget {
     required this.years,
     required this.selectedYear,
     required this.onYearSelected,
+    required this.onYearFocused,
   });
 
   final List<int> years;
   final int? selectedYear;
   final ValueChanged<int> onYearSelected;
+  final VoidCallback onYearFocused;
 
   @override
   Widget build(BuildContext context) {
@@ -418,6 +473,7 @@ class _TimelineYearRail extends StatelessWidget {
                 year: year,
                 isSelected: year == selectedYear,
                 autofocus: year == selectedYear,
+                onFocused: onYearFocused,
                 onPressed: () => onYearSelected(year),
               );
             },
@@ -433,6 +489,7 @@ class _TimelineYearChip extends StatefulWidget {
     required this.year,
     required this.isSelected,
     required this.onPressed,
+    this.onFocused,
     this.autofocus = false,
   });
 
@@ -440,6 +497,7 @@ class _TimelineYearChip extends StatefulWidget {
   final bool isSelected;
   final bool autofocus;
   final VoidCallback onPressed;
+  final VoidCallback? onFocused;
 
   @override
   State<_TimelineYearChip> createState() => _TimelineYearChipState();
@@ -454,6 +512,11 @@ class _TimelineYearChipState extends State<_TimelineYearChip> {
     return TvFocusable(
       autofocus: widget.autofocus,
       onPressed: widget.onPressed,
+      onFocusChange: (isFocused) {
+        if (isFocused) {
+          widget.onFocused?.call();
+        }
+      },
       builder: (context, focusState) {
         final isFocused = focusState.isFocused;
         final isSelected = widget.isSelected;

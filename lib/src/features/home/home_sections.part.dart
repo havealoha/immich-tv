@@ -12,6 +12,10 @@ class _TimelineSectionView extends StatelessWidget {
     required this.hasMore,
     required this.isLoadingMore,
     required this.emptyMessage,
+    required this.isSidebarOpen,
+    required this.menuToggleFocusNode,
+    required this.onToggleSidebar,
+    required this.onContentFocus,
   });
 
   final AuthenticatedSession session;
@@ -24,6 +28,10 @@ class _TimelineSectionView extends StatelessWidget {
   final bool hasMore;
   final bool isLoadingMore;
   final String emptyMessage;
+  final bool isSidebarOpen;
+  final FocusNode menuToggleFocusNode;
+  final VoidCallback onToggleSidebar;
+  final VoidCallback onContentFocus;
 
   @override
   Widget build(BuildContext context) {
@@ -34,6 +42,10 @@ class _TimelineSectionView extends StatelessWidget {
       selectedYear: selectedYear,
       onYearSelected: (year) =>
           context.read<LibraryCubit>().selectTimelineYear(year),
+      isSidebarOpen: isSidebarOpen,
+      menuToggleFocusNode: menuToggleFocusNode,
+      onToggleSidebar: onToggleSidebar,
+      onContentFocus: onContentFocus,
       child: _AnimatedSectionSwap(
         switchKey: 'timeline-$selectedYear-${_sectionViewState(status, assets)}',
         child: _buildBody(context),
@@ -121,6 +133,10 @@ class _AssetSectionView extends StatelessWidget {
     required this.hasMore,
     required this.isLoadingMore,
     required this.emptyMessage,
+    required this.isSidebarOpen,
+    required this.menuToggleFocusNode,
+    required this.onToggleSidebar,
+    required this.onContentFocus,
   });
 
   final AuthenticatedSession session;
@@ -132,12 +148,20 @@ class _AssetSectionView extends StatelessWidget {
   final bool hasMore;
   final bool isLoadingMore;
   final String emptyMessage;
+  final bool isSidebarOpen;
+  final FocusNode menuToggleFocusNode;
+  final VoidCallback onToggleSidebar;
+  final VoidCallback onContentFocus;
 
   @override
   Widget build(BuildContext context) {
     return _SectionFrame(
       title: title,
       description: description,
+      isSidebarOpen: isSidebarOpen,
+      menuToggleFocusNode: menuToggleFocusNode,
+      onToggleSidebar: onToggleSidebar,
+      onContentFocus: onContentFocus,
       child: _AnimatedSectionSwap(
         switchKey: 'assets-$title-${_sectionViewState(status, assets)}',
         child: _buildBody(context),
@@ -198,6 +222,7 @@ class _AssetSectionView extends StatelessWidget {
                 session: session,
                 asset: asset,
                 autofocus: index == 0,
+                onFocused: onContentFocus,
                 prefetchUrls: _nearbyThumbnailUrls(assets, index),
                 onPressed: () => AssetViewerScreen.show(
                   context,
@@ -254,6 +279,7 @@ class _TimelineDaySection extends StatelessWidget {
                   session: session,
                   asset: item.asset,
                   autofocus: item.globalIndex == 0,
+                  onFocused: onContentFocus,
                   prefetchUrls: _nearbyThumbnailUrls(
                     allAssets,
                     item.globalIndex,
@@ -281,6 +307,7 @@ class _AssetTile extends StatefulWidget {
     required this.autofocus,
     required this.prefetchUrls,
     required this.onPressed,
+    this.onFocused,
   });
 
   final AuthenticatedSession session;
@@ -288,6 +315,7 @@ class _AssetTile extends StatefulWidget {
   final bool autofocus;
   final List<List<String>> prefetchUrls;
   final VoidCallback onPressed;
+  final VoidCallback? onFocused;
 
   @override
   State<_AssetTile> createState() => _AssetTileState();
@@ -313,6 +341,7 @@ class _AssetTileState extends State<_AssetTile> {
       onPressed: widget.onPressed,
       onFocusChange: (isFocused) {
         if (isFocused) {
+          widget.onFocused?.call();
           _prefetchNearbyThumbnails();
         }
       },

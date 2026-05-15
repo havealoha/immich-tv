@@ -24,16 +24,63 @@ part 'home_sections.part.dart';
 part 'home_albums.part.dart';
 part 'home_shared.part.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key, required this.session});
 
   final AuthenticatedSession session;
 
   @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  late final FocusNode _menuToggleFocusNode;
+  late final FocusNode _sidebarPrimaryFocusNode;
+  bool _isSidebarOpen = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _menuToggleFocusNode = FocusNode(debugLabel: 'home-menu-toggle');
+    _sidebarPrimaryFocusNode = FocusNode(debugLabel: 'home-sidebar-primary');
+  }
+
+  @override
+  void dispose() {
+    _menuToggleFocusNode.dispose();
+    _sidebarPrimaryFocusNode.dispose();
+    super.dispose();
+  }
+
+  void _toggleSidebar() {
+    setState(() => _isSidebarOpen = !_isSidebarOpen);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) {
+        return;
+      }
+      if (_isSidebarOpen) {
+        _sidebarPrimaryFocusNode.requestFocus();
+      } else {
+        _menuToggleFocusNode.requestFocus();
+      }
+    });
+  }
+
+  void _collapseSidebarForContentFocus() {
+    if (!_isSidebarOpen) {
+      return;
+    }
+    setState(() => _isSidebarOpen = false);
+  }
+
+  @override
   Widget build(BuildContext context) {
     return BlocProvider(
       create: (context) =>
-          LibraryCubit(context.read<MediaRepository>(), session)..loadInitial(),
+          LibraryCubit(
+            context.read<MediaRepository>(),
+            widget.session,
+          )..loadInitial(),
       child: Scaffold(
         backgroundColor: AppColors.background,
         body: SafeArea(
@@ -49,13 +96,34 @@ class HomeScreen extends StatelessWidget {
 
                   return Row(
                     children: [
-                      _Sidebar(
-                        session: session,
-                        state: state,
-                        width: sidebarWidth,
+                      AnimatedContainer(
+                        duration: const Duration(milliseconds: 220),
+                        curve: Curves.easeOutCubic,
+                        width: _isSidebarOpen ? sidebarWidth : 0,
+                        child: IgnorePointer(
+                          ignoring: !_isSidebarOpen,
+                          child: AnimatedOpacity(
+                            duration: const Duration(milliseconds: 160),
+                            opacity: _isSidebarOpen ? 1 : 0,
+                            child: _Sidebar(
+                              session: widget.session,
+                              state: state,
+                              width: sidebarWidth,
+                              primaryFocusNode: _sidebarPrimaryFocusNode,
+                              onToggleSidebar: _toggleSidebar,
+                            ),
+                          ),
+                        ),
                       ),
                       Expanded(
-                        child: _ContentPane(session: session, state: state),
+                        child: _ContentPane(
+                          session: widget.session,
+                          state: state,
+                          isSidebarOpen: _isSidebarOpen,
+                          menuToggleFocusNode: _menuToggleFocusNode,
+                          onToggleSidebar: _toggleSidebar,
+                          onContentFocus: _collapseSidebarForContentFocus,
+                        ),
                       ),
                     ],
                   );
@@ -74,11 +142,15 @@ class _Sidebar extends StatelessWidget {
     required this.session,
     required this.state,
     required this.width,
+    required this.primaryFocusNode,
+    required this.onToggleSidebar,
   });
 
   final AuthenticatedSession session;
   final LibraryState state;
   final double width;
+  final FocusNode primaryFocusNode;
+  final VoidCallback onToggleSidebar;
 
   @override
   Widget build(BuildContext context) {
@@ -109,6 +181,18 @@ class _Sidebar extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: _MenuToggleButton(
+                      focusNode: null,
+                      icon: Icons.menu_open_rounded,
+                      label: 'Hide menu',
+                      onPressed: onToggleSidebar,
+                    ),
+                  ),
+                  SizedBox(
+                    height: scale.space(AppSpacing.md, min: 14, max: 16),
+                  ),
                   _ProfileHeader(session: session),
                   SizedBox(
                     height: scale.space(AppSpacing.xl, min: 24, max: 32),
@@ -121,7 +205,7 @@ class _Sidebar extends StatelessWidget {
                     onPressed: () => context.read<LibraryCubit>().selectTab(
                       LibraryTab.timeline,
                     ),
-                    autofocus: true,
+                    focusNode: primaryFocusNode,
                   ),
                   SizedBox(height: scale.space(AppSpacing.xs, min: 8, max: 8)),
                   _SidebarMenuButton(
@@ -258,7 +342,7 @@ class _SidebarMenuButton extends StatefulWidget {
     required this.icon,
     required this.isSelected,
     required this.onPressed,
-    this.autofocus = false,
+    this.focusNode,
   });
 
   final String label;
@@ -266,7 +350,7 @@ class _SidebarMenuButton extends StatefulWidget {
   final IconData icon;
   final bool isSelected;
   final VoidCallback onPressed;
-  final bool autofocus;
+  final FocusNode? focusNode;
 
   @override
   State<_SidebarMenuButton> createState() => _SidebarMenuButtonState();
@@ -278,7 +362,7 @@ class _SidebarMenuButtonState extends State<_SidebarMenuButton> {
     final theme = Theme.of(context);
     final scale = AppScale.of(context);
     return TvFocusable(
-      autofocus: widget.autofocus,
+      focusNode: widget.focusNode,
       onPressed: widget.onPressed,
       builder: (context, focusState) {
         final isActive = widget.isSelected || focusState.isActive;
@@ -337,10 +421,21 @@ class _SidebarMenuButtonState extends State<_SidebarMenuButton> {
 }
 
 class _ContentPane extends StatelessWidget {
-  const _ContentPane({required this.session, required this.state});
+  const _ContentPane({
+    required this.session,
+    required this.state,
+    required this.isSidebarOpen,
+    required this.menuToggleFocusNode,
+    required this.onToggleSidebar,
+    required this.onContentFocus,
+  });
 
   final AuthenticatedSession session;
   final LibraryState state;
+  final bool isSidebarOpen;
+  final FocusNode menuToggleFocusNode;
+  final VoidCallback onToggleSidebar;
+  final VoidCallback onContentFocus;
 
   @override
   Widget build(BuildContext context) {
@@ -363,7 +458,97 @@ class _ContentPane extends StatelessWidget {
             horizontalPadding,
             verticalPadding,
           ),
-          child: _LibraryContent(state: state, session: session),
+          child: _LibraryContent(
+            state: state,
+            session: session,
+            isSidebarOpen: isSidebarOpen,
+            menuToggleFocusNode: menuToggleFocusNode,
+            onToggleSidebar: onToggleSidebar,
+            onContentFocus: onContentFocus,
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _MenuToggleButton extends StatelessWidget {
+  const _MenuToggleButton({
+    required this.focusNode,
+    required this.icon,
+    required this.label,
+    this.compact = false,
+    required this.onPressed,
+  });
+
+  final FocusNode? focusNode;
+  final IconData icon;
+  final String label;
+  final bool compact;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scale = AppScale.of(context);
+
+    return TvFocusable(
+      focusNode: focusNode,
+      onPressed: onPressed,
+      builder: (context, focusState) {
+        final isActive = focusState.isActive;
+
+        return AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          padding: EdgeInsets.symmetric(
+            horizontal: scale.space(
+              compact ? AppSpacing.sm : AppSpacing.md,
+              min: compact ? 10 : 14,
+              max: compact ? 12 : 16,
+            ),
+            vertical: scale.space(
+              compact ? AppSpacing.xs : AppSpacing.sm,
+              min: compact ? 8 : 10,
+              max: compact ? 10 : 12,
+            ),
+          ),
+          decoration: BoxDecoration(
+            color: isActive ? const Color(0xFF111F26) : const Color(0xFF0D1A21),
+            borderRadius: BorderRadius.circular(
+              scale.radius(AppRadii.pill, min: 999, max: 999),
+            ),
+            border: Border.all(
+              color: focusState.isFocused ? AppColors.focus : AppColors.border,
+              width: focusState.isFocused ? 2 : 1,
+            ),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                icon,
+                color: Colors.white,
+                size: scale.sizeOf(
+                  compact ? 18 : 20,
+                  min: compact ? 16 : 18,
+                  max: compact ? 18 : 20,
+                ),
+              ),
+              SizedBox(width: scale.space(AppSpacing.xs, min: 8, max: 8)),
+              Text(
+                label,
+                style: theme.textTheme.titleSmall?.copyWith(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w700,
+                  fontSize: scale.text(
+                    compact ? 13 : 14,
+                    min: 12,
+                    max: compact ? 13 : 14,
+                  ),
+                ),
+              ),
+            ],
+          ),
         );
       },
     );
@@ -371,10 +556,21 @@ class _ContentPane extends StatelessWidget {
 }
 
 class _LibraryContent extends StatelessWidget {
-  const _LibraryContent({required this.state, required this.session});
+  const _LibraryContent({
+    required this.state,
+    required this.session,
+    required this.isSidebarOpen,
+    required this.menuToggleFocusNode,
+    required this.onToggleSidebar,
+    required this.onContentFocus,
+  });
 
   final LibraryState state;
   final AuthenticatedSession session;
+  final bool isSidebarOpen;
+  final FocusNode menuToggleFocusNode;
+  final VoidCallback onToggleSidebar;
+  final VoidCallback onContentFocus;
 
   @override
   Widget build(BuildContext context) {
@@ -390,12 +586,20 @@ class _LibraryContent extends StatelessWidget {
         hasMore: state.hasMoreTimeline,
         isLoadingMore: state.isLoadingMore,
         emptyMessage: 'No timeline assets are available yet.',
+        isSidebarOpen: isSidebarOpen,
+        menuToggleFocusNode: menuToggleFocusNode,
+        onToggleSidebar: onToggleSidebar,
+        onContentFocus: onContentFocus,
       ),
       LibraryTab.albums => _AlbumSectionView(
         session: session,
         status: state.status,
         errorMessage: state.errorMessage,
         albums: state.albums,
+        isSidebarOpen: isSidebarOpen,
+        menuToggleFocusNode: menuToggleFocusNode,
+        onToggleSidebar: onToggleSidebar,
+        onContentFocus: onContentFocus,
       ),
       LibraryTab.favorites => _AssetSectionView(
         session: session,
@@ -407,6 +611,10 @@ class _LibraryContent extends StatelessWidget {
         hasMore: state.hasMoreFavorites,
         isLoadingMore: state.isLoadingMore,
         emptyMessage: 'No favorite assets are available yet.',
+        isSidebarOpen: isSidebarOpen,
+        menuToggleFocusNode: menuToggleFocusNode,
+        onToggleSidebar: onToggleSidebar,
+        onContentFocus: onContentFocus,
       ),
     };
   }
