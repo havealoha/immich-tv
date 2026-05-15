@@ -1,6 +1,4 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -21,7 +19,6 @@ import 'src/features/mock/data/mock_media_repository.dart';
 import 'src/features/mock/data/mock_server_repository.dart';
 import 'src/features/onboarding/data/immich_server_repository.dart';
 import 'src/platform/storage/platform_profile_storage.dart';
-import 'src/shared/presentation/app_breakpoints.dart';
 import 'src/shared/presentation/app_colors.dart';
 import 'src/shared/presentation/app_radii.dart';
 
@@ -182,26 +179,8 @@ class _AdaptiveViewportGate extends StatefulWidget {
 }
 
 class _AdaptiveViewportGateState extends State<_AdaptiveViewportGate> {
-  bool? _lastPhoneLayout;
-
   @override
   Widget build(BuildContext context) {
-    final shortestSide = MediaQuery.sizeOf(context).shortestSide;
-    final isMobilePlatform = !kIsWeb && (defaultTargetPlatform == TargetPlatform.android || defaultTargetPlatform == TargetPlatform.iOS);
-    final isPhoneLayout = shortestSide < AppBreakpoints.phone;
-
-    if (isMobilePlatform && _lastPhoneLayout != isPhoneLayout) {
-      _lastPhoneLayout = isPhoneLayout;
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!mounted) {
-          return;
-        }
-        SystemChrome.setPreferredOrientations(
-          isPhoneLayout ? const [DeviceOrientation.portraitUp] : const [DeviceOrientation.landscapeLeft, DeviceOrientation.landscapeRight],
-        );
-      });
-    }
-
     return BlocProvider(create: (_) => AppFlowCubit(widget.authRepository)..initialize(), child: const AppShell());
   }
 }
