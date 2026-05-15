@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../../shared/presentation/app_colors.dart';
 import '../../shared/presentation/app_scale.dart';
 
 class BootstrapFlow extends StatelessWidget {
@@ -12,9 +13,9 @@ class BootstrapFlow extends StatelessWidget {
     final fontSize = scale.text(56, min: 34, max: 64);
 
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: AppColors.background,
       body: ColoredBox(
-        color: Colors.black,
+        color: AppColors.background,
         child: Center(
           child: Text(
             'Immich TV',

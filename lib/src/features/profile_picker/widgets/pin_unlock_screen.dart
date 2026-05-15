@@ -67,9 +67,9 @@ class _PinUnlockScreenState extends State<PinUnlockScreen> {
     final pin = _currentPin;
 
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: AppColors.background,
       body: ColoredBox(
-        color: Colors.black,
+        color: AppColors.background,
         child: SafeArea(
           child: Center(
             child: Padding(

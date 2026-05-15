@@ -114,6 +114,7 @@ class _TimelineSectionView extends StatelessWidget {
               session: session,
               group: group,
               allAssets: assets,
+              onContentFocus: onContentFocus,
             ),
           );
         },
@@ -244,11 +245,13 @@ class _TimelineDaySection extends StatelessWidget {
     required this.session,
     required this.group,
     required this.allAssets,
+    required this.onContentFocus,
   });
 
   final AuthenticatedSession session;
   final _TimelineDayGroup group;
   final List<AssetSummary> allAssets;
+  final VoidCallback onContentFocus;
 
   @override
   Widget build(BuildContext context) {

@@ -132,7 +132,7 @@ class _SlideshowPlayerScreenState extends State<SlideshowPlayerScreen> {
           focusNode: _slideshowFocusNode,
           autofocus: true,
           child: Scaffold(
-            backgroundColor: Colors.black,
+            backgroundColor: AppColors.background,
             body: Stack(
               children: [
                 Positioned.fill(

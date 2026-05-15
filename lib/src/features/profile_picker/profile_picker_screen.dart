@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/models/saved_profile.dart';
 import '../../shared/presentation/app_breakpoints.dart';
+import '../../shared/presentation/app_colors.dart';
 import '../../shared/presentation/app_scale.dart';
 import 'widgets/add_profile_card.dart';
 import 'widgets/saved_profile_card.dart';
@@ -14,9 +15,9 @@ class ProfilePickerScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: AppColors.background,
       body: ColoredBox(
-        color: Colors.black,
+        color: AppColors.background,
         child: SafeArea(
           child: LayoutBuilder(
             builder: (context, constraints) {
