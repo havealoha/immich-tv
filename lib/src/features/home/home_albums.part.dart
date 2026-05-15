@@ -9,7 +9,6 @@ class _AlbumSectionView extends StatelessWidget {
     required this.isSidebarOpen,
     required this.menuToggleFocusNode,
     required this.onToggleSidebar,
-    required this.onContentFocus,
   });
 
   final AuthenticatedSession session;
@@ -19,7 +18,6 @@ class _AlbumSectionView extends StatelessWidget {
   final bool isSidebarOpen;
   final FocusNode menuToggleFocusNode;
   final VoidCallback onToggleSidebar;
-  final VoidCallback onContentFocus;
 
   @override
   Widget build(BuildContext context) {
@@ -29,13 +27,11 @@ class _AlbumSectionView extends StatelessWidget {
       isSidebarOpen: isSidebarOpen,
       menuToggleFocusNode: menuToggleFocusNode,
       onToggleSidebar: onToggleSidebar,
-      onContentFocus: onContentFocus,
       child: _AlbumBrowser(
         session: session,
         status: status,
         errorMessage: errorMessage,
         albums: albums,
-        onContentFocus: onContentFocus,
       ),
     );
   }
@@ -47,14 +43,12 @@ class _AlbumBrowser extends StatefulWidget {
     required this.status,
     required this.errorMessage,
     required this.albums,
-    required this.onContentFocus,
   });
 
   final AuthenticatedSession session;
   final LibraryLoadStatus status;
   final String? errorMessage;
   final List<AlbumSummary> albums;
-  final VoidCallback onContentFocus;
 
   @override
   State<_AlbumBrowser> createState() => _AlbumBrowserState();
@@ -127,7 +121,6 @@ class _AlbumBrowserState extends State<_AlbumBrowser> {
           selectedAlbum: selectedAlbum,
           onAlbumSelected: _selectAlbum,
           horizontal: useStackedLayout,
-          onAlbumFocused: widget.onContentFocus,
         );
         final albumContent = _buildAlbumContent(selectedAlbum);
 
@@ -205,7 +198,6 @@ class _AlbumBrowserState extends State<_AlbumBrowser> {
       hasMore: _albumAssetsNextPage != null && _albumAssetsNextPage!.isNotEmpty,
       isLoadingMore: _isLoadingAlbumAssets && _albumAssets.isNotEmpty,
       onLoadMore: _loadMoreAlbumAssets,
-      onContentFocus: widget.onContentFocus,
     );
   }
 
@@ -286,14 +278,12 @@ class _AlbumRail extends StatelessWidget {
     required this.selectedAlbum,
     required this.onAlbumSelected,
     required this.horizontal,
-    required this.onAlbumFocused,
   });
 
   final List<AlbumSummary> albums;
   final AlbumSummary selectedAlbum;
   final ValueChanged<AlbumSummary> onAlbumSelected;
   final bool horizontal;
-  final VoidCallback onAlbumFocused;
 
   @override
   Widget build(BuildContext context) {
@@ -312,7 +302,6 @@ class _AlbumRail extends StatelessWidget {
           child: _AlbumSummaryTile(
             album: album,
             isSelected: album.id == selectedAlbum.id,
-            onFocused: onAlbumFocused,
             onPressed: () => onAlbumSelected(album),
           ),
         );
@@ -326,13 +315,11 @@ class _AlbumSummaryTile extends StatefulWidget {
     required this.album,
     required this.isSelected,
     required this.onPressed,
-    this.onFocused,
   });
 
   final AlbumSummary album;
   final bool isSelected;
   final VoidCallback onPressed;
-  final VoidCallback? onFocused;
 
   @override
   State<_AlbumSummaryTile> createState() => _AlbumSummaryTileState();
@@ -345,11 +332,6 @@ class _AlbumSummaryTileState extends State<_AlbumSummaryTile> {
     final scale = AppScale.of(context);
     return TvFocusable(
       onPressed: widget.onPressed,
-      onFocusChange: (isFocused) {
-        if (isFocused) {
-          widget.onFocused?.call();
-        }
-      },
       builder: (context, focusState) {
         final isActive = widget.isSelected || focusState.isActive;
 
@@ -402,7 +384,6 @@ class _AlbumAssetGrid extends StatelessWidget {
     required this.hasMore,
     required this.isLoadingMore,
     required this.onLoadMore,
-    required this.onContentFocus,
   });
 
   final AuthenticatedSession session;
@@ -411,7 +392,6 @@ class _AlbumAssetGrid extends StatelessWidget {
   final bool hasMore;
   final bool isLoadingMore;
   final VoidCallback onLoadMore;
-  final VoidCallback onContentFocus;
 
   @override
   Widget build(BuildContext context) {
@@ -469,7 +449,6 @@ class _AlbumAssetGrid extends StatelessWidget {
                       session: session,
                       asset: asset,
                       autofocus: index == 0,
-                      onFocused: onContentFocus,
                       prefetchUrls: _nearbyThumbnailUrls(assets, index),
                       onPressed: () => AssetViewerScreen.show(
                         context,

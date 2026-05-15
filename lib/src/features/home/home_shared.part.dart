@@ -7,7 +7,6 @@ class _SectionFrame extends StatelessWidget {
     required this.isSidebarOpen,
     required this.menuToggleFocusNode,
     required this.onToggleSidebar,
-    required this.onContentFocus,
     required this.child,
   });
 
@@ -16,7 +15,6 @@ class _SectionFrame extends StatelessWidget {
   final bool isSidebarOpen;
   final FocusNode menuToggleFocusNode;
   final VoidCallback onToggleSidebar;
-  final VoidCallback onContentFocus;
   final Widget child;
 
   @override
@@ -35,7 +33,7 @@ class _SectionFrame extends StatelessWidget {
               icon: isSidebarOpen
                   ? Icons.menu_open_rounded
                   : Icons.menu_rounded,
-              label: 'Menu',
+              tooltip: isSidebarOpen ? 'Hide menu' : 'Show menu',
               compact: true,
               onPressed: onToggleSidebar,
             ),
@@ -299,7 +297,6 @@ class _TimelineSectionFrame extends StatelessWidget {
     required this.isSidebarOpen,
     required this.menuToggleFocusNode,
     required this.onToggleSidebar,
-    required this.onContentFocus,
     required this.child,
   });
 
@@ -311,7 +308,6 @@ class _TimelineSectionFrame extends StatelessWidget {
   final bool isSidebarOpen;
   final FocusNode menuToggleFocusNode;
   final VoidCallback onToggleSidebar;
-  final VoidCallback onContentFocus;
   final Widget child;
 
   @override
@@ -337,7 +333,7 @@ class _TimelineSectionFrame extends StatelessWidget {
                       icon: isSidebarOpen
                           ? Icons.menu_open_rounded
                           : Icons.menu_rounded,
-                      label: 'Menu',
+                      tooltip: isSidebarOpen ? 'Hide menu' : 'Show menu',
                       compact: true,
                       onPressed: onToggleSidebar,
                     ),
@@ -379,7 +375,6 @@ class _TimelineSectionFrame extends StatelessWidget {
               years: years,
               selectedYear: selectedYear,
               onYearSelected: onYearSelected,
-              onYearFocused: onContentFocus,
             );
 
             if (useStackedLayout) {
@@ -426,13 +421,11 @@ class _TimelineYearRail extends StatelessWidget {
     required this.years,
     required this.selectedYear,
     required this.onYearSelected,
-    required this.onYearFocused,
   });
 
   final List<int> years;
   final int? selectedYear;
   final ValueChanged<int> onYearSelected;
-  final VoidCallback onYearFocused;
 
   @override
   Widget build(BuildContext context) {
@@ -473,7 +466,6 @@ class _TimelineYearRail extends StatelessWidget {
                 year: year,
                 isSelected: year == selectedYear,
                 autofocus: year == selectedYear,
-                onFocused: onYearFocused,
                 onPressed: () => onYearSelected(year),
               );
             },
@@ -489,7 +481,6 @@ class _TimelineYearChip extends StatefulWidget {
     required this.year,
     required this.isSelected,
     required this.onPressed,
-    this.onFocused,
     this.autofocus = false,
   });
 
@@ -497,7 +488,6 @@ class _TimelineYearChip extends StatefulWidget {
   final bool isSelected;
   final bool autofocus;
   final VoidCallback onPressed;
-  final VoidCallback? onFocused;
 
   @override
   State<_TimelineYearChip> createState() => _TimelineYearChipState();
@@ -512,11 +502,6 @@ class _TimelineYearChipState extends State<_TimelineYearChip> {
     return TvFocusable(
       autofocus: widget.autofocus,
       onPressed: widget.onPressed,
-      onFocusChange: (isFocused) {
-        if (isFocused) {
-          widget.onFocused?.call();
-        }
-      },
       builder: (context, focusState) {
         final isFocused = focusState.isFocused;
         final isSelected = widget.isSelected;
