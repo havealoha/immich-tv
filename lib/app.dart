@@ -16,7 +16,6 @@ import 'src/features/app_flow/cubit/app_flow_cubit.dart';
 import 'src/features/auth/data/immich_auth_repository.dart';
 import 'src/features/library/data/immich_asset_image_repository.dart';
 import 'src/features/library/data/immich_media_repository.dart';
-import 'src/features/mobile_marketing/mobile_marketing_screen.dart';
 import 'src/features/mock/data/mock_auth_repository.dart';
 import 'src/features/mock/data/mock_media_repository.dart';
 import 'src/features/mock/data/mock_server_repository.dart';
@@ -193,7 +192,6 @@ class _AdaptiveViewportGateState extends State<_AdaptiveViewportGate> {
         (defaultTargetPlatform == TargetPlatform.android ||
             defaultTargetPlatform == TargetPlatform.iOS);
     final isPhoneLayout = shortestSide < AppBreakpoints.phone;
-    final shouldShowMarketingScreen = isMobilePlatform && isPhoneLayout;
 
     if (isMobilePlatform && _lastPhoneLayout != isPhoneLayout) {
       _lastPhoneLayout = isPhoneLayout;
@@ -210,10 +208,6 @@ class _AdaptiveViewportGateState extends State<_AdaptiveViewportGate> {
                 ],
         );
       });
-    }
-
-    if (shouldShowMarketingScreen) {
-      return const MobileMarketingScreen();
     }
 
     return BlocProvider(
