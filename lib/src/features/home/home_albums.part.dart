@@ -6,23 +6,38 @@ class _AlbumSectionView extends StatelessWidget {
     required this.status,
     required this.errorMessage,
     required this.albums,
+    required this.isSidebarOpen,
+    required this.menuToggleFocusNode,
+    required this.primaryContentFocusNode,
+    required this.onToggleSidebar,
+    required this.onOpenSidebar,
   });
 
   final AuthenticatedSession session;
   final LibraryLoadStatus status;
   final String? errorMessage;
   final List<AlbumSummary> albums;
+  final bool isSidebarOpen;
+  final FocusNode menuToggleFocusNode;
+  final FocusNode primaryContentFocusNode;
+  final VoidCallback onToggleSidebar;
+  final VoidCallback onOpenSidebar;
 
   @override
   Widget build(BuildContext context) {
     return _SectionFrame(
       title: 'Albums',
       description: 'Collection-first browsing in a clean left-nav shell.',
+      isSidebarOpen: isSidebarOpen,
+      menuToggleFocusNode: menuToggleFocusNode,
+      onToggleSidebar: onToggleSidebar,
       child: _AlbumBrowser(
         session: session,
         status: status,
         errorMessage: errorMessage,
         albums: albums,
+        primaryContentFocusNode: primaryContentFocusNode,
+        onOpenSidebar: onOpenSidebar,
       ),
     );
   }
@@ -34,12 +49,16 @@ class _AlbumBrowser extends StatefulWidget {
     required this.status,
     required this.errorMessage,
     required this.albums,
+    required this.primaryContentFocusNode,
+    required this.onOpenSidebar,
   });
 
   final AuthenticatedSession session;
   final LibraryLoadStatus status;
   final String? errorMessage;
   final List<AlbumSummary> albums;
+  final FocusNode primaryContentFocusNode;
+  final VoidCallback onOpenSidebar;
 
   @override
   State<_AlbumBrowser> createState() => _AlbumBrowserState();
@@ -112,6 +131,7 @@ class _AlbumBrowserState extends State<_AlbumBrowser> {
           selectedAlbum: selectedAlbum,
           onAlbumSelected: _selectAlbum,
           horizontal: useStackedLayout,
+          primaryContentFocusNode: widget.primaryContentFocusNode,
         );
         final albumContent = _buildAlbumContent(selectedAlbum);
 
@@ -189,6 +209,7 @@ class _AlbumBrowserState extends State<_AlbumBrowser> {
       hasMore: _albumAssetsNextPage != null && _albumAssetsNextPage!.isNotEmpty,
       isLoadingMore: _isLoadingAlbumAssets && _albumAssets.isNotEmpty,
       onLoadMore: _loadMoreAlbumAssets,
+      onOpenSidebar: widget.onOpenSidebar,
     );
   }
 
@@ -269,12 +290,14 @@ class _AlbumRail extends StatelessWidget {
     required this.selectedAlbum,
     required this.onAlbumSelected,
     required this.horizontal,
+    required this.primaryContentFocusNode,
   });
 
   final List<AlbumSummary> albums;
   final AlbumSummary selectedAlbum;
   final ValueChanged<AlbumSummary> onAlbumSelected;
   final bool horizontal;
+  final FocusNode primaryContentFocusNode;
 
   @override
   Widget build(BuildContext context) {
@@ -293,6 +316,7 @@ class _AlbumRail extends StatelessWidget {
           child: _AlbumSummaryTile(
             album: album,
             isSelected: album.id == selectedAlbum.id,
+            focusNode: index == 0 ? primaryContentFocusNode : null,
             onPressed: () => onAlbumSelected(album),
           ),
         );
@@ -305,11 +329,13 @@ class _AlbumSummaryTile extends StatefulWidget {
   const _AlbumSummaryTile({
     required this.album,
     required this.isSelected,
+    this.focusNode,
     required this.onPressed,
   });
 
   final AlbumSummary album;
   final bool isSelected;
+  final FocusNode? focusNode;
   final VoidCallback onPressed;
 
   @override
@@ -322,6 +348,7 @@ class _AlbumSummaryTileState extends State<_AlbumSummaryTile> {
     final theme = Theme.of(context);
     final scale = AppScale.of(context);
     return TvFocusable(
+      focusNode: widget.focusNode,
       onPressed: widget.onPressed,
       builder: (context, focusState) {
         final isActive = widget.isSelected || focusState.isActive;
@@ -375,6 +402,7 @@ class _AlbumAssetGrid extends StatelessWidget {
     required this.hasMore,
     required this.isLoadingMore,
     required this.onLoadMore,
+    required this.onOpenSidebar,
   });
 
   final AuthenticatedSession session;
@@ -383,6 +411,7 @@ class _AlbumAssetGrid extends StatelessWidget {
   final bool hasMore;
   final bool isLoadingMore;
   final VoidCallback onLoadMore;
+  final VoidCallback onOpenSidebar;
 
   @override
   Widget build(BuildContext context) {
@@ -423,6 +452,9 @@ class _AlbumAssetGrid extends StatelessWidget {
             },
             child: LayoutBuilder(
               builder: (context, constraints) {
+                final crossAxisCount = _resolveGridCrossAxisCount(
+                  constraints.maxWidth,
+                );
                 return GridView.builder(
                   cacheExtent: 240,
                   gridDelegate: _buildAssetGridDelegate(constraints.maxWidth),
@@ -440,6 +472,8 @@ class _AlbumAssetGrid extends StatelessWidget {
                       session: session,
                       asset: asset,
                       autofocus: index == 0,
+                      openDrawerOnLeft: index % crossAxisCount == 0,
+                      onOpenDrawer: onOpenSidebar,
                       prefetchUrls: _nearbyThumbnailUrls(assets, index),
                       onPressed: () => AssetViewerScreen.show(
                         context,

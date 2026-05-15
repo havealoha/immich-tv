@@ -4,11 +4,17 @@ class _SectionFrame extends StatelessWidget {
   const _SectionFrame({
     required this.title,
     required this.description,
+    required this.isSidebarOpen,
+    required this.menuToggleFocusNode,
+    required this.onToggleSidebar,
     required this.child,
   });
 
   final String title;
   final String description;
+  final bool isSidebarOpen;
+  final FocusNode menuToggleFocusNode;
+  final VoidCallback onToggleSidebar;
   final Widget child;
 
   @override
@@ -19,14 +25,31 @@ class _SectionFrame extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          title,
-          style: theme.textTheme.headlineMedium?.copyWith(
-            fontWeight: FontWeight.w800,
-            fontSize: compactChrome
-                ? scale.text(28, min: 24, max: 28)
-                : scale.text(34, min: 28, max: 34),
-          ),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            _MenuToggleButton(
+              focusNode: menuToggleFocusNode,
+              icon: isSidebarOpen
+                  ? Icons.menu_open_rounded
+                  : Icons.menu_rounded,
+              tooltip: isSidebarOpen ? 'Hide menu' : 'Show menu',
+              compact: true,
+              onPressed: onToggleSidebar,
+            ),
+            SizedBox(width: scale.space(AppSpacing.sm, min: 10, max: 12)),
+            Expanded(
+              child: Text(
+                title,
+                style: theme.textTheme.headlineMedium?.copyWith(
+                  fontWeight: FontWeight.w800,
+                  fontSize: compactChrome
+                      ? scale.text(28, min: 24, max: 28)
+                      : scale.text(34, min: 28, max: 34),
+                ),
+              ),
+            ),
+          ],
         ),
         SizedBox(
           height: compactChrome
@@ -271,6 +294,9 @@ class _TimelineSectionFrame extends StatelessWidget {
     required this.years,
     required this.selectedYear,
     required this.onYearSelected,
+    required this.isSidebarOpen,
+    required this.menuToggleFocusNode,
+    required this.onToggleSidebar,
     required this.child,
   });
 
@@ -279,6 +305,9 @@ class _TimelineSectionFrame extends StatelessWidget {
   final List<int> years;
   final int? selectedYear;
   final ValueChanged<int> onYearSelected;
+  final bool isSidebarOpen;
+  final FocusNode menuToggleFocusNode;
+  final VoidCallback onToggleSidebar;
   final Widget child;
 
   @override
@@ -296,14 +325,33 @@ class _TimelineSectionFrame extends StatelessWidget {
             final titleBlock = Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  title,
-                  style: theme.textTheme.headlineMedium?.copyWith(
-                    fontWeight: FontWeight.w800,
-                    fontSize: compactChrome
-                        ? scale.text(28, min: 24, max: 28)
-                        : scale.text(34, min: 28, max: 34),
-                  ),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    _MenuToggleButton(
+                      focusNode: menuToggleFocusNode,
+                      icon: isSidebarOpen
+                          ? Icons.menu_open_rounded
+                          : Icons.menu_rounded,
+                      tooltip: isSidebarOpen ? 'Hide menu' : 'Show menu',
+                      compact: true,
+                      onPressed: onToggleSidebar,
+                    ),
+                    SizedBox(
+                      width: scale.space(AppSpacing.sm, min: 10, max: 12),
+                    ),
+                    Expanded(
+                      child: Text(
+                        title,
+                        style: theme.textTheme.headlineMedium?.copyWith(
+                          fontWeight: FontWeight.w800,
+                          fontSize: compactChrome
+                              ? scale.text(28, min: 24, max: 28)
+                              : scale.text(34, min: 28, max: 34),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
                 SizedBox(
                   height: compactChrome

@@ -11,7 +11,7 @@ class AppColors {
   static const immichGreen = Color(0xFF18C249);
 
   // Dark theme
-  static const darkBackground = Color(0xFF000000);
+  static const darkBackground = Color(0xFF0C0C0C);
   static const darkSurface = Color(0xFF111827);
   static const darkSurfaceSoft = Color(0xFF1F2937);
   static const darkBorder = Color(0xFF374151);

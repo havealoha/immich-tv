@@ -16,14 +16,13 @@ import 'src/features/app_flow/cubit/app_flow_cubit.dart';
 import 'src/features/auth/data/immich_auth_repository.dart';
 import 'src/features/library/data/immich_asset_image_repository.dart';
 import 'src/features/library/data/immich_media_repository.dart';
-import 'src/features/mobile_marketing/mobile_marketing_screen.dart';
 import 'src/features/mock/data/mock_auth_repository.dart';
 import 'src/features/mock/data/mock_media_repository.dart';
 import 'src/features/mock/data/mock_server_repository.dart';
 import 'src/features/onboarding/data/immich_server_repository.dart';
 import 'src/platform/storage/platform_profile_storage.dart';
-import 'src/shared/presentation/app_colors.dart';
 import 'src/shared/presentation/app_breakpoints.dart';
+import 'src/shared/presentation/app_colors.dart';
 import 'src/shared/presentation/app_radii.dart';
 
 void runImmichTvApp() {
@@ -188,12 +187,8 @@ class _AdaptiveViewportGateState extends State<_AdaptiveViewportGate> {
   @override
   Widget build(BuildContext context) {
     final shortestSide = MediaQuery.sizeOf(context).shortestSide;
-    final isMobilePlatform =
-        !kIsWeb &&
-        (defaultTargetPlatform == TargetPlatform.android ||
-            defaultTargetPlatform == TargetPlatform.iOS);
+    final isMobilePlatform = !kIsWeb && (defaultTargetPlatform == TargetPlatform.android || defaultTargetPlatform == TargetPlatform.iOS);
     final isPhoneLayout = shortestSide < AppBreakpoints.phone;
-    final shouldShowMarketingScreen = isMobilePlatform && isPhoneLayout;
 
     if (isMobilePlatform && _lastPhoneLayout != isPhoneLayout) {
       _lastPhoneLayout = isPhoneLayout;
@@ -202,23 +197,11 @@ class _AdaptiveViewportGateState extends State<_AdaptiveViewportGate> {
           return;
         }
         SystemChrome.setPreferredOrientations(
-          isPhoneLayout
-              ? const [DeviceOrientation.portraitUp]
-              : const [
-                  DeviceOrientation.landscapeLeft,
-                  DeviceOrientation.landscapeRight,
-                ],
+          isPhoneLayout ? const [DeviceOrientation.portraitUp] : const [DeviceOrientation.landscapeLeft, DeviceOrientation.landscapeRight],
         );
       });
     }
 
-    if (shouldShowMarketingScreen) {
-      return const MobileMarketingScreen();
-    }
-
-    return BlocProvider(
-      create: (_) => AppFlowCubit(widget.authRepository)..initialize(),
-      child: const AppShell(),
-    );
+    return BlocProvider(create: (_) => AppFlowCubit(widget.authRepository)..initialize(), child: const AppShell());
   }
 }

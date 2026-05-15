@@ -139,7 +139,7 @@ class _AssetViewerViewState extends State<_AssetViewerView> {
               focusNode: _viewerFocusNode,
               autofocus: true,
               child: Scaffold(
-                backgroundColor: Colors.black,
+                backgroundColor: AppColors.background,
                 body: Stack(
                   children: [
                     PageView.builder(
