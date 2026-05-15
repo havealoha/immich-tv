@@ -21,8 +21,8 @@ import 'src/features/mock/data/mock_media_repository.dart';
 import 'src/features/mock/data/mock_server_repository.dart';
 import 'src/features/onboarding/data/immich_server_repository.dart';
 import 'src/platform/storage/platform_profile_storage.dart';
-import 'src/shared/presentation/app_colors.dart';
 import 'src/shared/presentation/app_breakpoints.dart';
+import 'src/shared/presentation/app_colors.dart';
 import 'src/shared/presentation/app_radii.dart';
 
 void runImmichTvApp() {
@@ -187,10 +187,7 @@ class _AdaptiveViewportGateState extends State<_AdaptiveViewportGate> {
   @override
   Widget build(BuildContext context) {
     final shortestSide = MediaQuery.sizeOf(context).shortestSide;
-    final isMobilePlatform =
-        !kIsWeb &&
-        (defaultTargetPlatform == TargetPlatform.android ||
-            defaultTargetPlatform == TargetPlatform.iOS);
+    final isMobilePlatform = !kIsWeb && (defaultTargetPlatform == TargetPlatform.android || defaultTargetPlatform == TargetPlatform.iOS);
     final isPhoneLayout = shortestSide < AppBreakpoints.phone;
 
     if (isMobilePlatform && _lastPhoneLayout != isPhoneLayout) {
@@ -200,19 +197,11 @@ class _AdaptiveViewportGateState extends State<_AdaptiveViewportGate> {
           return;
         }
         SystemChrome.setPreferredOrientations(
-          isPhoneLayout
-              ? const [DeviceOrientation.portraitUp]
-              : const [
-                  DeviceOrientation.landscapeLeft,
-                  DeviceOrientation.landscapeRight,
-                ],
+          isPhoneLayout ? const [DeviceOrientation.portraitUp] : const [DeviceOrientation.landscapeLeft, DeviceOrientation.landscapeRight],
         );
       });
     }
 
-    return BlocProvider(
-      create: (_) => AppFlowCubit(widget.authRepository)..initialize(),
-      child: const AppShell(),
-    );
+    return BlocProvider(create: (_) => AppFlowCubit(widget.authRepository)..initialize(), child: const AppShell());
   }
 }
