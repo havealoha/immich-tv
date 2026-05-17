@@ -1,6 +1,8 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../core/config/demo_mode.dart';
 import '../../core/config/app_environment.dart';
 import '../../core/errors/app_exception.dart';
 import '../../core/repositories/auth_repository.dart';
@@ -40,6 +42,11 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
   @override
   void initState() {
     super.initState();
+    if (kDebugMode) {
+      _serverController.text = DemoMode.serverUrl;
+      _emailController.text = DemoMode.email;
+      _passwordController.text = DemoMode.password;
+    }
     _pinDigitControllers = List.generate(4, (_) => TextEditingController());
     _confirmPinDigitControllers = List.generate(
       4,
