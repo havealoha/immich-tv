@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -59,13 +60,19 @@ class _AssetViewerView extends StatefulWidget {
 
 class _AssetViewerViewState extends State<_AssetViewerView> {
   static const _chromeHideDelay = Duration(milliseconds: 1500);
+  static const _wallpaperClockDebugDelay = Duration(seconds: 10);
+  static const _wallpaperClockReleaseDelay = Duration(minutes: 2);
   static const _slideshowDurationOptions = <int>[5, 8, 12];
   late final PageController _pageController;
   late final FocusNode _viewerFocusNode;
   late final FocusNode _slideshowButtonFocusNode;
   late final FocusNode _closeButtonFocusNode;
   Timer? _chromeHideTimer;
+  Timer? _wallpaperClockTimer;
+  Timer? _wallpaperClockTicker;
   bool _showChrome = true;
+  bool _showWallpaperClock = false;
+  DateTime _wallpaperClockNow = DateTime.now();
 
   @override
   void initState() {
@@ -90,6 +97,8 @@ class _AssetViewerViewState extends State<_AssetViewerView> {
   @override
   void dispose() {
     _chromeHideTimer?.cancel();
+    _wallpaperClockTimer?.cancel();
+    _wallpaperClockTicker?.cancel();
     _viewerFocusNode.removeListener(_handleFocusChange);
     _slideshowButtonFocusNode.removeListener(_handleFocusChange);
     _closeButtonFocusNode.removeListener(_handleFocusChange);
@@ -149,6 +158,7 @@ class _AssetViewerViewState extends State<_AssetViewerView> {
                         onPageChanged: (index) {
                           _registerInteraction();
                           context.read<AssetViewerCubit>().jumpTo(index);
+                          _scheduleWallpaperClock();
                         },
                         itemBuilder: (context, index) {
                           final asset = state.assets[index];
@@ -222,6 +232,14 @@ class _AssetViewerViewState extends State<_AssetViewerView> {
                               ],
                             ),
                           ),
+                        ),
+                      ),
+                      Positioned(
+                        left: AppSpacing.md,
+                        bottom: AppSpacing.md,
+                        child: _ChromeVisibility(
+                          visible: _showWallpaperClock,
+                          child: _ViewerWallpaperClock(now: _wallpaperClockNow),
                         ),
                       ),
                     ],
@@ -330,6 +348,7 @@ class _AssetViewerViewState extends State<_AssetViewerView> {
     }
 
     cubit.jumpTo(index);
+    _scheduleWallpaperClock();
     _prefetchNearbyViewerImages(cubit.state.copyWith(currentIndex: index));
     _pageController.animateToPage(index, duration: const Duration(milliseconds: 240), curve: Curves.easeOutCubic);
   }
@@ -381,6 +400,7 @@ class _AssetViewerViewState extends State<_AssetViewerView> {
       return;
     }
 
+    _hideWallpaperClock();
     _chromeHideTimer?.cancel();
     if (!_showChrome) {
       setState(() => _showChrome = true);
@@ -395,6 +415,49 @@ class _AssetViewerViewState extends State<_AssetViewerView> {
         return;
       }
       setState(() => _showChrome = false);
+    });
+
+    _scheduleWallpaperClock();
+  }
+
+  Duration get _wallpaperClockDelay => kDebugMode ? _wallpaperClockDebugDelay : _wallpaperClockReleaseDelay;
+
+  bool get _currentAssetSupportsWallpaperClock => !context.read<AssetViewerCubit>().state.currentAsset.isVideo;
+
+  void _hideWallpaperClock() {
+    _wallpaperClockTimer?.cancel();
+    _wallpaperClockTicker?.cancel();
+    if (_showWallpaperClock) {
+      setState(() => _showWallpaperClock = false);
+    }
+  }
+
+  void _scheduleWallpaperClock() {
+    _wallpaperClockTimer?.cancel();
+    _wallpaperClockTicker?.cancel();
+    if (!_currentAssetSupportsWallpaperClock) {
+      if (_showWallpaperClock) {
+        setState(() => _showWallpaperClock = false);
+      }
+      return;
+    }
+
+    _wallpaperClockTimer = Timer(_wallpaperClockDelay, () {
+      if (!mounted || !_currentAssetSupportsWallpaperClock) {
+        return;
+      }
+
+      setState(() {
+        _showWallpaperClock = true;
+        _wallpaperClockNow = DateTime.now();
+      });
+
+      _wallpaperClockTicker = Timer.periodic(const Duration(seconds: 1), (_) {
+        if (!mounted || !_showWallpaperClock || !_currentAssetSupportsWallpaperClock) {
+          return;
+        }
+        setState(() => _wallpaperClockNow = DateTime.now());
+      });
     });
   }
 }
