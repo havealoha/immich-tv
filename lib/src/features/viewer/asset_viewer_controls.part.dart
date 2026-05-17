@@ -145,8 +145,8 @@ class _ViewerActionButtonState extends State<_ViewerActionButton> {
           return AnimatedContainer(
             duration: const Duration(milliseconds: 160),
             padding: const EdgeInsets.symmetric(
-              horizontal: AppSpacing.lg,
-              vertical: AppSpacing.md,
+              horizontal: AppSpacing.md,
+              vertical: AppSpacing.sm,
             ),
             decoration: BoxDecoration(
               color: isEnabled
@@ -176,12 +176,12 @@ class _ViewerActionButtonState extends State<_ViewerActionButton> {
               children: [
                 Icon(
                   widget.icon,
-                  size: 18,
+                  size: 15,
                   color: isEnabled
                       ? Colors.white
                       : Colors.white.withValues(alpha: 0.36),
                 ),
-                const SizedBox(width: AppSpacing.sm),
+                const SizedBox(width: AppSpacing.xs),
                 Text(
                   widget.label,
                   style: theme.textTheme.titleSmall?.copyWith(
@@ -189,6 +189,7 @@ class _ViewerActionButtonState extends State<_ViewerActionButton> {
                         ? Colors.white
                         : Colors.white.withValues(alpha: 0.36),
                     fontWeight: FontWeight.w800,
+                    fontSize: 13,
                   ),
                 ),
               ],
@@ -324,14 +325,14 @@ class _ViewerArrow extends StatelessWidget {
     return Center(
       child: IconButton.filledTonal(
         onPressed: enabled ? onPressed : null,
-        iconSize: 36,
+        iconSize: 28,
         style: IconButton.styleFrom(
           backgroundColor: const Color(0xB30C151A),
           disabledBackgroundColor: const Color(0x400C151A),
           foregroundColor: Colors.white,
           disabledForegroundColor: Colors.white54,
-          minimumSize: const Size(64, 64),
-          fixedSize: const Size(64, 64),
+          minimumSize: const Size(48, 48),
+          fixedSize: const Size(48, 48),
           shape: const CircleBorder(),
           padding: EdgeInsets.zero,
         ),

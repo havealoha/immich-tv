@@ -14,10 +14,7 @@ class _ViewerPage extends StatelessWidget {
 
     return Center(
       child: Padding(
-        padding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.xxl,
-          vertical: AppSpacing.xl,
-        ),
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxl),
         child: InteractiveViewer(
           minScale: 1,
           maxScale: 4,
@@ -50,28 +47,15 @@ class _ViewerPhotoLoadingPlaceholder extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              Icons.photo_outlined,
-              color: Colors.white.withValues(alpha: 0.92),
-              size: 44,
-            ),
+            Icon(Icons.photo_outlined, color: Colors.white.withValues(alpha: 0.92), size: 44),
             const SizedBox(height: AppSpacing.md),
             Text(
               'Loading photo',
               textAlign: TextAlign.center,
-              style: theme.textTheme.titleMedium?.copyWith(
-                color: Colors.white,
-                fontWeight: FontWeight.w800,
-              ),
+              style: theme.textTheme.titleMedium?.copyWith(color: Colors.white, fontWeight: FontWeight.w800),
             ),
             const SizedBox(height: AppSpacing.sm),
-            const LoadingSkeleton(
-              width: 136,
-              height: 8,
-              borderRadius: 999,
-              baseColor: Color(0xFF111111),
-              highlightColor: Color(0xFF262626),
-            ),
+            const LoadingSkeleton(width: 136, height: 8, borderRadius: 999, baseColor: Color(0xFF111111), highlightColor: Color(0xFF262626)),
           ],
         ),
       ),
@@ -103,8 +87,7 @@ class _ViewerVideoPlayerState extends State<_ViewerVideoPlayer> {
   @override
   void didUpdateWidget(covariant _ViewerVideoPlayer oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.asset.id != widget.asset.id ||
-        oldWidget.accessToken != widget.accessToken) {
+    if (oldWidget.asset.id != widget.asset.id || oldWidget.accessToken != widget.accessToken) {
       _disposeController();
       _initializePlayer();
     }
@@ -138,19 +121,10 @@ class _ViewerVideoPlayerState extends State<_ViewerVideoPlayer> {
           fit: StackFit.expand,
           children: [
             Center(
-              child: AspectRatio(
-                aspectRatio: controller.value.aspectRatio == 0
-                    ? 16 / 9
-                    : controller.value.aspectRatio,
-                child: VideoPlayer(controller),
-              ),
+              child: AspectRatio(aspectRatio: controller.value.aspectRatio == 0 ? 16 / 9 : controller.value.aspectRatio, child: VideoPlayer(controller)),
             ),
             Positioned.fill(
-              child: GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onTap: () => setState(() => _showChrome = !_showChrome),
-                child: const SizedBox.expand(),
-              ),
+              child: GestureDetector(behavior: HitTestBehavior.opaque, onTap: () => setState(() => _showChrome = !_showChrome), child: const SizedBox.expand()),
             ),
             AnimatedOpacity(
               opacity: _showChrome || !controller.value.isPlaying ? 1 : 0,
@@ -159,19 +133,12 @@ class _ViewerVideoPlayerState extends State<_ViewerVideoPlayer> {
                 ignoring: !_showChrome && controller.value.isPlaying,
                 child: Center(
                   child: DecoratedBox(
-                    decoration: BoxDecoration(
-                      color: Colors.black.withValues(alpha: 0.32),
-                      shape: BoxShape.circle,
-                    ),
+                    decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.32), shape: BoxShape.circle),
                     child: IconButton(
                       onPressed: _togglePlayback,
                       iconSize: 56,
                       color: Colors.white,
-                      icon: Icon(
-                        controller.value.isPlaying
-                            ? Icons.pause_rounded
-                            : Icons.play_arrow_rounded,
-                      ),
+                      icon: Icon(controller.value.isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded),
                     ),
                   ),
                 ),
@@ -185,15 +152,9 @@ class _ViewerVideoPlayerState extends State<_ViewerVideoPlayer> {
                 opacity: _showChrome || !controller.value.isPlaying ? 1 : 0,
                 duration: const Duration(milliseconds: 180),
                 child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    color: Colors.black.withValues(alpha: 0.22),
-                    borderRadius: BorderRadius.circular(AppRadii.pill),
-                  ),
+                  decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.22), borderRadius: BorderRadius.circular(AppRadii.pill)),
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: AppSpacing.md,
-                      vertical: AppSpacing.sm,
-                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.sm),
                     child: VideoProgressIndicator(
                       controller,
                       allowScrubbing: true,
@@ -221,13 +182,8 @@ class _ViewerVideoPlayerState extends State<_ViewerVideoPlayer> {
 
     final controller = VideoPlayerController.networkUrl(
       Uri.parse(playableUrl),
-      httpHeaders: widget.asset.requiresAuth
-          ? ImmichHeaders.mediaSessionToken(widget.accessToken)
-          : const <String, String>{},
-      videoPlayerOptions: VideoPlayerOptions(
-        mixWithOthers: false,
-        allowBackgroundPlayback: false,
-      ),
+      httpHeaders: widget.asset.requiresAuth ? ImmichHeaders.mediaSessionToken(widget.accessToken) : const <String, String>{},
+      videoPlayerOptions: VideoPlayerOptions(mixWithOthers: false, allowBackgroundPlayback: false),
     );
 
     setState(() {
@@ -248,19 +204,12 @@ class _ViewerVideoPlayerState extends State<_ViewerVideoPlayer> {
 
       final uri = Uri.tryParse(trimmed);
       final path = uri?.path.toLowerCase() ?? trimmed.toLowerCase();
-      if (path.contains('/video/playback') ||
-          path.endsWith('.mp4') ||
-          path.endsWith('.webm') ||
-          path.endsWith('.m3u8') ||
-          path.endsWith('.mov')) {
+      if (path.contains('/video/playback') || path.endsWith('.mp4') || path.endsWith('.webm') || path.endsWith('.m3u8') || path.endsWith('.mov')) {
         return trimmed;
       }
     }
 
-    return widget.asset.displayUrls.firstWhere(
-      (url) => url.trim().isNotEmpty,
-      orElse: () => '',
-    );
+    return widget.asset.displayUrls.firstWhere((url) => url.trim().isNotEmpty, orElse: () => '');
   }
 
   Future<void> _togglePlayback() async {
@@ -301,27 +250,14 @@ class _VideoLoadingPlaceholder extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              Icons.videocam_outlined,
-              color: Colors.white.withValues(alpha: 0.92),
-              size: 44,
-            ),
+            Icon(Icons.videocam_outlined, color: Colors.white.withValues(alpha: 0.92), size: 44),
             const SizedBox(height: AppSpacing.md),
             Text(
               'Loading video',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                color: Colors.white,
-                fontWeight: FontWeight.w800,
-              ),
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(color: Colors.white, fontWeight: FontWeight.w800),
             ),
             const SizedBox(height: AppSpacing.sm),
-            const LoadingSkeleton(
-              width: 148,
-              height: 8,
-              borderRadius: 999,
-              baseColor: Color(0xFF111111),
-              highlightColor: Color(0xFF262626),
-            ),
+            const LoadingSkeleton(width: 148, height: 8, borderRadius: 999, baseColor: Color(0xFF111111), highlightColor: Color(0xFF262626)),
           ],
         ),
       ),
@@ -345,11 +281,7 @@ class _VideoPlayerError extends StatelessWidget {
             Text(
               'This video could not be played',
               textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.w700,
-                color: Colors.white,
-              ),
+              style: TextStyle(fontSize: 24, fontWeight: FontWeight.w700, color: Colors.white),
             ),
             SizedBox(height: AppSpacing.sm),
             Text(
@@ -362,11 +294,4 @@ class _VideoPlayerError extends StatelessWidget {
       ),
     );
   }
-}
-
-String _formatDate(DateTime value) {
-  final year = value.year.toString().padLeft(4, '0');
-  final month = value.month.toString().padLeft(2, '0');
-  final day = value.day.toString().padLeft(2, '0');
-  return '$year-$month-$day';
 }

@@ -121,6 +121,7 @@ class _AssetViewerViewState extends State<_AssetViewerView> {
     return BlocBuilder<AssetViewerCubit, AssetViewerState>(
       builder: (context, state) {
         final slideshowEnabled = state.assets.any((asset) => !asset.isVideo);
+        final showCloseButton = _showCloseButton;
 
         return Shortcuts(
           shortcuts: const <ShortcutActivator, Intent>{
@@ -215,38 +216,6 @@ class _AssetViewerViewState extends State<_AssetViewerView> {
                         ),
                       ),
                       Positioned(
-                        top: 48,
-                        left: 0,
-                        right: 0,
-                        child: _ChromeVisibility(
-                          visible: _showChrome,
-                          child: Align(
-                            child: DecoratedBox(
-                              decoration: BoxDecoration(
-                                color: Colors.black.withValues(alpha: 0.12),
-                                borderRadius: BorderRadius.circular(
-                                  AppRadii.pill,
-                                ),
-                              ),
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: AppSpacing.lg,
-                                  vertical: AppSpacing.sm,
-                                ),
-                                child: Text(
-                                  _formatDate(state.currentAsset.createdAt),
-                                  style: Theme.of(context).textTheme.titleMedium
-                                      ?.copyWith(
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.w800,
-                                      ),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                      Positioned(
                         bottom: 48,
                         right: 0,
                         left: 0,
@@ -257,7 +226,7 @@ class _AssetViewerViewState extends State<_AssetViewerView> {
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 _ViewerActionButton(
-                                  width: 184,
+                                  width: 132,
                                   icon: Icons.slideshow_rounded,
                                   label: 'Slideshow',
                                   enabled: slideshowEnabled,
@@ -268,18 +237,20 @@ class _AssetViewerViewState extends State<_AssetViewerView> {
                                     _startSlideshow(state);
                                   },
                                 ),
-                                const SizedBox(width: AppSpacing.sm),
-                                _ViewerActionButton(
-                                  width: 124,
-                                  icon: Icons.close_rounded,
-                                  label: 'Close',
-                                  focusNode: _closeButtonFocusNode,
-                                  onFocusChange: (_) => _registerInteraction(),
-                                  onPressed: () {
-                                    _registerInteraction();
-                                    Navigator.of(context).maybePop();
-                                  },
-                                ),
+                                if (showCloseButton) ...[
+                                  const SizedBox(width: AppSpacing.sm),
+                                  _ViewerActionButton(
+                                    width: 92,
+                                    icon: Icons.close_rounded,
+                                    label: 'Close',
+                                    focusNode: _closeButtonFocusNode,
+                                    onFocusChange: (_) => _registerInteraction(),
+                                    onPressed: () {
+                                      _registerInteraction();
+                                      Navigator.of(context).maybePop();
+                                    },
+                                  ),
+                                ],
                               ],
                             ),
                           ),
@@ -333,7 +304,7 @@ class _AssetViewerViewState extends State<_AssetViewerView> {
 
   Object? _handlePrevious(AssetViewerState state) {
     _registerInteraction();
-    if (_closeButtonFocusNode.hasFocus) {
+    if (_showCloseButton && _closeButtonFocusNode.hasFocus) {
       _slideshowButtonFocusNode.requestFocus();
       return null;
     }
@@ -349,15 +320,18 @@ class _AssetViewerViewState extends State<_AssetViewerView> {
   Object? _handleNext(AssetViewerState state, bool slideshowEnabled) {
     _registerInteraction();
     if (_slideshowButtonFocusNode.hasFocus) {
+      if (!_showCloseButton) {
+        return null;
+      }
       _closeButtonFocusNode.requestFocus();
       return null;
     }
 
-    if (_closeButtonFocusNode.hasFocus) {
+    if (_showCloseButton && _closeButtonFocusNode.hasFocus) {
       return null;
     }
 
-    if (!slideshowEnabled && _viewerFocusNode.hasFocus) {
+    if (!slideshowEnabled && _viewerFocusNode.hasFocus && _showCloseButton) {
       _closeButtonFocusNode.requestFocus();
       return null;
     }
@@ -430,6 +404,11 @@ class _AssetViewerViewState extends State<_AssetViewerView> {
 
   bool get _hasActionFocus =>
       _slideshowButtonFocusNode.hasFocus || _closeButtonFocusNode.hasFocus;
+
+  bool get _showCloseButton {
+    final screenSize = MediaQuery.sizeOf(context);
+    return screenSize.width <= screenSize.height;
+  }
 
   void _handleFocusChange() {
     if (!mounted) {
