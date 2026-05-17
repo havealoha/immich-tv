@@ -1,10 +1,15 @@
 part of 'asset_viewer_screen.dart';
 
 class _ViewerPage extends StatelessWidget {
-  const _ViewerPage({required this.asset, required this.accessToken});
+  const _ViewerPage({
+    required this.asset,
+    required this.accessToken,
+    required this.fitMode,
+  });
 
   final AssetSummary asset;
   final String accessToken;
+  final ViewerImageFitMode fitMode;
 
   @override
   Widget build(BuildContext context) {
@@ -12,21 +17,32 @@ class _ViewerPage extends StatelessWidget {
       return _ViewerVideoPlayer(asset: asset, accessToken: accessToken);
     }
 
-    return Center(
-      child: InteractiveViewer(
-        minScale: 1,
-        maxScale: 4,
-        child: AuthenticatedAssetImage(
-          imageUrls: asset.displayUrls,
-          accessToken: accessToken,
-          requiresAuth: asset.requiresAuth,
-          fit: BoxFit.contain,
-          heroTag: 'asset-${asset.id}',
-          placeholderIcon: Icons.photo_outlined,
-          filterQuality: FilterQuality.medium,
-          loadingPlaceholder: const _ViewerPhotoLoadingPlaceholder(),
-        ),
-      ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final fit = switch (fitMode) {
+          ViewerImageFitMode.contain => BoxFit.contain,
+          ViewerImageFitMode.fitWidth => BoxFit.fitWidth,
+        };
+
+        return InteractiveViewer(
+          minScale: 1,
+          maxScale: 4,
+          child: SizedBox(
+            width: constraints.maxWidth,
+            height: constraints.maxHeight,
+            child: AuthenticatedAssetImage(
+              imageUrls: asset.displayUrls,
+              accessToken: accessToken,
+              requiresAuth: asset.requiresAuth,
+              fit: fit,
+              heroTag: 'asset-${asset.id}',
+              placeholderIcon: Icons.photo_outlined,
+              filterQuality: FilterQuality.medium,
+              loadingPlaceholder: const _ViewerPhotoLoadingPlaceholder(),
+            ),
+          ),
+        );
+      },
     );
   }
 }

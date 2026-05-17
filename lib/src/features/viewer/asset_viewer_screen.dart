@@ -66,6 +66,7 @@ class _AssetViewerViewState extends State<_AssetViewerView> {
   late final PageController _pageController;
   late final FocusNode _viewerFocusNode;
   late final FocusNode _slideshowButtonFocusNode;
+  late final FocusNode _imageFitButtonFocusNode;
   late final FocusNode _wallpaperButtonFocusNode;
   late final FocusNode _closeButtonFocusNode;
   Timer? _chromeHideTimer;
@@ -84,10 +85,12 @@ class _AssetViewerViewState extends State<_AssetViewerView> {
     _pageController = PageController(initialPage: initialIndex);
     _viewerFocusNode = FocusNode(debugLabel: 'viewer-surface');
     _slideshowButtonFocusNode = FocusNode(debugLabel: 'viewer-slideshow');
+    _imageFitButtonFocusNode = FocusNode(debugLabel: 'viewer-image-fit');
     _wallpaperButtonFocusNode = FocusNode(debugLabel: 'viewer-wallpaper');
     _closeButtonFocusNode = FocusNode(debugLabel: 'viewer-close');
     _viewerFocusNode.addListener(_handleFocusChange);
     _slideshowButtonFocusNode.addListener(_handleFocusChange);
+    _imageFitButtonFocusNode.addListener(_handleFocusChange);
     _wallpaperButtonFocusNode.addListener(_handleFocusChange);
     _closeButtonFocusNode.addListener(_handleFocusChange);
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -106,11 +109,13 @@ class _AssetViewerViewState extends State<_AssetViewerView> {
     _wallpaperClockTicker?.cancel();
     _viewerFocusNode.removeListener(_handleFocusChange);
     _slideshowButtonFocusNode.removeListener(_handleFocusChange);
+    _imageFitButtonFocusNode.removeListener(_handleFocusChange);
     _wallpaperButtonFocusNode.removeListener(_handleFocusChange);
     _closeButtonFocusNode.removeListener(_handleFocusChange);
     _pageController.dispose();
     _viewerFocusNode.dispose();
     _slideshowButtonFocusNode.dispose();
+    _imageFitButtonFocusNode.dispose();
     _wallpaperButtonFocusNode.dispose();
     _closeButtonFocusNode.dispose();
     super.dispose();
@@ -121,6 +126,7 @@ class _AssetViewerViewState extends State<_AssetViewerView> {
     return BlocBuilder<AssetViewerCubit, AssetViewerState>(
       builder: (context, state) {
         final slideshowEnabled = state.assets.any((asset) => !asset.isVideo);
+        final imageFitEnabled = !state.currentAsset.isVideo;
         final wallpaperEnabled = !state.currentAsset.isVideo;
         final showWallpaperOverlay =
             _wallpaperModeActive && !state.currentAsset.isVideo;
@@ -172,7 +178,11 @@ class _AssetViewerViewState extends State<_AssetViewerView> {
                         },
                         itemBuilder: (context, index) {
                           final asset = state.assets[index];
-                          return _ViewerPage(asset: asset, accessToken: widget.accessToken);
+                          return _ViewerPage(
+                            asset: asset,
+                            accessToken: widget.accessToken,
+                            fitMode: state.imageFitMode,
+                          );
                         },
                       ),
                       Positioned.fill(
@@ -226,10 +236,8 @@ class _AssetViewerViewState extends State<_AssetViewerView> {
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                _ViewerActionButton(
-                                  width: 132,
+                                _ViewerIconActionButton(
                                   icon: Icons.slideshow_rounded,
-                                  label: 'Slideshow',
                                   enabled: slideshowEnabled,
                                   focusNode: _slideshowButtonFocusNode,
                                   onFocusChange: (_) => _registerInteraction(),
@@ -238,6 +246,18 @@ class _AssetViewerViewState extends State<_AssetViewerView> {
                                     _startSlideshow(state);
                                   },
                                 ),
+                                if (imageFitEnabled) ...[
+                                  const SizedBox(width: AppSpacing.sm),
+                                  _ViewerIconActionButton(
+                                    icon: _imageFitIcon(state.imageFitMode),
+                                    focusNode: _imageFitButtonFocusNode,
+                                    onFocusChange: (_) => _registerInteraction(),
+                                    onPressed: () {
+                                      _registerInteraction();
+                                      context.read<AssetViewerCubit>().toggleImageFitMode();
+                                    },
+                                  ),
+                                ],
                                 if (wallpaperEnabled) ...[
                                   const SizedBox(width: AppSpacing.sm),
                                   _ViewerIconActionButton(
@@ -320,6 +340,9 @@ class _AssetViewerViewState extends State<_AssetViewerView> {
       if (_wallpaperButtonFocusNode.canRequestFocus &&
           !state.currentAsset.isVideo) {
         _wallpaperButtonFocusNode.requestFocus();
+      } else if (_imageFitButtonFocusNode.canRequestFocus &&
+          !state.currentAsset.isVideo) {
+        _imageFitButtonFocusNode.requestFocus();
       } else {
         _slideshowButtonFocusNode.requestFocus();
       }
@@ -327,6 +350,16 @@ class _AssetViewerViewState extends State<_AssetViewerView> {
     }
 
     if (_wallpaperButtonFocusNode.hasFocus) {
+      if (_imageFitButtonFocusNode.canRequestFocus &&
+          !state.currentAsset.isVideo) {
+        _imageFitButtonFocusNode.requestFocus();
+      } else {
+        _slideshowButtonFocusNode.requestFocus();
+      }
+      return null;
+    }
+
+    if (_imageFitButtonFocusNode.hasFocus) {
       _slideshowButtonFocusNode.requestFocus();
       return null;
     }
@@ -342,6 +375,18 @@ class _AssetViewerViewState extends State<_AssetViewerView> {
   Object? _handleNext(AssetViewerState state, bool slideshowEnabled) {
     _registerInteraction();
     if (_slideshowButtonFocusNode.hasFocus) {
+      if (_imageFitButtonFocusNode.canRequestFocus &&
+          !state.currentAsset.isVideo) {
+        _imageFitButtonFocusNode.requestFocus();
+      } else if (!state.currentAsset.isVideo) {
+        _wallpaperButtonFocusNode.requestFocus();
+      } else {
+        _closeButtonFocusNode.requestFocus();
+      }
+      return null;
+    }
+
+    if (_imageFitButtonFocusNode.hasFocus) {
       if (!state.currentAsset.isVideo) {
         _wallpaperButtonFocusNode.requestFocus();
       } else {
@@ -371,6 +416,7 @@ class _AssetViewerViewState extends State<_AssetViewerView> {
   Object? _focusActionButtons(bool slideshowEnabled) {
     _registerInteraction();
     if (_slideshowButtonFocusNode.hasFocus ||
+        _imageFitButtonFocusNode.hasFocus ||
         _wallpaperButtonFocusNode.hasFocus ||
         _closeButtonFocusNode.hasFocus) {
       return null;
@@ -387,6 +433,7 @@ class _AssetViewerViewState extends State<_AssetViewerView> {
   Object? _focusViewerSurface() {
     _registerInteraction();
     if (_slideshowButtonFocusNode.hasFocus ||
+        _imageFitButtonFocusNode.hasFocus ||
         _wallpaperButtonFocusNode.hasFocus ||
         _closeButtonFocusNode.hasFocus) {
       _viewerFocusNode.requestFocus();
@@ -430,6 +477,7 @@ class _AssetViewerViewState extends State<_AssetViewerView> {
 
   bool get _hasAnyActionFocus =>
       _slideshowButtonFocusNode.hasFocus ||
+      _imageFitButtonFocusNode.hasFocus ||
       _wallpaperButtonFocusNode.hasFocus ||
       _closeButtonFocusNode.hasFocus;
 
@@ -562,5 +610,12 @@ class _AssetViewerViewState extends State<_AssetViewerView> {
 
     return DateTime.now().difference(activatedAt) <
         const Duration(milliseconds: 250);
+  }
+
+  IconData _imageFitIcon(ViewerImageFitMode mode) {
+    return switch (mode) {
+      ViewerImageFitMode.contain => Icons.fit_screen_rounded,
+      ViewerImageFitMode.fitWidth => Icons.width_full_rounded,
+    };
   }
 }

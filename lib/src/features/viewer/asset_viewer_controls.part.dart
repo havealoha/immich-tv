@@ -103,104 +103,6 @@ class _SlideshowConfigDialogState extends State<_SlideshowConfigDialog> {
   }
 }
 
-class _ViewerActionButton extends StatefulWidget {
-  const _ViewerActionButton({
-    required this.width,
-    required this.icon,
-    required this.label,
-    required this.onPressed,
-    this.enabled = true,
-    this.focusNode,
-    this.onFocusChange,
-  });
-
-  final double width;
-  final IconData icon;
-  final String label;
-  final VoidCallback onPressed;
-  final bool enabled;
-  final FocusNode? focusNode;
-  final ValueChanged<bool>? onFocusChange;
-
-  @override
-  State<_ViewerActionButton> createState() => _ViewerActionButtonState();
-}
-
-class _ViewerActionButtonState extends State<_ViewerActionButton> {
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return SizedBox(
-      width: widget.width,
-      child: TvFocusable(
-        enabled: widget.enabled,
-        focusNode: widget.focusNode,
-        onPressed: widget.onPressed,
-        onFocusChange: widget.onFocusChange,
-        builder: (context, focusState) {
-          final isFocused = focusState.isFocused;
-          final isEnabled = focusState.enabled;
-
-          return AnimatedContainer(
-            duration: const Duration(milliseconds: 160),
-            padding: const EdgeInsets.symmetric(
-              horizontal: AppSpacing.md,
-              vertical: AppSpacing.sm,
-            ),
-            decoration: BoxDecoration(
-              color: isEnabled
-                  ? (isFocused
-                        ? AppColors.focus.withValues(alpha: 0.24)
-                        : Colors.black.withValues(alpha: 0.18))
-                  : Colors.black.withValues(alpha: 0.08),
-              borderRadius: BorderRadius.circular(AppRadii.pill),
-              border: Border.all(
-                color: isFocused
-                    ? AppColors.focus
-                    : Colors.white.withValues(alpha: isEnabled ? 0.14 : 0.06),
-                width: isFocused ? 2.4 : 1.2,
-              ),
-              boxShadow: isFocused
-                  ? [
-                      BoxShadow(
-                        color: AppColors.focusGlow,
-                        blurRadius: 22,
-                        spreadRadius: 2,
-                      ),
-                    ]
-                  : const [],
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  widget.icon,
-                  size: 15,
-                  color: isEnabled
-                      ? Colors.white
-                      : Colors.white.withValues(alpha: 0.36),
-                ),
-                const SizedBox(width: AppSpacing.xs),
-                Text(
-                  widget.label,
-                  style: theme.textTheme.titleSmall?.copyWith(
-                    color: isEnabled
-                        ? Colors.white
-                        : Colors.white.withValues(alpha: 0.36),
-                    fontWeight: FontWeight.w800,
-                    fontSize: 13,
-                  ),
-                ),
-              ],
-            ),
-          );
-        },
-      ),
-    );
-  }
-}
-
 class _ChromeVisibility extends StatelessWidget {
   const _ChromeVisibility({
     required this.visible,
@@ -227,12 +129,14 @@ class _ViewerIconActionButton extends StatefulWidget {
   const _ViewerIconActionButton({
     required this.icon,
     required this.onPressed,
+    this.enabled = true,
     this.focusNode,
     this.onFocusChange,
   });
 
   final IconData icon;
   final VoidCallback onPressed;
+  final bool enabled;
   final FocusNode? focusNode;
   final ValueChanged<bool>? onFocusChange;
 
@@ -244,25 +148,29 @@ class _ViewerIconActionButtonState extends State<_ViewerIconActionButton> {
   @override
   Widget build(BuildContext context) {
     return TvFocusable(
+      enabled: widget.enabled,
       focusNode: widget.focusNode,
-      onPressed: widget.onPressed,
+      onPressed: widget.enabled ? widget.onPressed : () {},
       onFocusChange: widget.onFocusChange,
       builder: (context, focusState) {
         final isFocused = focusState.isFocused;
+        final isEnabled = focusState.enabled;
 
         return AnimatedContainer(
           duration: const Duration(milliseconds: 160),
           width: 44,
           height: 44,
           decoration: BoxDecoration(
-            color: isFocused
+            color: !isEnabled
+                ? Colors.black.withValues(alpha: 0.08)
+                : isFocused
                 ? AppColors.focus.withValues(alpha: 0.24)
                 : Colors.black.withValues(alpha: 0.18),
             shape: BoxShape.circle,
             border: Border.all(
               color: isFocused
                   ? AppColors.focus
-                  : Colors.white.withValues(alpha: 0.14),
+                  : Colors.white.withValues(alpha: isEnabled ? 0.14 : 0.06),
               width: isFocused ? 2.4 : 1.2,
             ),
             boxShadow: isFocused
@@ -278,7 +186,9 @@ class _ViewerIconActionButtonState extends State<_ViewerIconActionButton> {
           child: Icon(
             widget.icon,
             size: 18,
-            color: Colors.white,
+            color: isEnabled
+                ? Colors.white
+                : Colors.white.withValues(alpha: 0.36),
           ),
         );
       },
