@@ -742,7 +742,6 @@ class _LibraryContent extends StatelessWidget {
       LibraryTab.timeline => _TimelineSectionView(
         session: session,
         title: 'Timeline',
-        description: 'Browse your library grouped by day.',
         selectedYear: state.selectedTimelineYear,
         status: state.status,
         errorMessage: state.errorMessage,
@@ -770,7 +769,6 @@ class _LibraryContent extends StatelessWidget {
       LibraryTab.favorites => _AssetSectionView(
         session: session,
         title: 'Favorites',
-        description: 'Your strongest saved photos in a clean grid.',
         status: state.status,
         errorMessage: state.errorMessage,
         assets: state.favorites,

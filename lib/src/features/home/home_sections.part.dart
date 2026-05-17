@@ -4,7 +4,6 @@ class _TimelineSectionView extends StatelessWidget {
   const _TimelineSectionView({
     required this.session,
     required this.title,
-    required this.description,
     required this.selectedYear,
     required this.status,
     required this.errorMessage,
@@ -21,7 +20,6 @@ class _TimelineSectionView extends StatelessWidget {
 
   final AuthenticatedSession session;
   final String title;
-  final String description;
   final int selectedYear;
   final LibraryLoadStatus status;
   final String? errorMessage;
@@ -39,7 +37,6 @@ class _TimelineSectionView extends StatelessWidget {
   Widget build(BuildContext context) {
     return _TimelineSectionFrame(
       title: title,
-      description: description,
       years: _timelineYearRange(),
       selectedYear: selectedYear,
       onYearSelected: (year) =>
@@ -129,7 +126,6 @@ class _AssetSectionView extends StatelessWidget {
   const _AssetSectionView({
     required this.session,
     required this.title,
-    required this.description,
     required this.status,
     required this.errorMessage,
     required this.assets,
@@ -145,7 +141,6 @@ class _AssetSectionView extends StatelessWidget {
 
   final AuthenticatedSession session;
   final String title;
-  final String description;
   final LibraryLoadStatus status;
   final String? errorMessage;
   final List<AssetSummary> assets;
@@ -162,7 +157,6 @@ class _AssetSectionView extends StatelessWidget {
   Widget build(BuildContext context) {
     return _SectionFrame(
       title: title,
-      description: description,
       isSidebarOpen: isSidebarOpen,
       menuToggleFocusNode: menuToggleFocusNode,
       onToggleSidebar: onToggleSidebar,
@@ -320,6 +314,7 @@ class _AssetTile extends StatefulWidget {
     required this.asset,
     required this.autofocus,
     this.focusNode,
+    this.onMoveLeft,
     this.openDrawerOnLeft = false,
     this.onOpenDrawer,
     required this.prefetchUrls,
@@ -330,6 +325,7 @@ class _AssetTile extends StatefulWidget {
   final AssetSummary asset;
   final bool autofocus;
   final FocusNode? focusNode;
+  final VoidCallback? onMoveLeft;
   final bool openDrawerOnLeft;
   final VoidCallback? onOpenDrawer;
   final List<List<String>> prefetchUrls;
@@ -448,7 +444,10 @@ class _AssetTileState extends State<_AssetTile> {
       },
     );
 
-    if (!widget.openDrawerOnLeft || widget.onOpenDrawer == null) {
+    final hasLeftEdgeAction =
+        widget.onMoveLeft != null ||
+        (widget.openDrawerOnLeft && widget.onOpenDrawer != null);
+    if (!hasLeftEdgeAction) {
       return tile;
     }
 
@@ -460,6 +459,10 @@ class _AssetTileState extends State<_AssetTile> {
         actions: <Type, Action<Intent>>{
           _OpenDrawerIntent: CallbackAction<_OpenDrawerIntent>(
             onInvoke: (_) {
+              if (widget.onMoveLeft != null) {
+                widget.onMoveLeft?.call();
+                return null;
+              }
               widget.onOpenDrawer?.call();
               return null;
             },

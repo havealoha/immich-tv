@@ -3,7 +3,6 @@ part of 'home_screen.dart';
 class _SectionFrame extends StatelessWidget {
   const _SectionFrame({
     required this.title,
-    required this.description,
     required this.isSidebarOpen,
     required this.menuToggleFocusNode,
     required this.onToggleSidebar,
@@ -11,7 +10,6 @@ class _SectionFrame extends StatelessWidget {
   });
 
   final String title;
-  final String description;
   final bool isSidebarOpen;
   final FocusNode menuToggleFocusNode;
   final VoidCallback onToggleSidebar;
@@ -55,16 +53,6 @@ class _SectionFrame extends StatelessWidget {
           height: compactChrome
               ? scale.space(4, min: 4, max: 6)
               : scale.space(AppSpacing.xs, min: 8, max: 8),
-        ),
-        Text(
-          description,
-          style: theme.textTheme.bodyLarge?.copyWith(
-            color: AppColors.textSecondary,
-            height: compactChrome ? 1.35 : 1.5,
-            fontSize: compactChrome
-                ? scale.text(14, min: 13, max: 14)
-                : scale.text(16, min: 14, max: 16),
-          ),
         ),
         SizedBox(
           height: compactChrome
@@ -290,7 +278,6 @@ class _AlbumRailLoadingSkeleton extends StatelessWidget {
 class _TimelineSectionFrame extends StatelessWidget {
   const _TimelineSectionFrame({
     required this.title,
-    required this.description,
     required this.years,
     required this.selectedYear,
     required this.onYearSelected,
@@ -301,7 +288,6 @@ class _TimelineSectionFrame extends StatelessWidget {
   });
 
   final String title;
-  final String description;
   final List<int> years;
   final int? selectedYear;
   final ValueChanged<int> onYearSelected;
@@ -357,16 +343,6 @@ class _TimelineSectionFrame extends StatelessWidget {
                   height: compactChrome
                       ? scale.space(4, min: 4, max: 6)
                       : scale.space(AppSpacing.xs, min: 8, max: 8),
-                ),
-                Text(
-                  description,
-                  style: theme.textTheme.bodyLarge?.copyWith(
-                    color: AppColors.textSecondary,
-                    height: compactChrome ? 1.35 : 1.5,
-                    fontSize: compactChrome
-                        ? scale.text(14, min: 13, max: 14)
-                        : scale.text(16, min: 14, max: 16),
-                  ),
                 ),
               ],
             );
@@ -615,12 +591,7 @@ double _responsiveSidebarWidth(double screenWidth, AppScale scale) {
 }
 
 double _responsiveAlbumRailWidth(double contentWidth, AppScale scale) {
-  return (contentWidth * 0.22)
-      .clamp(
-        scale.sizeOf(260, min: 220, max: 260),
-        scale.sizeOf(360, min: 320, max: 360),
-      )
-      .toDouble();
+  return (contentWidth * 0.20).toDouble();
 }
 
 List<List<String>> _nearbyThumbnailUrls(
