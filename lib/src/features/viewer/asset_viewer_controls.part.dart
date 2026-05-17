@@ -275,7 +275,11 @@ class _ViewerIconActionButtonState extends State<_ViewerIconActionButton> {
                   ]
                 : const [],
           ),
-          child: Icon(widget.icon, size: 18, color: Colors.white),
+          child: Icon(
+            widget.icon,
+            size: 18,
+            color: Colors.white,
+          ),
         );
       },
     );

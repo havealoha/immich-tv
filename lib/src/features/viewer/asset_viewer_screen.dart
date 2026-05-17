@@ -66,13 +66,16 @@ class _AssetViewerViewState extends State<_AssetViewerView> {
   late final PageController _pageController;
   late final FocusNode _viewerFocusNode;
   late final FocusNode _slideshowButtonFocusNode;
+  late final FocusNode _wallpaperButtonFocusNode;
   late final FocusNode _closeButtonFocusNode;
   Timer? _chromeHideTimer;
   Timer? _wallpaperClockTimer;
   Timer? _wallpaperClockTicker;
   bool _showChrome = true;
   bool _showWallpaperClock = false;
+  bool _wallpaperModeActive = false;
   DateTime _wallpaperClockNow = DateTime.now();
+  DateTime? _wallpaperModeActivatedAt;
 
   @override
   void initState() {
@@ -81,9 +84,11 @@ class _AssetViewerViewState extends State<_AssetViewerView> {
     _pageController = PageController(initialPage: initialIndex);
     _viewerFocusNode = FocusNode(debugLabel: 'viewer-surface');
     _slideshowButtonFocusNode = FocusNode(debugLabel: 'viewer-slideshow');
+    _wallpaperButtonFocusNode = FocusNode(debugLabel: 'viewer-wallpaper');
     _closeButtonFocusNode = FocusNode(debugLabel: 'viewer-close');
     _viewerFocusNode.addListener(_handleFocusChange);
     _slideshowButtonFocusNode.addListener(_handleFocusChange);
+    _wallpaperButtonFocusNode.addListener(_handleFocusChange);
     _closeButtonFocusNode.addListener(_handleFocusChange);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) {
@@ -101,10 +106,12 @@ class _AssetViewerViewState extends State<_AssetViewerView> {
     _wallpaperClockTicker?.cancel();
     _viewerFocusNode.removeListener(_handleFocusChange);
     _slideshowButtonFocusNode.removeListener(_handleFocusChange);
+    _wallpaperButtonFocusNode.removeListener(_handleFocusChange);
     _closeButtonFocusNode.removeListener(_handleFocusChange);
     _pageController.dispose();
     _viewerFocusNode.dispose();
     _slideshowButtonFocusNode.dispose();
+    _wallpaperButtonFocusNode.dispose();
     _closeButtonFocusNode.dispose();
     super.dispose();
   }
@@ -114,6 +121,9 @@ class _AssetViewerViewState extends State<_AssetViewerView> {
     return BlocBuilder<AssetViewerCubit, AssetViewerState>(
       builder: (context, state) {
         final slideshowEnabled = state.assets.any((asset) => !asset.isVideo);
+        final wallpaperEnabled = !state.currentAsset.isVideo;
+        final showWallpaperOverlay =
+            _wallpaperModeActive && !state.currentAsset.isVideo;
 
         return Shortcuts(
           shortcuts: const <ShortcutActivator, Intent>{
@@ -164,6 +174,15 @@ class _AssetViewerViewState extends State<_AssetViewerView> {
                           final asset = state.assets[index];
                           return _ViewerPage(asset: asset, accessToken: widget.accessToken);
                         },
+                      ),
+                      Positioned.fill(
+                        child: IgnorePointer(
+                          child: AnimatedOpacity(
+                            opacity: showWallpaperOverlay ? 1 : 0,
+                            duration: const Duration(milliseconds: 180),
+                            child: const ColoredBox(color: Color(0x4D000000)),
+                          ),
+                        ),
                       ),
                       Positioned(
                         top: 0,
@@ -219,6 +238,17 @@ class _AssetViewerViewState extends State<_AssetViewerView> {
                                     _startSlideshow(state);
                                   },
                                 ),
+                                if (wallpaperEnabled) ...[
+                                  const SizedBox(width: AppSpacing.sm),
+                                  _ViewerIconActionButton(
+                                    icon: Icons.wallpaper_rounded,
+                                    focusNode: _wallpaperButtonFocusNode,
+                                    onFocusChange: (_) => _registerInteraction(),
+                                    onPressed: () {
+                                      _activateWallpaperMode();
+                                    },
+                                  ),
+                                ],
                                 const SizedBox(width: AppSpacing.sm),
                                 _ViewerIconActionButton(
                                   icon: Icons.close_rounded,
@@ -287,6 +317,16 @@ class _AssetViewerViewState extends State<_AssetViewerView> {
   Object? _handlePrevious(AssetViewerState state) {
     _registerInteraction();
     if (_closeButtonFocusNode.hasFocus) {
+      if (_wallpaperButtonFocusNode.canRequestFocus &&
+          !state.currentAsset.isVideo) {
+        _wallpaperButtonFocusNode.requestFocus();
+      } else {
+        _slideshowButtonFocusNode.requestFocus();
+      }
+      return null;
+    }
+
+    if (_wallpaperButtonFocusNode.hasFocus) {
       _slideshowButtonFocusNode.requestFocus();
       return null;
     }
@@ -302,6 +342,15 @@ class _AssetViewerViewState extends State<_AssetViewerView> {
   Object? _handleNext(AssetViewerState state, bool slideshowEnabled) {
     _registerInteraction();
     if (_slideshowButtonFocusNode.hasFocus) {
+      if (!state.currentAsset.isVideo) {
+        _wallpaperButtonFocusNode.requestFocus();
+      } else {
+        _closeButtonFocusNode.requestFocus();
+      }
+      return null;
+    }
+
+    if (_wallpaperButtonFocusNode.hasFocus) {
       _closeButtonFocusNode.requestFocus();
       return null;
     }
@@ -321,7 +370,9 @@ class _AssetViewerViewState extends State<_AssetViewerView> {
 
   Object? _focusActionButtons(bool slideshowEnabled) {
     _registerInteraction();
-    if (_slideshowButtonFocusNode.hasFocus || _closeButtonFocusNode.hasFocus) {
+    if (_slideshowButtonFocusNode.hasFocus ||
+        _wallpaperButtonFocusNode.hasFocus ||
+        _closeButtonFocusNode.hasFocus) {
       return null;
     }
 
@@ -335,7 +386,9 @@ class _AssetViewerViewState extends State<_AssetViewerView> {
 
   Object? _focusViewerSurface() {
     _registerInteraction();
-    if (_slideshowButtonFocusNode.hasFocus || _closeButtonFocusNode.hasFocus) {
+    if (_slideshowButtonFocusNode.hasFocus ||
+        _wallpaperButtonFocusNode.hasFocus ||
+        _closeButtonFocusNode.hasFocus) {
       _viewerFocusNode.requestFocus();
     }
     return null;
@@ -375,7 +428,10 @@ class _AssetViewerViewState extends State<_AssetViewerView> {
     context.read<AssetImageRepository>().prefetchImages(urls: nearby, accessToken: widget.accessToken);
   }
 
-  bool get _hasActionFocus => _slideshowButtonFocusNode.hasFocus || _closeButtonFocusNode.hasFocus;
+  bool get _hasAnyActionFocus =>
+      _slideshowButtonFocusNode.hasFocus ||
+      _wallpaperButtonFocusNode.hasFocus ||
+      _closeButtonFocusNode.hasFocus;
 
   void _handleFocusChange() {
     if (!mounted) {
@@ -387,7 +443,7 @@ class _AssetViewerViewState extends State<_AssetViewerView> {
       return;
     }
 
-    if (_hasActionFocus) {
+    if (_hasAnyActionFocus) {
       _chromeHideTimer?.cancel();
       if (!_showChrome) {
         setState(() => _showChrome = true);
@@ -400,18 +456,22 @@ class _AssetViewerViewState extends State<_AssetViewerView> {
       return;
     }
 
+    if (_shouldIgnoreWallpaperExitForCurrentInteraction()) {
+      return;
+    }
+
     _hideWallpaperClock();
     _chromeHideTimer?.cancel();
     if (!_showChrome) {
       setState(() => _showChrome = true);
     }
 
-    if (!_viewerFocusNode.hasFocus || _hasActionFocus) {
+    if (!_viewerFocusNode.hasFocus || _hasAnyActionFocus) {
       return;
     }
 
     _chromeHideTimer = Timer(_chromeHideDelay, () {
-      if (!mounted || !_viewerFocusNode.hasFocus || _hasActionFocus) {
+      if (!mounted || !_viewerFocusNode.hasFocus || _hasAnyActionFocus) {
         return;
       }
       setState(() => _showChrome = false);
@@ -427,6 +487,8 @@ class _AssetViewerViewState extends State<_AssetViewerView> {
   void _hideWallpaperClock() {
     _wallpaperClockTimer?.cancel();
     _wallpaperClockTicker?.cancel();
+    _wallpaperModeActive = false;
+    _wallpaperModeActivatedAt = null;
     if (_showWallpaperClock) {
       setState(() => _showWallpaperClock = false);
     }
@@ -443,7 +505,9 @@ class _AssetViewerViewState extends State<_AssetViewerView> {
     }
 
     _wallpaperClockTimer = Timer(_wallpaperClockDelay, () {
-      if (!mounted || !_currentAssetSupportsWallpaperClock) {
+      if (!mounted ||
+          !_currentAssetSupportsWallpaperClock ||
+          _wallpaperModeActive) {
         return;
       }
 
@@ -453,11 +517,50 @@ class _AssetViewerViewState extends State<_AssetViewerView> {
       });
 
       _wallpaperClockTicker = Timer.periodic(const Duration(seconds: 1), (_) {
-        if (!mounted || !_showWallpaperClock || !_currentAssetSupportsWallpaperClock) {
+        if (!mounted ||
+            !_showWallpaperClock ||
+            !_currentAssetSupportsWallpaperClock) {
           return;
         }
         setState(() => _wallpaperClockNow = DateTime.now());
       });
     });
+  }
+
+  void _activateWallpaperMode() {
+    if (!_currentAssetSupportsWallpaperClock) {
+      return;
+    }
+
+    _wallpaperClockTimer?.cancel();
+    _wallpaperClockTicker?.cancel();
+    setState(() {
+      _wallpaperModeActive = true;
+      _wallpaperModeActivatedAt = DateTime.now();
+      _showWallpaperClock = true;
+      _showChrome = false;
+      _wallpaperClockNow = DateTime.now();
+    });
+    _viewerFocusNode.requestFocus();
+    _wallpaperClockTicker = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (!mounted || !_showWallpaperClock || !_currentAssetSupportsWallpaperClock) {
+        return;
+      }
+      setState(() => _wallpaperClockNow = DateTime.now());
+    });
+  }
+
+  bool _shouldIgnoreWallpaperExitForCurrentInteraction() {
+    if (!_wallpaperModeActive) {
+      return false;
+    }
+
+    final activatedAt = _wallpaperModeActivatedAt;
+    if (activatedAt == null) {
+      return false;
+    }
+
+    return DateTime.now().difference(activatedAt) <
+        const Duration(milliseconds: 250);
   }
 }
