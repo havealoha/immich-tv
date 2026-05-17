@@ -206,26 +206,11 @@ class _AlbumBrowserLoadingSkeleton extends StatelessWidget {
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        final useStackedLayout = constraints.maxWidth < 980;
-        final rail = _AlbumRailLoadingSkeleton(horizontal: useStackedLayout);
+        const rail = _AlbumRailLoadingSkeleton(horizontal: false);
         const content = _AssetGridLoadingSkeleton(
           leadingWidth: 240,
           leadingHeight: 20,
         );
-
-        if (useStackedLayout) {
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              SizedBox(
-                height: scale.sizeOf(136, min: 124, max: 144),
-                child: rail,
-              ),
-              SizedBox(height: scale.space(AppSpacing.lg, min: 20, max: 24)),
-              const Expanded(child: content),
-            ],
-          );
-        }
 
         return Row(
           children: [

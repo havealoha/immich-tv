@@ -133,31 +133,16 @@ class _AlbumBrowserState extends State<_AlbumBrowser> {
     return LayoutBuilder(
       builder: (context, constraints) {
         final scale = AppScale.of(context);
-        final useStackedLayout = constraints.maxWidth < 980;
         final albumRail = _AlbumRail(
           albums: widget.albums,
           selectedAlbum: selectedAlbum,
           onAlbumSelected: _selectAlbum,
-          horizontal: useStackedLayout,
+          horizontal: false,
           primaryContentFocusNode: widget.primaryContentFocusNode,
           selectedAlbumFocusNode: _selectedAlbumFocusNode,
           onOpenDrawer: widget.onOpenSidebar,
         );
         final albumContent = _buildAlbumContent(selectedAlbum);
-
-        if (useStackedLayout) {
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              SizedBox(
-                height: scale.sizeOf(136, min: 124, max: 144),
-                child: albumRail,
-              ),
-              SizedBox(height: scale.space(AppSpacing.lg, min: 20, max: 24)),
-              Expanded(child: albumContent),
-            ],
-          );
-        }
 
         return Row(
           children: [
