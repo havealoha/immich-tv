@@ -247,7 +247,7 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
       return;
     }
 
-    appFlowCubit.completeSignIn(session);
+    await appFlowCubit.completeSignIn(session);
   }
 
   String _joinDigits(List<TextEditingController> controllers) =>
