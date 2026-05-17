@@ -1,6 +1,7 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../core/models/authenticated_session.dart';
+import '../../../core/models/saved_profile.dart';
 import '../../../core/repositories/auth_repository.dart';
 import 'app_flow_state.dart';
 
@@ -27,8 +28,13 @@ class AppFlowCubit extends Cubit<AppFlowState> {
     emit(AppFlowState.profilePicker(profiles));
   }
 
-  void completeSignIn(AuthenticatedSession session) {
-    emit(AppFlowState.home(session, profiles: state.profiles));
+  Future<void> completeSignIn(AuthenticatedSession session) async {
+    emit(
+      AppFlowState.home(
+        session,
+        profiles: await _loadProfilesOrFallback(),
+      ),
+    );
   }
 
   void showOnboarding() {
@@ -52,5 +58,13 @@ class AppFlowCubit extends Cubit<AppFlowState> {
   Future<void> signOut() async {
     await _authRepository.signOut();
     await refreshProfiles();
+  }
+
+  Future<List<SavedProfile>> _loadProfilesOrFallback() async {
+    try {
+      return await _authRepository.getSavedProfiles();
+    } catch (_) {
+      return state.profiles;
+    }
   }
 }

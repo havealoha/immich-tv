@@ -103,98 +103,155 @@ class _SlideshowConfigDialogState extends State<_SlideshowConfigDialog> {
   }
 }
 
-class _ViewerActionButton extends StatefulWidget {
-  const _ViewerActionButton({
-    required this.width,
+class _ChromeVisibility extends StatelessWidget {
+  const _ChromeVisibility({
+    required this.visible,
+    required this.child,
+  });
+
+  final bool visible;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedOpacity(
+      opacity: visible ? 1 : 0,
+      duration: const Duration(milliseconds: 180),
+      child: IgnorePointer(
+        ignoring: !visible,
+        child: child,
+      ),
+    );
+  }
+}
+
+class _ViewerIconActionButton extends StatefulWidget {
+  const _ViewerIconActionButton({
     required this.icon,
-    required this.label,
     required this.onPressed,
     this.enabled = true,
     this.focusNode,
+    this.onFocusChange,
   });
 
-  final double width;
   final IconData icon;
-  final String label;
   final VoidCallback onPressed;
   final bool enabled;
   final FocusNode? focusNode;
+  final ValueChanged<bool>? onFocusChange;
 
   @override
-  State<_ViewerActionButton> createState() => _ViewerActionButtonState();
+  State<_ViewerIconActionButton> createState() => _ViewerIconActionButtonState();
 }
 
-class _ViewerActionButtonState extends State<_ViewerActionButton> {
+class _ViewerIconActionButtonState extends State<_ViewerIconActionButton> {
+  @override
+  Widget build(BuildContext context) {
+    return TvFocusable(
+      enabled: widget.enabled,
+      focusNode: widget.focusNode,
+      onPressed: widget.enabled ? widget.onPressed : () {},
+      onFocusChange: widget.onFocusChange,
+      builder: (context, focusState) {
+        final isFocused = focusState.isFocused;
+        final isEnabled = focusState.enabled;
+
+        return AnimatedContainer(
+          duration: const Duration(milliseconds: 160),
+          width: 44,
+          height: 44,
+          decoration: BoxDecoration(
+            color: !isEnabled
+                ? Colors.black.withValues(alpha: 0.08)
+                : isFocused
+                ? AppColors.focus.withValues(alpha: 0.24)
+                : Colors.black.withValues(alpha: 0.18),
+            shape: BoxShape.circle,
+            border: Border.all(
+              color: isFocused
+                  ? AppColors.focus
+                  : Colors.white.withValues(alpha: isEnabled ? 0.14 : 0.06),
+              width: isFocused ? 2.4 : 1.2,
+            ),
+            boxShadow: isFocused
+                ? [
+                    BoxShadow(
+                      color: AppColors.focusGlow,
+                      blurRadius: 22,
+                      spreadRadius: 2,
+                    ),
+                  ]
+                : const [],
+          ),
+          child: Icon(
+            widget.icon,
+            size: 18,
+            color: isEnabled
+                ? Colors.white
+                : Colors.white.withValues(alpha: 0.36),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _ViewerWallpaperClock extends StatelessWidget {
+  const _ViewerWallpaperClock({required this.now});
+
+  final DateTime now;
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    return SizedBox(
-      width: widget.width,
-      child: TvFocusable(
-        enabled: widget.enabled,
-        focusNode: widget.focusNode,
-        onPressed: widget.onPressed,
-        builder: (context, focusState) {
-          final isFocused = focusState.isFocused;
-          final isEnabled = focusState.enabled;
-
-          return AnimatedContainer(
-            duration: const Duration(milliseconds: 160),
-            padding: const EdgeInsets.symmetric(
-              horizontal: AppSpacing.lg,
-              vertical: AppSpacing.md,
-            ),
-            decoration: BoxDecoration(
-              color: isEnabled
-                  ? (isFocused
-                        ? AppColors.focus.withValues(alpha: 0.24)
-                        : Colors.black.withValues(alpha: 0.18))
-                  : Colors.black.withValues(alpha: 0.08),
-              borderRadius: BorderRadius.circular(AppRadii.pill),
-              border: Border.all(
-                color: isFocused
-                    ? AppColors.focus
-                    : Colors.white.withValues(alpha: isEnabled ? 0.14 : 0.06),
-                width: isFocused ? 2.4 : 1.2,
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: 0.22),
+        borderRadius: BorderRadius.circular(AppRadii.lg),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.md,
+          vertical: AppSpacing.sm,
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              _formatWallpaperTime(now),
+              style: theme.textTheme.headlineSmall?.copyWith(
+                color: Colors.white,
+                fontWeight: FontWeight.w800,
               ),
-              boxShadow: isFocused
-                  ? [
-                      BoxShadow(
-                        color: AppColors.focusGlow,
-                        blurRadius: 22,
-                        spreadRadius: 2,
-                      ),
-                    ]
-                  : const [],
             ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  widget.icon,
-                  size: 18,
-                  color: isEnabled
-                      ? Colors.white
-                      : Colors.white.withValues(alpha: 0.36),
-                ),
-                const SizedBox(width: AppSpacing.sm),
-                Text(
-                  widget.label,
-                  style: theme.textTheme.titleSmall?.copyWith(
-                    color: isEnabled
-                        ? Colors.white
-                        : Colors.white.withValues(alpha: 0.36),
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-              ],
+            const SizedBox(height: 2),
+            Text(
+              _formatWallpaperDate(now),
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: Colors.white.withValues(alpha: 0.84),
+                fontWeight: FontWeight.w600,
+              ),
             ),
-          );
-        },
+          ],
+        ),
       ),
     );
   }
+}
+
+String _formatWallpaperTime(DateTime value) {
+  final hour = value.hour % 12 == 0 ? 12 : value.hour % 12;
+  final minute = value.minute.toString().padLeft(2, '0');
+  final period = value.hour >= 12 ? 'PM' : 'AM';
+  return '$hour:$minute $period';
+}
+
+String _formatWallpaperDate(DateTime value) {
+  const weekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  return '${weekdays[value.weekday - 1]} ${value.day} ${months[value.month - 1]}';
 }
 
 class _SlideshowDurationOption extends StatefulWidget {
@@ -299,14 +356,14 @@ class _ViewerArrow extends StatelessWidget {
     return Center(
       child: IconButton.filledTonal(
         onPressed: enabled ? onPressed : null,
-        iconSize: 36,
+        iconSize: 28,
         style: IconButton.styleFrom(
           backgroundColor: const Color(0xB30C151A),
           disabledBackgroundColor: const Color(0x400C151A),
           foregroundColor: Colors.white,
           disabledForegroundColor: Colors.white54,
-          minimumSize: const Size(64, 64),
-          fixedSize: const Size(64, 64),
+          minimumSize: const Size(48, 48),
+          fixedSize: const Size(48, 48),
           shape: const CircleBorder(),
           padding: EdgeInsets.zero,
         ),

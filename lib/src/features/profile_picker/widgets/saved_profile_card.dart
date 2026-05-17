@@ -40,7 +40,7 @@ class SavedProfileCard extends StatelessWidget {
           return;
         }
 
-        context.read<AppFlowCubit>().completeSignIn(session);
+        await context.read<AppFlowCubit>().completeSignIn(session);
       },
       builder: (context, focusState) {
         final isActive = focusState.isActive;

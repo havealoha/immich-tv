@@ -114,6 +114,12 @@ class ImmichAuthRepository implements AuthRepository {
       );
     }
 
+    if (DemoMode.matchesServerUrl(profile.serverConfig.serverUrl)) {
+      return MockAuthRepository(
+        profileStorage: _profileStorage,
+      ).signInWithSavedProfile(profileId: profileId, pin: pin);
+    }
+
     final secret = await _profileStorage.readProfileSecret(profileId);
     if (secret == null) {
       throw const AppException(

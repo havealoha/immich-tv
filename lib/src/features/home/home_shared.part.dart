@@ -3,7 +3,6 @@ part of 'home_screen.dart';
 class _SectionFrame extends StatelessWidget {
   const _SectionFrame({
     required this.title,
-    required this.description,
     required this.isSidebarOpen,
     required this.menuToggleFocusNode,
     required this.onToggleSidebar,
@@ -11,7 +10,6 @@ class _SectionFrame extends StatelessWidget {
   });
 
   final String title;
-  final String description;
   final bool isSidebarOpen;
   final FocusNode menuToggleFocusNode;
   final VoidCallback onToggleSidebar;
@@ -55,16 +53,6 @@ class _SectionFrame extends StatelessWidget {
           height: compactChrome
               ? scale.space(4, min: 4, max: 6)
               : scale.space(AppSpacing.xs, min: 8, max: 8),
-        ),
-        Text(
-          description,
-          style: theme.textTheme.bodyLarge?.copyWith(
-            color: AppColors.textSecondary,
-            height: compactChrome ? 1.35 : 1.5,
-            fontSize: compactChrome
-                ? scale.text(14, min: 13, max: 14)
-                : scale.text(16, min: 14, max: 16),
-          ),
         ),
         SizedBox(
           height: compactChrome
@@ -189,10 +177,14 @@ class _AssetGridLoadingSkeleton extends StatelessWidget {
         Expanded(
           child: LayoutBuilder(
             builder: (context, constraints) {
+              final screenSize = MediaQuery.sizeOf(context);
               return GridView.builder(
                 physics: const NeverScrollableScrollPhysics(),
                 itemCount: 12,
-                gridDelegate: _buildAssetGridDelegate(constraints.maxWidth),
+                gridDelegate: _buildAssetGridDelegate(
+                  constraints.maxWidth,
+                  screenSize,
+                ),
                 itemBuilder: (context, index) => const LoadingSkeleton(
                   borderRadius: AppRadii.xl,
                 ),
@@ -214,26 +206,11 @@ class _AlbumBrowserLoadingSkeleton extends StatelessWidget {
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        final useStackedLayout = constraints.maxWidth < 980;
-        final rail = _AlbumRailLoadingSkeleton(horizontal: useStackedLayout);
+        const rail = _AlbumRailLoadingSkeleton(horizontal: false);
         const content = _AssetGridLoadingSkeleton(
           leadingWidth: 240,
           leadingHeight: 20,
         );
-
-        if (useStackedLayout) {
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              SizedBox(
-                height: scale.sizeOf(172, min: 152, max: 172),
-                child: rail,
-              ),
-              SizedBox(height: scale.space(AppSpacing.lg, min: 20, max: 24)),
-              const Expanded(child: content),
-            ],
-          );
-        }
 
         return Row(
           children: [
@@ -266,9 +243,9 @@ class _AlbumRailLoadingSkeleton extends StatelessWidget {
         itemCount: 5,
         separatorBuilder: (context, index) =>
             SizedBox(width: scale.space(AppSpacing.md, min: 14, max: 16)),
-        itemBuilder: (context, index) => const LoadingSkeleton(
-          width: 220,
-          height: 160,
+        itemBuilder: (context, index) => LoadingSkeleton(
+          width: scale.sizeOf(196, min: 176, max: 204),
+          height: scale.sizeOf(128, min: 116, max: 136),
           borderRadius: AppRadii.xl,
         ),
       );
@@ -290,7 +267,6 @@ class _AlbumRailLoadingSkeleton extends StatelessWidget {
 class _TimelineSectionFrame extends StatelessWidget {
   const _TimelineSectionFrame({
     required this.title,
-    required this.description,
     required this.years,
     required this.selectedYear,
     required this.onYearSelected,
@@ -301,7 +277,6 @@ class _TimelineSectionFrame extends StatelessWidget {
   });
 
   final String title;
-  final String description;
   final List<int> years;
   final int? selectedYear;
   final ValueChanged<int> onYearSelected;
@@ -321,7 +296,6 @@ class _TimelineSectionFrame extends StatelessWidget {
       children: [
         LayoutBuilder(
           builder: (context, constraints) {
-            final useStackedLayout = constraints.maxWidth < 980;
             final titleBlock = Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -358,16 +332,6 @@ class _TimelineSectionFrame extends StatelessWidget {
                       ? scale.space(4, min: 4, max: 6)
                       : scale.space(AppSpacing.xs, min: 8, max: 8),
                 ),
-                Text(
-                  description,
-                  style: theme.textTheme.bodyLarge?.copyWith(
-                    color: AppColors.textSecondary,
-                    height: compactChrome ? 1.35 : 1.5,
-                    fontSize: compactChrome
-                        ? scale.text(14, min: 13, max: 14)
-                        : scale.text(16, min: 14, max: 16),
-                  ),
-                ),
               ],
             );
 
@@ -377,29 +341,25 @@ class _TimelineSectionFrame extends StatelessWidget {
               onYearSelected: onYearSelected,
             );
 
-            if (useStackedLayout) {
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  titleBlock,
-                  SizedBox(
-                    height: compactChrome
-                        ? scale.space(14, min: 12, max: 16)
-                        : scale.space(AppSpacing.lg, min: 20, max: 24),
-                  ),
-                  yearRail,
-                ],
-              );
-            }
-
             return Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                Expanded(child: titleBlock),
-                SizedBox(width: scale.space(AppSpacing.xl, min: 24, max: 32)),
-                SizedBox(
-                  width: scale.sizeOf(420, min: 320, max: 460),
-                  child: yearRail,
+                Flexible(
+                  flex: 3,
+                  child: titleBlock,
+                ),
+                SizedBox(width: scale.space(AppSpacing.md, min: 12, max: 16)),
+                Expanded(
+                  flex: 4,
+                  child: Align(
+                    alignment: Alignment.centerRight,
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(
+                        maxWidth: scale.sizeOf(420, min: 260, max: 460),
+                      ),
+                      child: yearRail,
+                    ),
+                  ),
                 ),
               ],
             );
@@ -433,45 +393,44 @@ class _TimelineYearRail extends StatelessWidget {
     final scale = AppScale.of(context);
     final compactChrome = _useCompactTvChrome(scale);
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Years',
-          style: theme.textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.w800,
-            fontSize: compactChrome
-                ? scale.text(16, min: 14, max: 16)
-                : scale.text(18, min: 15, max: 18),
-          ),
-        ),
-        SizedBox(
-          height: compactChrome
-              ? scale.space(8, min: 6, max: 8)
-              : scale.space(AppSpacing.sm, min: 10, max: 12),
-        ),
-        SizedBox(
-          height: compactChrome
-              ? scale.sizeOf(58, min: 52, max: 60)
-              : scale.sizeOf(70, min: 62, max: 70),
-          child: ListView.separated(
-            scrollDirection: Axis.horizontal,
-            itemCount: years.length,
-            separatorBuilder: (_, _) => SizedBox(
-              width: scale.space(AppSpacing.sm, min: 10, max: 12),
+    return SizedBox(
+      height: compactChrome
+          ? scale.sizeOf(46, min: 42, max: 48)
+          : scale.sizeOf(52, min: 46, max: 54),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Text(
+            'Year:',
+            style: theme.textTheme.titleSmall?.copyWith(
+              fontWeight: FontWeight.w800,
+              color: AppColors.textSecondary,
+              fontSize: compactChrome
+                  ? scale.text(15, min: 13, max: 15)
+                  : scale.text(16, min: 14, max: 16),
             ),
-            itemBuilder: (context, index) {
-              final year = years[index];
-              return _TimelineYearChip(
-                year: year,
-                isSelected: year == selectedYear,
-                autofocus: year == selectedYear,
-                onPressed: () => onYearSelected(year),
-              );
-            },
           ),
-        ),
-      ],
+          SizedBox(width: scale.space(AppSpacing.sm, min: 10, max: 12)),
+          Expanded(
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              itemCount: years.length,
+              separatorBuilder: (_, _) => SizedBox(
+                width: scale.space(AppSpacing.xs, min: 8, max: 10),
+              ),
+              itemBuilder: (context, index) {
+                final year = years[index];
+                return _TimelineYearChip(
+                  year: year,
+                  isSelected: year == selectedYear,
+                  autofocus: year == selectedYear,
+                  onPressed: () => onYearSelected(year),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -509,8 +468,8 @@ class _TimelineYearChipState extends State<_TimelineYearChip> {
         return AnimatedContainer(
           duration: const Duration(milliseconds: 180),
           padding: EdgeInsets.symmetric(
-            horizontal: scale.space(AppSpacing.lg, min: 18, max: 22),
-            vertical: scale.space(AppSpacing.md, min: 14, max: 16),
+            horizontal: scale.space(AppSpacing.md, min: 14, max: 16),
+            vertical: scale.space(AppSpacing.sm, min: 10, max: 12),
           ),
           decoration: BoxDecoration(
             color: isSelected
@@ -541,7 +500,7 @@ class _TimelineYearChipState extends State<_TimelineYearChip> {
               style: theme.textTheme.titleSmall?.copyWith(
                 fontWeight: FontWeight.w800,
                 color: Colors.white,
-                fontSize: scale.text(18, min: 15, max: 18),
+                fontSize: scale.text(16, min: 14, max: 16),
               ),
             ),
           ),
@@ -615,12 +574,7 @@ double _responsiveSidebarWidth(double screenWidth, AppScale scale) {
 }
 
 double _responsiveAlbumRailWidth(double contentWidth, AppScale scale) {
-  return (contentWidth * 0.22)
-      .clamp(
-        scale.sizeOf(260, min: 220, max: 260),
-        scale.sizeOf(360, min: 320, max: 360),
-      )
-      .toDouble();
+  return (contentWidth * 0.20).toDouble();
 }
 
 List<List<String>> _nearbyThumbnailUrls(
@@ -728,9 +682,12 @@ String _sectionViewState(
   return 'content';
 }
 
-SliverGridDelegate _buildAssetGridDelegate(double availableWidth) {
+SliverGridDelegate _buildAssetGridDelegate(
+  double availableWidth,
+  Size screenSize,
+) {
   const spacing = 8.0;
-  final crossAxisCount = _resolveGridCrossAxisCount(availableWidth);
+  final crossAxisCount = _resolveGridCrossAxisCount(screenSize);
   final aspectRatio = availableWidth >= 3200
       ? 1.14
       : availableWidth >= 2400
@@ -747,23 +704,8 @@ SliverGridDelegate _buildAssetGridDelegate(double availableWidth) {
   );
 }
 
-int _resolveGridCrossAxisCount(double availableWidth) {
-  if (availableWidth >= 3200) {
-    return 10;
-  }
-  if (availableWidth >= 2600) {
-    return 8;
-  }
-  if (availableWidth >= 1900) {
-    return 7;
-  }
-  if (availableWidth >= 1400) {
-    return 6;
-  }
-  if (availableWidth >= 1100) {
-    return 5;
-  }
-  return 4;
+int _resolveGridCrossAxisCount(Size screenSize) {
+  return screenSize.width > screenSize.height ? 8 : 5;
 }
 
 bool _useCompactTvChrome(AppScale scale) {
