@@ -495,12 +495,14 @@ class _AlbumAssetGrid extends StatelessWidget {
             },
             child: LayoutBuilder(
               builder: (context, constraints) {
-                final crossAxisCount = _resolveGridCrossAxisCount(
-                  constraints.maxWidth,
-                );
+                final screenSize = MediaQuery.sizeOf(context);
+                final crossAxisCount = _resolveGridCrossAxisCount(screenSize);
                 return GridView.builder(
                   cacheExtent: 240,
-                  gridDelegate: _buildAssetGridDelegate(constraints.maxWidth),
+                  gridDelegate: _buildAssetGridDelegate(
+                    constraints.maxWidth,
+                    screenSize,
+                  ),
                   itemCount: assets.length + (hasMore || isLoadingMore ? 1 : 0),
                   itemBuilder: (context, index) {
                     if (index >= assets.length) {

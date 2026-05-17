@@ -203,10 +203,14 @@ class _AssetSectionView extends StatelessWidget {
       },
       child: LayoutBuilder(
         builder: (context, constraints) {
-          final crossAxisCount = _resolveGridCrossAxisCount(constraints.maxWidth);
+          final screenSize = MediaQuery.sizeOf(context);
+          final crossAxisCount = _resolveGridCrossAxisCount(screenSize);
           return GridView.builder(
             cacheExtent: 240,
-            gridDelegate: _buildAssetGridDelegate(constraints.maxWidth),
+            gridDelegate: _buildAssetGridDelegate(
+              constraints.maxWidth,
+              screenSize,
+            ),
             itemCount: assets.length + (hasMore || isLoadingMore ? 1 : 0),
             itemBuilder: (context, index) {
               if (index >= assets.length) {
@@ -261,7 +265,8 @@ class _TimelineDaySection extends StatelessWidget {
     final scale = AppScale.of(context);
     return LayoutBuilder(
       builder: (context, constraints) {
-        final crossAxisCount = _resolveGridCrossAxisCount(constraints.maxWidth);
+        final screenSize = MediaQuery.sizeOf(context);
+        final crossAxisCount = _resolveGridCrossAxisCount(screenSize);
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -277,7 +282,10 @@ class _TimelineDaySection extends StatelessWidget {
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
               cacheExtent: 240,
-              gridDelegate: _buildAssetGridDelegate(constraints.maxWidth),
+              gridDelegate: _buildAssetGridDelegate(
+                constraints.maxWidth,
+                screenSize,
+              ),
               itemCount: group.items.length,
               itemBuilder: (context, index) {
                 final item = group.items[index];

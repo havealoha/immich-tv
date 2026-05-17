@@ -177,10 +177,14 @@ class _AssetGridLoadingSkeleton extends StatelessWidget {
         Expanded(
           child: LayoutBuilder(
             builder: (context, constraints) {
+              final screenSize = MediaQuery.sizeOf(context);
               return GridView.builder(
                 physics: const NeverScrollableScrollPhysics(),
                 itemCount: 12,
-                gridDelegate: _buildAssetGridDelegate(constraints.maxWidth),
+                gridDelegate: _buildAssetGridDelegate(
+                  constraints.maxWidth,
+                  screenSize,
+                ),
                 itemBuilder: (context, index) => const LoadingSkeleton(
                   borderRadius: AppRadii.xl,
                 ),
@@ -698,9 +702,12 @@ String _sectionViewState(
   return 'content';
 }
 
-SliverGridDelegate _buildAssetGridDelegate(double availableWidth) {
+SliverGridDelegate _buildAssetGridDelegate(
+  double availableWidth,
+  Size screenSize,
+) {
   const spacing = 8.0;
-  final crossAxisCount = _resolveGridCrossAxisCount(availableWidth);
+  final crossAxisCount = _resolveGridCrossAxisCount(screenSize);
   final aspectRatio = availableWidth >= 3200
       ? 1.14
       : availableWidth >= 2400
@@ -717,23 +724,8 @@ SliverGridDelegate _buildAssetGridDelegate(double availableWidth) {
   );
 }
 
-int _resolveGridCrossAxisCount(double availableWidth) {
-  if (availableWidth >= 3200) {
-    return 10;
-  }
-  if (availableWidth >= 2600) {
-    return 8;
-  }
-  if (availableWidth >= 1900) {
-    return 7;
-  }
-  if (availableWidth >= 1400) {
-    return 6;
-  }
-  if (availableWidth >= 1100) {
-    return 5;
-  }
-  return 4;
+int _resolveGridCrossAxisCount(Size screenSize) {
+  return screenSize.width > screenSize.height ? 8 : 5;
 }
 
 bool _useCompactTvChrome(AppScale scale) {
