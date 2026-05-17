@@ -111,6 +111,7 @@ class _ViewerActionButton extends StatefulWidget {
     required this.onPressed,
     this.enabled = true,
     this.focusNode,
+    this.onFocusChange,
   });
 
   final double width;
@@ -119,6 +120,7 @@ class _ViewerActionButton extends StatefulWidget {
   final VoidCallback onPressed;
   final bool enabled;
   final FocusNode? focusNode;
+  final ValueChanged<bool>? onFocusChange;
 
   @override
   State<_ViewerActionButton> createState() => _ViewerActionButtonState();
@@ -135,6 +137,7 @@ class _ViewerActionButtonState extends State<_ViewerActionButton> {
         enabled: widget.enabled,
         focusNode: widget.focusNode,
         onPressed: widget.onPressed,
+        onFocusChange: widget.onFocusChange,
         builder: (context, focusState) {
           final isFocused = focusState.isFocused;
           final isEnabled = focusState.enabled;
@@ -192,6 +195,28 @@ class _ViewerActionButtonState extends State<_ViewerActionButton> {
             ),
           );
         },
+      ),
+    );
+  }
+}
+
+class _ChromeVisibility extends StatelessWidget {
+  const _ChromeVisibility({
+    required this.visible,
+    required this.child,
+  });
+
+  final bool visible;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedOpacity(
+      opacity: visible ? 1 : 0,
+      duration: const Duration(milliseconds: 180),
+      child: IgnorePointer(
+        ignoring: !visible,
+        child: child,
       ),
     );
   }

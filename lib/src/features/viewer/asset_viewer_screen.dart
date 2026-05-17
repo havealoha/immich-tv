@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -72,11 +74,14 @@ class _AssetViewerView extends StatefulWidget {
 }
 
 class _AssetViewerViewState extends State<_AssetViewerView> {
+  static const _chromeHideDelay = Duration(milliseconds: 1500);
   static const _slideshowDurationOptions = <int>[5, 8, 12];
   late final PageController _pageController;
   late final FocusNode _viewerFocusNode;
   late final FocusNode _slideshowButtonFocusNode;
   late final FocusNode _closeButtonFocusNode;
+  Timer? _chromeHideTimer;
+  bool _showChrome = true;
 
   @override
   void initState() {
@@ -86,16 +91,24 @@ class _AssetViewerViewState extends State<_AssetViewerView> {
     _viewerFocusNode = FocusNode(debugLabel: 'viewer-surface');
     _slideshowButtonFocusNode = FocusNode(debugLabel: 'viewer-slideshow');
     _closeButtonFocusNode = FocusNode(debugLabel: 'viewer-close');
+    _viewerFocusNode.addListener(_handleFocusChange);
+    _slideshowButtonFocusNode.addListener(_handleFocusChange);
+    _closeButtonFocusNode.addListener(_handleFocusChange);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) {
         return;
       }
+      _registerInteraction();
       _prefetchNearbyViewerImages(context.read<AssetViewerCubit>().state);
     });
   }
 
   @override
   void dispose() {
+    _chromeHideTimer?.cancel();
+    _viewerFocusNode.removeListener(_handleFocusChange);
+    _slideshowButtonFocusNode.removeListener(_handleFocusChange);
+    _closeButtonFocusNode.removeListener(_handleFocusChange);
     _pageController.dispose();
     _viewerFocusNode.dispose();
     _slideshowButtonFocusNode.dispose();
@@ -132,104 +145,148 @@ class _AssetViewerViewState extends State<_AssetViewerView> {
                 onInvoke: (_) => _focusViewerSurface(),
               ),
               DismissIntent: CallbackAction<DismissIntent>(
-                onInvoke: (_) => Navigator.of(context).maybePop(),
+                onInvoke: (_) {
+                  _registerInteraction();
+                  return Navigator.of(context).maybePop();
+                },
               ),
             },
             child: Focus(
               focusNode: _viewerFocusNode,
               autofocus: true,
+              onKeyEvent: (_, event) {
+                _registerInteraction();
+                return KeyEventResult.ignored;
+              },
               child: Scaffold(
                 backgroundColor: AppColors.background,
-                body: Stack(
-                  children: [
-                    PageView.builder(
-                      controller: _pageController,
-                      itemCount: state.assets.length,
-                      onPageChanged: context.read<AssetViewerCubit>().jumpTo,
-                      itemBuilder: (context, index) {
-                        final asset = state.assets[index];
-                        return _ViewerPage(
-                          asset: asset,
-                          accessToken: widget.accessToken,
-                        );
-                      },
-                    ),
-                    Positioned(
-                      top: 0,
-                      bottom: 0,
-                      left: AppSpacing.md,
-                      child: _ViewerArrow(
-                        icon: Icons.chevron_left,
-                        enabled: state.hasPrevious,
-                        onPressed: () => _moveTo(state.currentIndex - 1),
+                body: Listener(
+                  behavior: HitTestBehavior.translucent,
+                  onPointerDown: (_) => _registerInteraction(),
+                  onPointerMove: (_) => _registerInteraction(),
+                  onPointerSignal: (_) => _registerInteraction(),
+                  child: Stack(
+                    children: [
+                      PageView.builder(
+                        controller: _pageController,
+                        itemCount: state.assets.length,
+                        onPageChanged: (index) {
+                          _registerInteraction();
+                          context.read<AssetViewerCubit>().jumpTo(index);
+                        },
+                        itemBuilder: (context, index) {
+                          final asset = state.assets[index];
+                          return _ViewerPage(
+                            asset: asset,
+                            accessToken: widget.accessToken,
+                          );
+                        },
                       ),
-                    ),
-                    Positioned(
-                      top: 0,
-                      bottom: 0,
-                      right: AppSpacing.md,
-                      child: _ViewerArrow(
-                        icon: Icons.chevron_right,
-                        enabled: state.hasNext,
-                        onPressed: () => _moveTo(state.currentIndex + 1),
-                      ),
-                    ),
-                    Positioned(
-                      top: 48,
-                      left: 0,
-                      right: 0,
-                      child: Align(
-                        child: DecoratedBox(
-                          decoration: BoxDecoration(
-                            color: Colors.black.withValues(alpha: 0.12),
-                            borderRadius: BorderRadius.circular(AppRadii.pill),
+                      Positioned(
+                        top: 0,
+                        bottom: 0,
+                        left: AppSpacing.md,
+                        child: _ChromeVisibility(
+                          visible: _showChrome,
+                          child: _ViewerArrow(
+                            icon: Icons.chevron_left,
+                            enabled: state.hasPrevious,
+                            onPressed: () {
+                              _registerInteraction();
+                              _moveTo(state.currentIndex - 1);
+                            },
                           ),
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: AppSpacing.lg,
-                              vertical: AppSpacing.sm,
-                            ),
-                            child: Text(
-                              _formatDate(state.currentAsset.createdAt),
-                              style: Theme.of(context).textTheme.titleMedium
-                                  ?.copyWith(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.w800,
-                                  ),
+                        ),
+                      ),
+                      Positioned(
+                        top: 0,
+                        bottom: 0,
+                        right: AppSpacing.md,
+                        child: _ChromeVisibility(
+                          visible: _showChrome,
+                          child: _ViewerArrow(
+                            icon: Icons.chevron_right,
+                            enabled: state.hasNext,
+                            onPressed: () {
+                              _registerInteraction();
+                              _moveTo(state.currentIndex + 1);
+                            },
+                          ),
+                        ),
+                      ),
+                      Positioned(
+                        top: 48,
+                        left: 0,
+                        right: 0,
+                        child: _ChromeVisibility(
+                          visible: _showChrome,
+                          child: Align(
+                            child: DecoratedBox(
+                              decoration: BoxDecoration(
+                                color: Colors.black.withValues(alpha: 0.12),
+                                borderRadius: BorderRadius.circular(
+                                  AppRadii.pill,
+                                ),
+                              ),
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: AppSpacing.lg,
+                                  vertical: AppSpacing.sm,
+                                ),
+                                child: Text(
+                                  _formatDate(state.currentAsset.createdAt),
+                                  style: Theme.of(context).textTheme.titleMedium
+                                      ?.copyWith(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.w800,
+                                      ),
+                                ),
+                              ),
                             ),
                           ),
                         ),
                       ),
-                    ),
-                    Positioned(
-                      bottom: 48,
-                      right: 0,
-                      left: 0,
-                      child: Align(
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            _ViewerActionButton(
-                              width: 184,
-                              icon: Icons.slideshow_rounded,
-                              label: 'Slideshow',
-                              enabled: slideshowEnabled,
-                              focusNode: _slideshowButtonFocusNode,
-                              onPressed: () => _startSlideshow(state),
+                      Positioned(
+                        bottom: 48,
+                        right: 0,
+                        left: 0,
+                        child: _ChromeVisibility(
+                          visible: _showChrome,
+                          child: Align(
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                _ViewerActionButton(
+                                  width: 184,
+                                  icon: Icons.slideshow_rounded,
+                                  label: 'Slideshow',
+                                  enabled: slideshowEnabled,
+                                  focusNode: _slideshowButtonFocusNode,
+                                  onFocusChange: (_) => _registerInteraction(),
+                                  onPressed: () {
+                                    _registerInteraction();
+                                    _startSlideshow(state);
+                                  },
+                                ),
+                                const SizedBox(width: AppSpacing.sm),
+                                _ViewerActionButton(
+                                  width: 124,
+                                  icon: Icons.close_rounded,
+                                  label: 'Close',
+                                  focusNode: _closeButtonFocusNode,
+                                  onFocusChange: (_) => _registerInteraction(),
+                                  onPressed: () {
+                                    _registerInteraction();
+                                    Navigator.of(context).maybePop();
+                                  },
+                                ),
+                              ],
                             ),
-                            const SizedBox(width: AppSpacing.sm),
-                            _ViewerActionButton(
-                              width: 124,
-                              icon: Icons.close_rounded,
-                              label: 'Close',
-                              focusNode: _closeButtonFocusNode,
-                              onPressed: () => Navigator.of(context).maybePop(),
-                            ),
-                          ],
+                          ),
                         ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -275,6 +332,7 @@ class _AssetViewerViewState extends State<_AssetViewerView> {
   }
 
   Object? _handlePrevious(AssetViewerState state) {
+    _registerInteraction();
     if (_closeButtonFocusNode.hasFocus) {
       _slideshowButtonFocusNode.requestFocus();
       return null;
@@ -289,6 +347,7 @@ class _AssetViewerViewState extends State<_AssetViewerView> {
   }
 
   Object? _handleNext(AssetViewerState state, bool slideshowEnabled) {
+    _registerInteraction();
     if (_slideshowButtonFocusNode.hasFocus) {
       _closeButtonFocusNode.requestFocus();
       return null;
@@ -308,6 +367,7 @@ class _AssetViewerViewState extends State<_AssetViewerView> {
   }
 
   Object? _focusActionButtons(bool slideshowEnabled) {
+    _registerInteraction();
     if (_slideshowButtonFocusNode.hasFocus || _closeButtonFocusNode.hasFocus) {
       return null;
     }
@@ -321,6 +381,7 @@ class _AssetViewerViewState extends State<_AssetViewerView> {
   }
 
   Object? _focusViewerSurface() {
+    _registerInteraction();
     if (_slideshowButtonFocusNode.hasFocus || _closeButtonFocusNode.hasFocus) {
       _viewerFocusNode.requestFocus();
     }
@@ -365,5 +426,48 @@ class _AssetViewerViewState extends State<_AssetViewerView> {
       urls: nearby,
       accessToken: widget.accessToken,
     );
+  }
+
+  bool get _hasActionFocus =>
+      _slideshowButtonFocusNode.hasFocus || _closeButtonFocusNode.hasFocus;
+
+  void _handleFocusChange() {
+    if (!mounted) {
+      return;
+    }
+
+    if (_viewerFocusNode.hasFocus) {
+      _registerInteraction();
+      return;
+    }
+
+    if (_hasActionFocus) {
+      _chromeHideTimer?.cancel();
+      if (!_showChrome) {
+        setState(() => _showChrome = true);
+      }
+    }
+  }
+
+  void _registerInteraction() {
+    if (!mounted) {
+      return;
+    }
+
+    _chromeHideTimer?.cancel();
+    if (!_showChrome) {
+      setState(() => _showChrome = true);
+    }
+
+    if (!_viewerFocusNode.hasFocus || _hasActionFocus) {
+      return;
+    }
+
+    _chromeHideTimer = Timer(_chromeHideDelay, () {
+      if (!mounted || !_viewerFocusNode.hasFocus || _hasActionFocus) {
+        return;
+      }
+      setState(() => _showChrome = false);
+    });
   }
 }
