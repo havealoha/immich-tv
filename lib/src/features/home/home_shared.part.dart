@@ -374,7 +374,7 @@ class _TimelineSectionFrame extends StatelessWidget {
                 Expanded(child: titleBlock),
                 SizedBox(width: scale.space(AppSpacing.xl, min: 24, max: 32)),
                 SizedBox(
-                  width: scale.sizeOf(420, min: 320, max: 460),
+                  width: scale.sizeOf(360, min: 280, max: 380),
                   child: yearRail,
                 ),
               ],
@@ -409,45 +409,44 @@ class _TimelineYearRail extends StatelessWidget {
     final scale = AppScale.of(context);
     final compactChrome = _useCompactTvChrome(scale);
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Years',
-          style: theme.textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.w800,
-            fontSize: compactChrome
-                ? scale.text(16, min: 14, max: 16)
-                : scale.text(18, min: 15, max: 18),
-          ),
-        ),
-        SizedBox(
-          height: compactChrome
-              ? scale.space(8, min: 6, max: 8)
-              : scale.space(AppSpacing.sm, min: 10, max: 12),
-        ),
-        SizedBox(
-          height: compactChrome
-              ? scale.sizeOf(58, min: 52, max: 60)
-              : scale.sizeOf(70, min: 62, max: 70),
-          child: ListView.separated(
-            scrollDirection: Axis.horizontal,
-            itemCount: years.length,
-            separatorBuilder: (_, _) => SizedBox(
-              width: scale.space(AppSpacing.sm, min: 10, max: 12),
+    return SizedBox(
+      height: compactChrome
+          ? scale.sizeOf(46, min: 42, max: 48)
+          : scale.sizeOf(52, min: 46, max: 54),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Text(
+            'Year:',
+            style: theme.textTheme.titleSmall?.copyWith(
+              fontWeight: FontWeight.w800,
+              color: AppColors.textSecondary,
+              fontSize: compactChrome
+                  ? scale.text(15, min: 13, max: 15)
+                  : scale.text(16, min: 14, max: 16),
             ),
-            itemBuilder: (context, index) {
-              final year = years[index];
-              return _TimelineYearChip(
-                year: year,
-                isSelected: year == selectedYear,
-                autofocus: year == selectedYear,
-                onPressed: () => onYearSelected(year),
-              );
-            },
           ),
-        ),
-      ],
+          SizedBox(width: scale.space(AppSpacing.sm, min: 10, max: 12)),
+          Expanded(
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              itemCount: years.length,
+              separatorBuilder: (_, _) => SizedBox(
+                width: scale.space(AppSpacing.xs, min: 8, max: 10),
+              ),
+              itemBuilder: (context, index) {
+                final year = years[index];
+                return _TimelineYearChip(
+                  year: year,
+                  isSelected: year == selectedYear,
+                  autofocus: year == selectedYear,
+                  onPressed: () => onYearSelected(year),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -485,8 +484,8 @@ class _TimelineYearChipState extends State<_TimelineYearChip> {
         return AnimatedContainer(
           duration: const Duration(milliseconds: 180),
           padding: EdgeInsets.symmetric(
-            horizontal: scale.space(AppSpacing.lg, min: 18, max: 22),
-            vertical: scale.space(AppSpacing.md, min: 14, max: 16),
+            horizontal: scale.space(AppSpacing.md, min: 14, max: 16),
+            vertical: scale.space(AppSpacing.sm, min: 10, max: 12),
           ),
           decoration: BoxDecoration(
             color: isSelected
@@ -517,7 +516,7 @@ class _TimelineYearChipState extends State<_TimelineYearChip> {
               style: theme.textTheme.titleSmall?.copyWith(
                 fontWeight: FontWeight.w800,
                 color: Colors.white,
-                fontSize: scale.text(18, min: 15, max: 18),
+                fontSize: scale.text(16, min: 14, max: 16),
               ),
             ),
           ),
