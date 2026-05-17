@@ -223,6 +223,65 @@ class _ChromeVisibility extends StatelessWidget {
   }
 }
 
+class _ViewerIconActionButton extends StatefulWidget {
+  const _ViewerIconActionButton({
+    required this.icon,
+    required this.onPressed,
+    this.focusNode,
+    this.onFocusChange,
+  });
+
+  final IconData icon;
+  final VoidCallback onPressed;
+  final FocusNode? focusNode;
+  final ValueChanged<bool>? onFocusChange;
+
+  @override
+  State<_ViewerIconActionButton> createState() => _ViewerIconActionButtonState();
+}
+
+class _ViewerIconActionButtonState extends State<_ViewerIconActionButton> {
+  @override
+  Widget build(BuildContext context) {
+    return TvFocusable(
+      focusNode: widget.focusNode,
+      onPressed: widget.onPressed,
+      onFocusChange: widget.onFocusChange,
+      builder: (context, focusState) {
+        final isFocused = focusState.isFocused;
+
+        return AnimatedContainer(
+          duration: const Duration(milliseconds: 160),
+          width: 44,
+          height: 44,
+          decoration: BoxDecoration(
+            color: isFocused
+                ? AppColors.focus.withValues(alpha: 0.24)
+                : Colors.black.withValues(alpha: 0.18),
+            shape: BoxShape.circle,
+            border: Border.all(
+              color: isFocused
+                  ? AppColors.focus
+                  : Colors.white.withValues(alpha: 0.14),
+              width: isFocused ? 2.4 : 1.2,
+            ),
+            boxShadow: isFocused
+                ? [
+                    BoxShadow(
+                      color: AppColors.focusGlow,
+                      blurRadius: 22,
+                      spreadRadius: 2,
+                    ),
+                  ]
+                : const [],
+          ),
+          child: Icon(widget.icon, size: 18, color: Colors.white),
+        );
+      },
+    );
+  }
+}
+
 class _SlideshowDurationOption extends StatefulWidget {
   const _SlideshowDurationOption({
     required this.seconds,
