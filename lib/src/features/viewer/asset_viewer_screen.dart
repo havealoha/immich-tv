@@ -21,32 +21,17 @@ part 'asset_viewer_controls.part.dart';
 part 'asset_viewer_media.part.dart';
 
 class AssetViewerScreen extends StatelessWidget {
-  const AssetViewerScreen({
-    super.key,
-    required this.assets,
-    required this.initialIndex,
-    required this.accessToken,
-  });
+  const AssetViewerScreen({super.key, required this.assets, required this.initialIndex, required this.accessToken});
 
   final List<AssetSummary> assets;
   final int initialIndex;
   final String accessToken;
 
-  static Future<void> show(
-    BuildContext context, {
-    required List<AssetSummary> assets,
-    required int initialIndex,
-    required String accessToken,
-  }) {
+  static Future<void> show(BuildContext context, {required List<AssetSummary> assets, required int initialIndex, required String accessToken}) {
     return Navigator.of(context).push(
       PageRouteBuilder<void>(
         opaque: true,
-        pageBuilder: (context, animation, secondaryAnimation) =>
-            AssetViewerScreen(
-              assets: assets,
-              initialIndex: initialIndex,
-              accessToken: accessToken,
-            ),
+        pageBuilder: (context, animation, secondaryAnimation) => AssetViewerScreen(assets: assets, initialIndex: initialIndex, accessToken: accessToken),
         transitionsBuilder: (context, animation, secondaryAnimation, child) {
           return FadeTransition(opacity: animation, child: child);
         },
@@ -57,8 +42,7 @@ class AssetViewerScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (_) =>
-          AssetViewerCubit(assets: assets, initialIndex: initialIndex),
+      create: (_) => AssetViewerCubit(assets: assets, initialIndex: initialIndex),
       child: _AssetViewerView(accessToken: accessToken),
     );
   }
@@ -133,18 +117,10 @@ class _AssetViewerViewState extends State<_AssetViewerView> {
           },
           child: Actions(
             actions: <Type, Action<Intent>>{
-              _PreviousIntent: CallbackAction<_PreviousIntent>(
-                onInvoke: (_) => _handlePrevious(state),
-              ),
-              _NextIntent: CallbackAction<_NextIntent>(
-                onInvoke: (_) => _handleNext(state, slideshowEnabled),
-              ),
-              _FocusActionsIntent: CallbackAction<_FocusActionsIntent>(
-                onInvoke: (_) => _focusActionButtons(slideshowEnabled),
-              ),
-              _FocusViewerIntent: CallbackAction<_FocusViewerIntent>(
-                onInvoke: (_) => _focusViewerSurface(),
-              ),
+              _PreviousIntent: CallbackAction<_PreviousIntent>(onInvoke: (_) => _handlePrevious(state)),
+              _NextIntent: CallbackAction<_NextIntent>(onInvoke: (_) => _handleNext(state, slideshowEnabled)),
+              _FocusActionsIntent: CallbackAction<_FocusActionsIntent>(onInvoke: (_) => _focusActionButtons(slideshowEnabled)),
+              _FocusViewerIntent: CallbackAction<_FocusViewerIntent>(onInvoke: (_) => _focusViewerSurface()),
               DismissIntent: CallbackAction<DismissIntent>(
                 onInvoke: (_) {
                   _registerInteraction();
@@ -177,10 +153,7 @@ class _AssetViewerViewState extends State<_AssetViewerView> {
                         },
                         itemBuilder: (context, index) {
                           final asset = state.assets[index];
-                          return _ViewerPage(
-                            asset: asset,
-                            accessToken: widget.accessToken,
-                          );
+                          return _ViewerPage(asset: asset, accessToken: widget.accessToken);
                         },
                       ),
                       Positioned(
@@ -216,7 +189,7 @@ class _AssetViewerViewState extends State<_AssetViewerView> {
                         ),
                       ),
                       Positioned(
-                        bottom: 48,
+                        bottom: 16,
                         right: 0,
                         left: 0,
                         child: _ChromeVisibility(
@@ -240,7 +213,7 @@ class _AssetViewerViewState extends State<_AssetViewerView> {
                                 if (showCloseButton) ...[
                                   const SizedBox(width: AppSpacing.sm),
                                   _ViewerActionButton(
-                                    width: 92,
+                                    width: 104,
                                     icon: Icons.close_rounded,
                                     label: 'Close',
                                     focusNode: _closeButtonFocusNode,
@@ -268,9 +241,7 @@ class _AssetViewerViewState extends State<_AssetViewerView> {
   }
 
   Future<void> _startSlideshow(AssetViewerState state) async {
-    final slideshowAssets = state.assets
-        .where((asset) => !asset.isVideo)
-        .toList(growable: false);
+    final slideshowAssets = state.assets.where((asset) => !asset.isVideo).toList(growable: false);
     if (slideshowAssets.isEmpty) {
       return;
     }
@@ -289,9 +260,7 @@ class _AssetViewerViewState extends State<_AssetViewerView> {
       return;
     }
 
-    final initialSlideshowIndex = slideshowAssets.indexWhere(
-      (asset) => asset.id == state.currentAsset.id,
-    );
+    final initialSlideshowIndex = slideshowAssets.indexWhere((asset) => asset.id == state.currentAsset.id);
 
     await SlideshowPlayerScreen.show(
       context,
@@ -370,11 +339,7 @@ class _AssetViewerViewState extends State<_AssetViewerView> {
 
     cubit.jumpTo(index);
     _prefetchNearbyViewerImages(cubit.state.copyWith(currentIndex: index));
-    _pageController.animateToPage(
-      index,
-      duration: const Duration(milliseconds: 240),
-      curve: Curves.easeOutCubic,
-    );
+    _pageController.animateToPage(index, duration: const Duration(milliseconds: 240), curve: Curves.easeOutCubic);
   }
 
   void _prefetchNearbyViewerImages(AssetViewerState state) {
@@ -396,14 +361,10 @@ class _AssetViewerViewState extends State<_AssetViewerView> {
       return;
     }
 
-    context.read<AssetImageRepository>().prefetchImages(
-      urls: nearby,
-      accessToken: widget.accessToken,
-    );
+    context.read<AssetImageRepository>().prefetchImages(urls: nearby, accessToken: widget.accessToken);
   }
 
-  bool get _hasActionFocus =>
-      _slideshowButtonFocusNode.hasFocus || _closeButtonFocusNode.hasFocus;
+  bool get _hasActionFocus => _slideshowButtonFocusNode.hasFocus || _closeButtonFocusNode.hasFocus;
 
   bool get _showCloseButton {
     final screenSize = MediaQuery.sizeOf(context);

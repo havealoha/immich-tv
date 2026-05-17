@@ -150,7 +150,7 @@ class _AlbumBrowserState extends State<_AlbumBrowser> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               SizedBox(
-                height: scale.sizeOf(172, min: 152, max: 172),
+                height: scale.sizeOf(136, min: 124, max: 144),
                 child: albumRail,
               ),
               SizedBox(height: scale.space(AppSpacing.lg, min: 20, max: 24)),
@@ -327,10 +327,11 @@ class _AlbumRail extends StatelessWidget {
       itemBuilder: (context, index) {
         final album = albums[index];
         return SizedBox(
-          width: horizontal ? scale.sizeOf(240, min: 220, max: 240) : null,
+          width: horizontal ? scale.sizeOf(196, min: 176, max: 204) : null,
           child: _AlbumSummaryTile(
             album: album,
             isSelected: album.id == selectedAlbum.id,
+            compact: horizontal,
             focusNode: album.id == selectedAlbum.id
                 ? selectedAlbumFocusNode
                 : (index == 0 ? primaryContentFocusNode : null),
@@ -347,6 +348,7 @@ class _AlbumSummaryTile extends StatefulWidget {
   const _AlbumSummaryTile({
     required this.album,
     required this.isSelected,
+    this.compact = false,
     this.focusNode,
     this.onOpenDrawer,
     required this.onPressed,
@@ -354,6 +356,7 @@ class _AlbumSummaryTile extends StatefulWidget {
 
   final AlbumSummary album;
   final bool isSelected;
+  final bool compact;
   final FocusNode? focusNode;
   final VoidCallback? onOpenDrawer;
   final VoidCallback onPressed;
@@ -375,11 +378,21 @@ class _AlbumSummaryTileState extends State<_AlbumSummaryTile> {
 
         return AnimatedContainer(
           duration: const Duration(milliseconds: 180),
-          padding: EdgeInsets.all(scale.space(AppSpacing.lg, min: 20, max: 24)),
+          padding: EdgeInsets.all(
+            scale.space(
+              widget.compact ? AppSpacing.md : AppSpacing.lg,
+              min: widget.compact ? 14 : 20,
+              max: widget.compact ? 18 : 24,
+            ),
+          ),
           decoration: BoxDecoration(
             color: isActive ? const Color(0xFF13212A) : const Color(0xFF0D1A21),
             borderRadius: BorderRadius.circular(
-              scale.radius(AppRadii.lg, min: 20, max: 24),
+              scale.radius(
+                AppRadii.lg,
+                min: widget.compact ? 18 : 20,
+                max: widget.compact ? 20 : 24,
+              ),
             ),
             border: Border.all(
               color: widget.isSelected ? AppColors.focus : AppColors.border,
@@ -395,15 +408,29 @@ class _AlbumSummaryTileState extends State<_AlbumSummaryTile> {
                 overflow: TextOverflow.ellipsis,
                 style: theme.textTheme.titleLarge?.copyWith(
                   fontWeight: FontWeight.w800,
-                  fontSize: scale.text(22, min: 18, max: 22),
+                  fontSize: scale.text(
+                    widget.compact ? 18 : 22,
+                    min: widget.compact ? 16 : 18,
+                    max: widget.compact ? 18 : 22,
+                  ),
                 ),
               ),
-              SizedBox(height: scale.space(AppSpacing.xs, min: 8, max: 8)),
+              SizedBox(
+                height: scale.space(
+                  AppSpacing.xs,
+                  min: widget.compact ? 6 : 8,
+                  max: widget.compact ? 6 : 8,
+                ),
+              ),
               Text(
                 '${widget.album.assetCount} assets',
                 style: theme.textTheme.bodyMedium?.copyWith(
                   color: AppColors.textSecondary,
-                  fontSize: scale.text(14, min: 12, max: 14),
+                  fontSize: scale.text(
+                    widget.compact ? 12 : 14,
+                    min: 11,
+                    max: widget.compact ? 12 : 14,
+                  ),
                 ),
               ),
             ],

@@ -218,7 +218,7 @@ class _AlbumBrowserLoadingSkeleton extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               SizedBox(
-                height: scale.sizeOf(172, min: 152, max: 172),
+                height: scale.sizeOf(136, min: 124, max: 144),
                 child: rail,
               ),
               SizedBox(height: scale.space(AppSpacing.lg, min: 20, max: 24)),
@@ -258,9 +258,9 @@ class _AlbumRailLoadingSkeleton extends StatelessWidget {
         itemCount: 5,
         separatorBuilder: (context, index) =>
             SizedBox(width: scale.space(AppSpacing.md, min: 14, max: 16)),
-        itemBuilder: (context, index) => const LoadingSkeleton(
-          width: 220,
-          height: 160,
+        itemBuilder: (context, index) => LoadingSkeleton(
+          width: scale.sizeOf(196, min: 176, max: 204),
+          height: scale.sizeOf(128, min: 116, max: 136),
           borderRadius: AppRadii.xl,
         ),
       );
@@ -311,7 +311,6 @@ class _TimelineSectionFrame extends StatelessWidget {
       children: [
         LayoutBuilder(
           builder: (context, constraints) {
-            final useStackedLayout = constraints.maxWidth < 980;
             final titleBlock = Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -357,29 +356,25 @@ class _TimelineSectionFrame extends StatelessWidget {
               onYearSelected: onYearSelected,
             );
 
-            if (useStackedLayout) {
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  titleBlock,
-                  SizedBox(
-                    height: compactChrome
-                        ? scale.space(14, min: 12, max: 16)
-                        : scale.space(AppSpacing.lg, min: 20, max: 24),
-                  ),
-                  yearRail,
-                ],
-              );
-            }
-
             return Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                Expanded(child: titleBlock),
-                SizedBox(width: scale.space(AppSpacing.xl, min: 24, max: 32)),
-                SizedBox(
-                  width: scale.sizeOf(360, min: 280, max: 380),
-                  child: yearRail,
+                Flexible(
+                  flex: 3,
+                  child: titleBlock,
+                ),
+                SizedBox(width: scale.space(AppSpacing.md, min: 12, max: 16)),
+                Expanded(
+                  flex: 4,
+                  child: Align(
+                    alignment: Alignment.centerRight,
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(
+                        maxWidth: scale.sizeOf(420, min: 260, max: 460),
+                      ),
+                      child: yearRail,
+                    ),
+                  ),
                 ),
               ],
             );

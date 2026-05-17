@@ -13,21 +13,18 @@ class _ViewerPage extends StatelessWidget {
     }
 
     return Center(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxl),
-        child: InteractiveViewer(
-          minScale: 1,
-          maxScale: 4,
-          child: AuthenticatedAssetImage(
-            imageUrls: asset.displayUrls,
-            accessToken: accessToken,
-            requiresAuth: asset.requiresAuth,
-            fit: BoxFit.contain,
-            heroTag: 'asset-${asset.id}',
-            placeholderIcon: Icons.photo_outlined,
-            filterQuality: FilterQuality.medium,
-            loadingPlaceholder: const _ViewerPhotoLoadingPlaceholder(),
-          ),
+      child: InteractiveViewer(
+        minScale: 1,
+        maxScale: 4,
+        child: AuthenticatedAssetImage(
+          imageUrls: asset.displayUrls,
+          accessToken: accessToken,
+          requiresAuth: asset.requiresAuth,
+          fit: BoxFit.contain,
+          heroTag: 'asset-${asset.id}',
+          placeholderIcon: Icons.photo_outlined,
+          filterQuality: FilterQuality.medium,
+          loadingPlaceholder: const _ViewerPhotoLoadingPlaceholder(),
         ),
       ),
     );
