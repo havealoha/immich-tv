@@ -164,9 +164,10 @@ class OnboardingForm extends StatelessWidget {
             if (isServerStep) ...[
               _ScaledFieldWidth(
                 widthFactor: fieldWidthFactor,
-                child: TextField(
+                child: _OnboardingTextField(
                   controller: serverController,
                   focusNode: serverFieldFocusNode,
+                  nextFocusNode: actionButtonFocusNode,
                   enabled: !isSubmitting,
                   textInputAction: TextInputAction.done,
                   style: fieldTextStyle,
@@ -180,9 +181,10 @@ class OnboardingForm extends StatelessWidget {
             ] else if (isCredentialsStep) ...[
               _ScaledFieldWidth(
                 widthFactor: fieldWidthFactor,
-                child: TextField(
+                child: _OnboardingTextField(
                   controller: emailController,
                   focusNode: emailFieldFocusNode,
+                  nextFocusNode: passwordFieldFocusNode,
                   enabled: !isSubmitting,
                   textInputAction: TextInputAction.next,
                   style: fieldTextStyle,
@@ -193,9 +195,11 @@ class OnboardingForm extends StatelessWidget {
               SizedBox(height: fieldSpacing),
               _ScaledFieldWidth(
                 widthFactor: fieldWidthFactor,
-                child: TextField(
+                child: _OnboardingTextField(
                   controller: passwordController,
                   focusNode: passwordFieldFocusNode,
+                  previousFocusNode: emailFieldFocusNode,
+                  nextFocusNode: actionButtonFocusNode,
                   enabled: !isSubmitting,
                   obscureText: true,
                   style: fieldTextStyle,
@@ -236,8 +240,16 @@ class OnboardingForm extends StatelessWidget {
               child: SizedBox(
                 width: double.infinity,
                 height: buttonHeight,
-                child: FilledButton(
+                child: _OnboardingActionButton(
                   focusNode: actionButtonFocusNode,
+                  previousFocusNode: switch (state.step) {
+                    OnboardingStep.server => serverFieldFocusNode,
+                    OnboardingStep.credentials => passwordFieldFocusNode,
+                    OnboardingStep.pin =>
+                      isConfirmingPin
+                          ? confirmPinFieldFocusNode
+                          : pinFieldFocusNode,
+                  },
                   style: FilledButton.styleFrom(
                     padding: EdgeInsets.symmetric(
                       horizontal: scale.space(20, min: 18, max: 24),
@@ -255,6 +267,116 @@ class OnboardingForm extends StatelessWidget {
       ),
     );
   }
+}
+
+class _OnboardingTextField extends StatelessWidget {
+  const _OnboardingTextField({
+    required this.controller,
+    required this.focusNode,
+    required this.enabled,
+    required this.textInputAction,
+    required this.decoration,
+    this.previousFocusNode,
+    this.nextFocusNode,
+    this.style,
+    this.onSubmitted,
+    this.obscureText = false,
+  });
+
+  final TextEditingController controller;
+  final FocusNode focusNode;
+  final FocusNode? previousFocusNode;
+  final FocusNode? nextFocusNode;
+  final bool enabled;
+  final TextInputAction textInputAction;
+  final InputDecoration decoration;
+  final TextStyle? style;
+  final ValueChanged<String>? onSubmitted;
+  final bool obscureText;
+
+  @override
+  Widget build(BuildContext context) {
+    return Shortcuts(
+      shortcuts: const <ShortcutActivator, Intent>{
+        SingleActivator(LogicalKeyboardKey.arrowUp): _MoveFocusIntent(-1),
+        SingleActivator(LogicalKeyboardKey.arrowDown): _MoveFocusIntent(1),
+      },
+      child: Actions(
+        actions: <Type, Action<Intent>>{
+          _MoveFocusIntent: CallbackAction<_MoveFocusIntent>(
+            onInvoke: (intent) {
+              final targetFocusNode = switch (intent.delta) {
+                -1 => previousFocusNode,
+                1 => nextFocusNode,
+                _ => null,
+              };
+              targetFocusNode?.requestFocus();
+              return null;
+            },
+          ),
+        },
+        child: TextField(
+          controller: controller,
+          focusNode: focusNode,
+          enabled: enabled,
+          obscureText: obscureText,
+          textInputAction: textInputAction,
+          style: style,
+          onSubmitted: onSubmitted,
+          decoration: decoration,
+        ),
+      ),
+    );
+  }
+}
+
+class _OnboardingActionButton extends StatelessWidget {
+  const _OnboardingActionButton({
+    required this.focusNode,
+    required this.style,
+    required this.onPressed,
+    required this.child,
+    this.previousFocusNode,
+  });
+
+  final FocusNode focusNode;
+  final FocusNode? previousFocusNode;
+  final ButtonStyle style;
+  final VoidCallback? onPressed;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Shortcuts(
+      shortcuts: const <ShortcutActivator, Intent>{
+        SingleActivator(LogicalKeyboardKey.arrowUp): _MoveFocusIntent(-1),
+      },
+      child: Actions(
+        actions: <Type, Action<Intent>>{
+          _MoveFocusIntent: CallbackAction<_MoveFocusIntent>(
+            onInvoke: (intent) {
+              if (intent.delta < 0) {
+                previousFocusNode?.requestFocus();
+              }
+              return null;
+            },
+          ),
+        },
+        child: FilledButton(
+          focusNode: focusNode,
+          style: style,
+          onPressed: onPressed,
+          child: child,
+        ),
+      ),
+    );
+  }
+}
+
+class _MoveFocusIntent extends Intent {
+  const _MoveFocusIntent(this.delta);
+
+  final int delta;
 }
 
 class _PinOtpStep extends StatelessWidget {

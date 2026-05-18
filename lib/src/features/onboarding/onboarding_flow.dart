@@ -60,6 +60,12 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
       4,
       (index) => FocusNode(debugLabel: 'confirmPinField.$index'),
     );
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) {
+        return;
+      }
+      _serverFieldFocusNode.requestFocus();
+    });
   }
 
   @override
