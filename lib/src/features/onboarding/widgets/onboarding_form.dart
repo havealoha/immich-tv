@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../../shared/presentation/app_colors.dart';
+import '../../../shared/presentation/app_radii.dart';
 import '../../../shared/presentation/app_scale.dart';
 import '../cubit/onboarding_state.dart';
 import 'onboarding_status_banner.dart';
@@ -234,34 +235,38 @@ class OnboardingForm extends StatelessWidget {
                 ),
               ),
             ],
-            SizedBox(height: scale.space(18, min: 16, max: 22)),
-            _ScaledFieldWidth(
-              widthFactor: fieldWidthFactor,
-              child: SizedBox(
-                width: double.infinity,
-                height: buttonHeight,
-                child: _OnboardingActionButton(
-                  focusNode: actionButtonFocusNode,
-                  previousFocusNode: switch (state.step) {
-                    OnboardingStep.server => serverFieldFocusNode,
-                    OnboardingStep.credentials => passwordFieldFocusNode,
-                    OnboardingStep.pin =>
-                      isConfirmingPin
-                          ? confirmPinFieldFocusNode
-                          : pinFieldFocusNode,
-                  },
-                  style: FilledButton.styleFrom(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: scale.space(20, min: 18, max: 24),
-                      vertical: scale.space(12, min: 10, max: 14),
+            if (state.step != OnboardingStep.pin) ...[
+              SizedBox(height: scale.space(18, min: 16, max: 22)),
+              _ScaledFieldWidth(
+                widthFactor: fieldWidthFactor,
+                child: SizedBox(
+                  width: double.infinity,
+                  height: buttonHeight,
+                  child: _OnboardingActionButton(
+                    focusNode: actionButtonFocusNode,
+                    previousFocusNode: switch (state.step) {
+                      OnboardingStep.server => serverFieldFocusNode,
+                      OnboardingStep.credentials => passwordFieldFocusNode,
+                      OnboardingStep.pin =>
+                        isConfirmingPin
+                            ? confirmPinFieldFocusNode
+                            : pinFieldFocusNode,
+                    },
+                    style: FilledButton.styleFrom(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: scale.space(20, min: 18, max: 24),
+                        vertical: scale.space(12, min: 10, max: 14),
+                      ),
+                      textStyle: buttonTextStyle,
                     ),
-                    textStyle: buttonTextStyle,
+                    onPressed: isSubmitting ? null : onPrimaryAction,
+                    child: Text(
+                      isSubmitting ? 'Working...' : primaryButtonLabel,
+                    ),
                   ),
-                  onPressed: isSubmitting ? null : onPrimaryAction,
-                  child: Text(isSubmitting ? 'Working...' : primaryButtonLabel),
                 ),
               ),
-            ),
+            ],
           ],
         ),
       ),
@@ -362,11 +367,53 @@ class _OnboardingActionButton extends StatelessWidget {
             },
           ),
         },
-        child: FilledButton(
-          focusNode: focusNode,
-          style: style,
-          onPressed: onPressed,
-          child: child,
+        child: ListenableBuilder(
+          listenable: focusNode,
+          builder: (context, _) {
+            final isFocused = focusNode.hasFocus;
+            const buttonRadius = AppRadii.md;
+            const focusRingWidth = 2.5;
+            return AnimatedContainer(
+              duration: const Duration(milliseconds: 160),
+              curve: Curves.easeOutCubic,
+              padding: const EdgeInsets.all(focusRingWidth),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(
+                  buttonRadius + focusRingWidth,
+                ),
+                border: Border.all(
+                  color: isFocused
+                      ? AppColors.focus
+                      : Colors.transparent,
+                  width: focusRingWidth,
+                ),
+                boxShadow: isFocused
+                    ? [
+                        BoxShadow(
+                          color: AppColors.focus.withValues(alpha: 0.28),
+                          blurRadius: 26,
+                          spreadRadius: 2,
+                        ),
+                      ]
+                    : const [],
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(buttonRadius),
+                child: FilledButton(
+                  focusNode: focusNode,
+                  style: style.copyWith(
+                    shape: WidgetStatePropertyAll(
+                      RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(buttonRadius),
+                      ),
+                    ),
+                  ),
+                  onPressed: onPressed,
+                  child: child,
+                ),
+              ),
+            );
+          },
         ),
       ),
     );
