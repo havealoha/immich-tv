@@ -44,14 +44,12 @@ jobs:
           version_name="${version_line%%+*}"
           build_number="${version_line##*+}"
           build_version="${version_name}+${build_number}"
-          apk_name="ImmichTV-v${build_version}.apk"
-          latest_apk_name="ImmichTV-latest.apk"
+          apk_name="ImmichTV.v${version_name}-${build_number}.apk"
 
           echo "build_version=${build_version}" >> "$GITHUB_OUTPUT"
           echo "version_name=${version_name}" >> "$GITHUB_OUTPUT"
           echo "build_number=${build_number}" >> "$GITHUB_OUTPUT"
           echo "apk_name=${apk_name}" >> "$GITHUB_OUTPUT"
-          echo "latest_apk_name=${latest_apk_name}" >> "$GITHUB_OUTPUT"
 
       - name: Build release APK
         run: >
@@ -64,8 +62,26 @@ jobs:
         run: |
           mv build/app/outputs/flutter-apk/app-release.apk \
             "build/app/outputs/flutter-apk/${{ steps.version.outputs.apk_name }}"
-          cp "build/app/outputs/flutter-apk/${{ steps.version.outputs.apk_name }}" \
-            "build/app/outputs/flutter-apk/${{ steps.version.outputs.latest_apk_name }}"
+
+      - name: Remove older APK assets from release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          release_json="$(gh api "repos/${{ github.repository }}/releases/tags/master-latest" 2>/dev/null || true)"
+          if [ -z "$release_json" ]; then
+            exit 0
+          fi
+
+          while IFS= read -r asset_id; do
+            if [ -n "$asset_id" ]; then
+              gh api \
+                --method DELETE \
+                "repos/${{ github.repository }}/releases/assets/${asset_id}"
+            fi
+          done < <(
+            printf '%s' "$release_json" | jq -r '.assets[] | select(.name | endswith(".apk")) | .id'
+          )
 
       - name: Publish GitHub release assets
         id: release
@@ -85,7 +101,6 @@ jobs:
           prerelease: true
           files: |
             build/app/outputs/flutter-apk/${{ steps.version.outputs.apk_name }}
-            build/app/outputs/flutter-apk/${{ steps.version.outputs.latest_apk_name }}
           fail_on_unmatched_files: true
 
       - name: Upload release APK
