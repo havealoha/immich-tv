@@ -235,7 +235,6 @@ class _Sidebar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final scale = AppScale.of(context);
 
     return Shortcuts(
@@ -349,15 +348,6 @@ class _Sidebar extends StatelessWidget {
                 ),
               ),
               SizedBox(height: scale.space(AppSpacing.md, min: 14, max: 16)),
-              Text(
-                'Connected to ${session.serverConfig.serverUrl}',
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: AppColors.textMuted,
-                  height: 1.5,
-                  fontSize: scale.text(12, min: 11, max: 12),
-                ),
-              ),
-              SizedBox(height: scale.space(AppSpacing.md, min: 14, max: 16)),
           _SidebarActionButton(
             icon: Icons.switch_account_rounded,
             label: 'Switch user',
@@ -407,8 +397,8 @@ class _ProfileHeader extends StatelessWidget {
         .map((segment) => segment.characters.first.toUpperCase())
         .join();
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         CircleAvatar(
           radius: scale.sizeOf(30, min: 26, max: 30),
@@ -422,20 +412,34 @@ class _ProfileHeader extends StatelessWidget {
             ),
           ),
         ),
-        SizedBox(height: scale.space(AppSpacing.md, min: 14, max: 16)),
-        Text(
-          name,
-          style: theme.textTheme.titleLarge?.copyWith(
-            fontWeight: FontWeight.w800,
-            fontSize: scale.text(24, min: 20, max: 24),
-          ),
-        ),
-        const SizedBox(height: AppSpacing.xxs),
-        Text(
-          session.user.email,
-          style: theme.textTheme.bodyMedium?.copyWith(
-            color: AppColors.textSecondary,
-            fontSize: scale.text(14, min: 12, max: 14),
+        SizedBox(width: scale.space(AppSpacing.md, min: 14, max: 16)),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                name,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                softWrap: false,
+                style: theme.textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.w800,
+                  fontSize: scale.text(24, min: 20, max: 24),
+                ),
+              ),
+              const SizedBox(height: AppSpacing.xxs),
+              Text(
+                session.user.email,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                softWrap: false,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: AppColors.textSecondary,
+                  fontSize: scale.text(14, min: 12, max: 14),
+                ),
+              ),
+            ],
           ),
         ),
       ],
