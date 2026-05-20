@@ -8,7 +8,9 @@ import 'package:video_player/video_player.dart';
 
 import '../../core/models/asset_summary.dart';
 import '../../core/network/immich_headers.dart';
+import '../../platform/auth/browser_session_bridge.dart';
 import '../../core/repositories/asset_image_repository.dart';
+import '../../platform/media/web_authenticated_video_cache.dart';
 import '../../shared/presentation/app_colors.dart';
 import '../../shared/presentation/app_radii.dart';
 import '../../shared/presentation/app_spacing.dart';
