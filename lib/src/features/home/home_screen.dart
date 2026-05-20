@@ -579,12 +579,16 @@ class _SidebarActionButton extends StatelessWidget {
                 size: scale.sizeOf(22, min: 20, max: 22),
               ),
               SizedBox(width: scale.space(AppSpacing.sm, min: 10, max: 12)),
-              Text(
-                label,
-                style: theme.textTheme.titleMedium?.copyWith(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w700,
-                  fontSize: scale.text(18, min: 15, max: 18),
+              Expanded(
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w700,
+                    fontSize: scale.text(18, min: 15, max: 18),
+                  ),
                 ),
               ),
             ],

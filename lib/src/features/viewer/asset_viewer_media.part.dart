@@ -114,6 +114,10 @@ class _ViewerVideoPlayerState extends State<_ViewerVideoPlayer> {
 
   @override
   Widget build(BuildContext context) {
+    if (kIsWeb && widget.asset.requiresAuth) {
+      return const _WebVideoAuthUnsupported();
+    }
+
     final controller = _controller;
     if (controller == null || _initializeFuture == null) {
       return const _VideoLoadingPlaceholder();
@@ -203,7 +207,9 @@ class _ViewerVideoPlayerState extends State<_ViewerVideoPlayer> {
       _controller = controller;
       _initializeFuture = controller.initialize().then((_) async {
         await controller.setLooping(true);
-        await controller.play();
+        if (!kIsWeb) {
+          await controller.play();
+        }
       });
     });
   }
@@ -299,6 +305,41 @@ class _VideoPlayerError extends StatelessWidget {
             SizedBox(height: AppSpacing.sm),
             Text(
               'Try another asset or reconnect to the server and try again.',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Colors.white70),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _WebVideoAuthUnsupported extends StatelessWidget {
+  const _WebVideoAuthUnsupported();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Center(
+      child: Padding(
+        padding: EdgeInsets.all(AppSpacing.xl),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.public_off_outlined, size: 40, color: Colors.white),
+            SizedBox(height: AppSpacing.md),
+            Text(
+              'Authenticated video is not available on web yet',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.w700,
+                color: Colors.white,
+              ),
+            ),
+            SizedBox(height: AppSpacing.sm),
+            Text(
+              'Photos should load in the browser now, but protected video still needs a dedicated web playback path.',
               textAlign: TextAlign.center,
               style: TextStyle(color: Colors.white70),
             ),

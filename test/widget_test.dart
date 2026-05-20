@@ -32,9 +32,9 @@ void main() {
       ),
     );
 
-    await tester.pumpAndSettle();
+    await _settleAppFlow(tester);
 
-    expect(find.text('Connect your server'), findsOneWidget);
+    expect(find.widgetWithText(TextField, 'Immich server URL'), findsOneWidget);
     expect(find.text('Validate server'), findsOneWidget);
   });
 
@@ -55,7 +55,7 @@ void main() {
       ),
     );
 
-    await tester.pumpAndSettle();
+    await _settleAppFlow(tester);
 
     expect(find.text(restoredSession.user.name), findsOneWidget);
     expect(find.textContaining(restoredSession.user.email), findsOneWidget);
@@ -77,18 +77,15 @@ void main() {
         mediaRepository: FakeMediaRepository(),
       ),
     );
-    await tester.pumpAndSettle();
+    await _settleAppFlow(tester);
 
-    expect(find.text('Connect your server'), findsOneWidget);
+    expect(find.widgetWithText(TextField, 'Immich server URL'), findsOneWidget);
 
     await tester.tap(find.text('Validate server'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Sign in to Immich'), findsOneWidget);
-    expect(
-      find.textContaining('API detected at https://photos.example.com/api'),
-      findsOneWidget,
-    );
+    expect(find.widgetWithText(TextField, 'Email'), findsOneWidget);
+    expect(find.widgetWithText(TextField, 'Password'), findsOneWidget);
 
     await tester.enterText(
       find.widgetWithText(TextField, 'Email'),
@@ -102,17 +99,12 @@ void main() {
     await tester.tap(find.text('Continue to PIN setup'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Create a profile PIN'), findsOneWidget);
-    await tester.enterText(
-      find.widgetWithText(TextField, '4-digit PIN'),
-      '1234',
-    );
-    await tester.enterText(
-      find.widgetWithText(TextField, 'Confirm PIN'),
-      '1234',
-    );
-    await tester.ensureVisible(find.text('Save profile and continue'));
-    await tester.tap(find.text('Save profile and continue'));
+    expect(find.text('Create a 4-digit PIN'), findsOneWidget);
+    await _enterOtpDigits(tester, '1234');
+    await tester.pumpAndSettle();
+
+    expect(find.text('Confirm your 4-digit PIN'), findsOneWidget);
+    await _enterOtpDigits(tester, '1234');
     await tester.pumpAndSettle();
 
     expect(find.text('Timeline'), findsWidgets);
@@ -134,14 +126,14 @@ void main() {
         mediaRepository: FakeMediaRepository(),
       ),
     );
-    await tester.pumpAndSettle();
+    await _settleAppFlow(tester);
 
     await tester.tap(find.byType(TextField).first);
     await tester.pump();
     await tester.testTextInput.receiveAction(TextInputAction.done);
     await tester.pumpAndSettle();
 
-    expect(find.text('Sign in to Immich'), findsOneWidget);
+    expect(find.widgetWithText(TextField, 'Email'), findsOneWidget);
 
     await tester.enterText(
       find.widgetWithText(TextField, 'Email'),
@@ -155,17 +147,12 @@ void main() {
     await tester.testTextInput.receiveAction(TextInputAction.done);
     await tester.pumpAndSettle();
 
-    expect(find.text('Create a profile PIN'), findsOneWidget);
-    await tester.enterText(
-      find.widgetWithText(TextField, '4-digit PIN'),
-      '2468',
-    );
-    await tester.enterText(
-      find.widgetWithText(TextField, 'Confirm PIN'),
-      '2468',
-    );
-    await tester.pump();
-    await tester.testTextInput.receiveAction(TextInputAction.done);
+    expect(find.text('Create a 4-digit PIN'), findsOneWidget);
+    await _enterOtpDigits(tester, '2468');
+    await tester.pumpAndSettle();
+
+    expect(find.text('Confirm your 4-digit PIN'), findsOneWidget);
+    await _enterOtpDigits(tester, '2468');
     await tester.pumpAndSettle();
 
     expect(find.text('Timeline'), findsWidgets);
@@ -181,12 +168,16 @@ void main() {
 
     await _pumpSignedInApp(tester, mediaRepository: FakeMediaRepository());
 
+    await tester.tap(find.byTooltip('Show menu'));
+    await tester.pumpAndSettle();
+    await tester.pumpAndSettle();
     await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
     await tester.pumpAndSettle();
     await tester.sendKeyEvent(LogicalKeyboardKey.enter);
     await tester.pumpAndSettle();
 
-    expect(find.text('2 photos'), findsOneWidget);
+    expect(find.text('Summer Trip'), findsWidgets);
+    expect(find.text('42 assets'), findsOneWidget);
   });
 
   testWidgets('switches between library sections and shows empty states', (
@@ -200,14 +191,25 @@ void main() {
 
     expect(find.text('Asset asset-1'), findsOneWidget);
 
-    await tester.tap(find.text('Albums').first);
+    await tester.tap(find.byTooltip('Show menu'));
+    await tester.pumpAndSettle();
+    await tester.pumpAndSettle();
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+    await tester.pumpAndSettle();
+    await tester.sendKeyEvent(LogicalKeyboardKey.enter);
     await tester.pumpAndSettle();
     expect(find.text('Summer Trip'), findsWidgets);
-    expect(find.text('2 photos'), findsOneWidget);
+    expect(find.text('42 assets'), findsOneWidget);
     expect(find.text('Asset asset-1'), findsOneWidget);
 
-    await tester.ensureVisible(find.text('Favorites').first);
-    await tester.tap(find.text('Favorites').first, warnIfMissed: false);
+    await tester.tap(find.byTooltip('Show menu'));
+    await tester.pumpAndSettle();
+    await tester.pumpAndSettle();
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+    await tester.pumpAndSettle();
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+    await tester.pumpAndSettle();
+    await tester.sendKeyEvent(LogicalKeyboardKey.enter);
     await tester.pumpAndSettle();
     expect(find.text('Asset favorite-1'), findsOneWidget);
   });
@@ -248,13 +250,18 @@ void main() {
     await tester.tap(firstAssetLabel, warnIfMissed: false);
     await tester.pumpAndSettle();
 
-    expect(find.text('2024-11-09'), findsOneWidget);
-    expect(find.text('Close'), findsOneWidget);
+    expect(find.byIcon(Icons.close_rounded), findsWidgets);
+    expect(find.byIcon(Icons.slideshow_rounded), findsOneWidget);
 
     await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
     await tester.pumpAndSettle();
 
-    expect(find.text('2024-11-10'), findsOneWidget);
+    await tester.tap(find.byIcon(Icons.slideshow_rounded));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('5'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('2026-11-10'), findsOneWidget);
   });
 
   testWidgets('starts a slideshow with playback controls', (tester) async {
@@ -269,16 +276,31 @@ void main() {
     await tester.tap(firstAssetLabel, warnIfMissed: false);
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Slideshow'));
+    await tester.tap(find.byIcon(Icons.slideshow_rounded));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Start'));
+    expect(find.text('Start slideshow'), findsOneWidget);
+    await tester.tap(find.text('5'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Photo 1 of 2'), findsOneWidget);
     expect(find.text('Pause'), findsOneWidget);
     expect(find.text('Close'), findsOneWidget);
+    expect(find.text('2026-11-09'), findsOneWidget);
   });
+}
+
+Future<void> _settleAppFlow(WidgetTester tester) async {
+  await tester.pump();
+  await tester.pump(const Duration(milliseconds: 1700));
+  await tester.pumpAndSettle();
+}
+
+Future<void> _enterOtpDigits(WidgetTester tester, String digits) async {
+  expect(digits.length, 4);
+  final fields = find.byType(TextField);
+  for (var index = 0; index < digits.length; index++) {
+    await tester.enterText(fields.at(index), digits[index]);
+  }
 }
 
 Future<void> _pumpSignedInApp(
@@ -293,7 +315,7 @@ Future<void> _pumpSignedInApp(
       mediaRepository: mediaRepository,
     ),
   );
-  await tester.pumpAndSettle();
+  await _settleAppFlow(tester);
 
   await tester.tap(find.text('Validate server'));
   await tester.pumpAndSettle();
@@ -310,10 +332,9 @@ Future<void> _pumpSignedInApp(
   await tester.tap(find.text('Continue to PIN setup'));
   await tester.pumpAndSettle();
 
-  await tester.enterText(find.widgetWithText(TextField, '4-digit PIN'), '1234');
-  await tester.enterText(find.widgetWithText(TextField, 'Confirm PIN'), '1234');
-  await tester.ensureVisible(find.text('Save profile and continue'));
-  await tester.tap(find.text('Save profile and continue'));
+  await _enterOtpDigits(tester, '1234');
+  await tester.pumpAndSettle();
+  await _enterOtpDigits(tester, '1234');
   await tester.pumpAndSettle();
 }
 

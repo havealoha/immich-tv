@@ -1,5 +1,8 @@
+import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
+import '../../../core/network/immich_dio_factory.dart';
 import '../../../core/network/immich_headers.dart';
 import '../app_colors.dart';
 import '../app_spacing.dart';
@@ -35,8 +38,12 @@ class AuthenticatedAssetImage extends StatefulWidget {
 }
 
 class _AuthenticatedAssetImageState extends State<AuthenticatedAssetImage> {
+  static final Dio _webImageDio = ImmichDioFactory.create();
+
   int _urlIndex = 0;
   bool _isAdvancingUrl = false;
+  String? _webImageUrl;
+  Future<Uint8List>? _webImageFuture;
 
   @override
   void initState() {
@@ -91,6 +98,13 @@ class _AuthenticatedAssetImageState extends State<AuthenticatedAssetImage> {
         final currentUrl = widget.imageUrls[_urlIndex];
         final targetSize = _resolveDecodeSize(context, constraints);
 
+        if (kIsWeb && widget.requiresAuth) {
+          return _buildWebAuthenticatedImage(
+            currentUrl: currentUrl,
+            targetSize: targetSize,
+          );
+        }
+
         return _wrapImage(
           Image.network(
             currentUrl,
@@ -129,9 +143,78 @@ class _AuthenticatedAssetImageState extends State<AuthenticatedAssetImage> {
     );
   }
 
+  Widget _buildWebAuthenticatedImage({
+    required String currentUrl,
+    required _DecodeTargetSize targetSize,
+  }) {
+    final future = _resolveWebImageFuture(currentUrl);
+
+    return FutureBuilder<Uint8List>(
+      future: future,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState != ConnectionState.done) {
+          return _wrapImage(
+            _ImagePlaceholder(
+              child:
+                  widget.loadingPlaceholder ??
+                  const LoadingSkeleton(showBorder: true),
+            ),
+          );
+        }
+
+        if (snapshot.hasError || !snapshot.hasData) {
+          _advanceToNextUrl();
+          return _wrapImage(
+            _ImagePlaceholder(
+              child: Icon(
+                widget.placeholderIcon,
+                color: AppColors.textMuted,
+                size: 30,
+              ),
+            ),
+          );
+        }
+
+        return _wrapImage(
+          Image.memory(
+            snapshot.data!,
+            fit: widget.fit,
+            gaplessPlayback: true,
+            filterQuality: widget.filterQuality,
+            cacheWidth: targetSize.cacheWidth,
+            cacheHeight: targetSize.cacheHeight,
+            frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
+              if (wasSynchronouslyLoaded || frame != null) {
+                return child;
+              }
+
+              return _ImagePlaceholder(
+                child:
+                    widget.loadingPlaceholder ??
+                    const LoadingSkeleton(showBorder: true),
+              );
+            },
+            errorBuilder: (context, error, stackTrace) {
+              _advanceToNextUrl();
+              return _ImagePlaceholder(
+                child: Icon(
+                  widget.placeholderIcon,
+                  color: AppColors.textMuted,
+                  size: 30,
+                ),
+              );
+            },
+          ),
+        );
+      },
+    );
+  }
+
   void _resetImageState() {
     _urlIndex = 0;
     _isAdvancingUrl = false;
+    _webImageUrl = null;
+    _webImageFuture = null;
   }
 
   void _advanceToNextUrl() {
@@ -148,8 +231,37 @@ class _AuthenticatedAssetImageState extends State<AuthenticatedAssetImage> {
       setState(() {
         _urlIndex += 1;
         _isAdvancingUrl = false;
+        _webImageUrl = null;
+        _webImageFuture = null;
       });
     });
+  }
+
+  Future<Uint8List> _resolveWebImageFuture(String currentUrl) {
+    if (_webImageUrl == currentUrl && _webImageFuture != null) {
+      return _webImageFuture!;
+    }
+
+    _webImageUrl = currentUrl;
+    _webImageFuture = _fetchWebImageBytes(currentUrl);
+    return _webImageFuture!;
+  }
+
+  Future<Uint8List> _fetchWebImageBytes(String url) async {
+    final response = await _webImageDio.get<List<int>>(
+      url,
+      options: Options(
+        headers: widget.requiresAuth
+            ? ImmichHeaders.mediaSessionToken(widget.accessToken)
+            : null,
+        responseType: ResponseType.bytes,
+      ),
+    );
+    final data = response.data;
+    if (data == null || data.isEmpty) {
+      throw const FormatException('No image bytes returned.');
+    }
+    return Uint8List.fromList(data);
   }
 
   Widget _wrapImage(Widget child) {
