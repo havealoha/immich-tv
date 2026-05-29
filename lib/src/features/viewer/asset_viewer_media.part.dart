@@ -89,6 +89,7 @@ class _ViewerVideoPlayer extends StatefulWidget {
 class _ViewerVideoPlayerState extends State<_ViewerVideoPlayer> {
   VideoPlayerController? _controller;
   Future<void>? _initializeFuture;
+  double? _webLoadProgress;
   bool _showChrome = true;
 
   @override
@@ -116,14 +117,14 @@ class _ViewerVideoPlayerState extends State<_ViewerVideoPlayer> {
   Widget build(BuildContext context) {
     final controller = _controller;
     if (controller == null || _initializeFuture == null) {
-      return const _VideoLoadingPlaceholder();
+      return _VideoLoadingPlaceholder(progress: _webLoadProgress);
     }
 
     return FutureBuilder<void>(
       future: _initializeFuture,
       builder: (context, snapshot) {
         if (snapshot.connectionState != ConnectionState.done) {
-          return const _VideoLoadingPlaceholder();
+          return _VideoLoadingPlaceholder(progress: _webLoadProgress);
         }
 
         if (snapshot.hasError || !controller.value.isInitialized) {
@@ -193,6 +194,17 @@ class _ViewerVideoPlayerState extends State<_ViewerVideoPlayer> {
       return;
     }
 
+    setState(() {
+      _webLoadProgress = null;
+    });
+
+    if (kIsWeb && widget.asset.requiresAuth) {
+      setState(() {
+        _initializeFuture = _initializeAuthenticatedWebPlayer(playableUrl);
+      });
+      return;
+    }
+
     final controller = VideoPlayerController.networkUrl(
       Uri.parse(playableUrl),
       httpHeaders: widget.asset.requiresAuth ? ImmichHeaders.mediaSessionToken(widget.accessToken) : const <String, String>{},
@@ -203,9 +215,67 @@ class _ViewerVideoPlayerState extends State<_ViewerVideoPlayer> {
       _controller = controller;
       _initializeFuture = controller.initialize().then((_) async {
         await controller.setLooping(true);
-        await controller.play();
+        if (!kIsWeb) {
+          await controller.play();
+        }
       });
     });
+  }
+
+  Future<void> _initializeAuthenticatedWebPlayer(String playableUrl) async {
+    final playableUri = Uri.parse(playableUrl);
+    if (canUseDirectBrowserMediaPlayback(playableUri)) {
+      try {
+        await _initializeDirectWebPlayer(playableUri);
+        return;
+      } catch (_) {
+        markDirectBrowserMediaPlaybackFailure(playableUri);
+        final failedController = _controller;
+        _controller = null;
+        if (failedController != null) {
+          await failedController.dispose();
+        }
+      }
+    }
+
+    await _initializeBlobBackedWebPlayer(playableUrl);
+  }
+
+  Future<void> _initializeDirectWebPlayer(Uri playableUri) async {
+    final controller = VideoPlayerController.networkUrl(
+      playableUri,
+      videoPlayerOptions: VideoPlayerOptions(
+        mixWithOthers: false,
+        allowBackgroundPlayback: false,
+      ),
+    );
+
+    _controller = controller;
+    await controller.initialize();
+    await controller.setLooping(true);
+  }
+
+  Future<void> _initializeBlobBackedWebPlayer(String playableUrl) async {
+    final objectUrl = await WebAuthenticatedVideoCache.instance.getObjectUrl(
+      sourceUrl: playableUrl,
+      accessToken: widget.accessToken,
+      onReceiveProgress: (received, total) {
+        if (!mounted) {
+          return;
+        }
+
+        final progress = total > 0 ? (received / total).clamp(0, 1) : null;
+        setState(() {
+          _webLoadProgress = progress?.toDouble();
+        });
+      },
+    );
+    await _initializeDirectWebPlayer(Uri.parse(objectUrl));
+    if (mounted) {
+      setState(() {
+        _webLoadProgress = 1;
+      });
+    }
   }
 
   String _resolvePlayableVideoUrl() {
@@ -246,6 +316,7 @@ class _ViewerVideoPlayerState extends State<_ViewerVideoPlayer> {
     final controller = _controller;
     _controller = null;
     _initializeFuture = null;
+    _webLoadProgress = null;
     if (controller != null) {
       await controller.dispose();
     }
@@ -253,10 +324,15 @@ class _ViewerVideoPlayerState extends State<_ViewerVideoPlayer> {
 }
 
 class _VideoLoadingPlaceholder extends StatelessWidget {
-  const _VideoLoadingPlaceholder();
+  const _VideoLoadingPlaceholder({this.progress});
+
+  final double? progress;
 
   @override
   Widget build(BuildContext context) {
+    final determinateProgress = progress;
+    final progressLabel = determinateProgress == null ? null : '${(determinateProgress * 100).round()}% downloaded';
+
     return ColoredBox(
       color: Colors.black,
       child: Center(
@@ -270,7 +346,28 @@ class _VideoLoadingPlaceholder extends StatelessWidget {
               style: Theme.of(context).textTheme.titleMedium?.copyWith(color: Colors.white, fontWeight: FontWeight.w800),
             ),
             const SizedBox(height: AppSpacing.sm),
-            const LoadingSkeleton(width: 148, height: 8, borderRadius: 999, baseColor: Color(0xFF111111), highlightColor: Color(0xFF262626)),
+            if (determinateProgress == null)
+              const LoadingSkeleton(width: 148, height: 8, borderRadius: 999, baseColor: Color(0xFF111111), highlightColor: Color(0xFF262626))
+            else
+              SizedBox(
+                width: 220,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(AppRadii.pill),
+                  child: LinearProgressIndicator(
+                    value: determinateProgress,
+                    minHeight: 8,
+                    backgroundColor: const Color(0xFF111111),
+                    valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
+                  ),
+                ),
+              ),
+            if (progressLabel != null) ...[
+              const SizedBox(height: AppSpacing.sm),
+              Text(
+                progressLabel,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.white70),
+              ),
+            ],
           ],
         ),
       ),

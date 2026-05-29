@@ -12,6 +12,7 @@ import '../../../core/models/user_profile.dart';
 import '../../../core/network/immich_headers.dart';
 import '../../../core/repositories/auth_repository.dart';
 import '../../../features/mock/data/mock_auth_repository.dart';
+import '../../../platform/auth/browser_session_bridge.dart';
 import '../../../platform/storage/profile_storage.dart';
 
 class ImmichAuthRepository implements AuthRepository {
@@ -149,7 +150,9 @@ class ImmichAuthRepository implements AuthRepository {
   }
 
   @override
-  Future<void> signOut() async {}
+  Future<void> signOut() async {
+    resetBrowserImmichSessions();
+  }
 
   Future<AuthenticatedSession> _signInRemote({
     required ServerConfig serverConfig,
@@ -179,11 +182,19 @@ class ImmichAuthRepository implements AuthRepository {
       profileResponse.data ?? const <String, dynamic>{},
     );
 
-    return AuthenticatedSession(
+    final session = AuthenticatedSession(
       serverConfig: serverConfig,
       accessToken: token,
       user: user,
     );
+
+    await primeBrowserImmichSession(
+      serverConfig: serverConfig,
+      email: email,
+      password: password,
+    );
+
+    return session;
   }
 
   AppException _mapSignInError(DioException error) {
