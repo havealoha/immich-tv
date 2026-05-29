@@ -94,6 +94,7 @@ class _ViewerVideoPlayerState extends State<_ViewerVideoPlayer> {
   double? _webLoadProgress;
   final FocusNode _focusNode = FocusNode(debugLabel: 'viewer-video-player');
   bool _showChrome = true;
+  bool? _wasPlaying;
   Timer? _chromeHideTimer;
 
   @override
@@ -357,6 +358,7 @@ class _ViewerVideoPlayerState extends State<_ViewerVideoPlayer> {
     _controller = null;
     _initializeFuture = null;
     _webLoadProgress = null;
+    _wasPlaying = null;
     if (controller != null) {
       controller.removeListener(_handleControllerUpdate);
       await controller.dispose();
@@ -390,7 +392,13 @@ class _ViewerVideoPlayerState extends State<_ViewerVideoPlayer> {
       return;
     }
 
-    if (!controller.value.isPlaying) {
+    final isPlaying = controller.value.isPlaying;
+    if (_wasPlaying == isPlaying) {
+      return;
+    }
+    _wasPlaying = isPlaying;
+
+    if (!isPlaying) {
       _chromeHideTimer?.cancel();
       if (!_showChrome) {
         setState(() {
@@ -400,9 +408,7 @@ class _ViewerVideoPlayerState extends State<_ViewerVideoPlayer> {
       return;
     }
 
-    if (_showChrome) {
-      _scheduleChromeAutoHide();
-    }
+    _scheduleChromeAutoHide();
   }
 
   void _scheduleChromeAutoHide({bool forceShow = false}) {
