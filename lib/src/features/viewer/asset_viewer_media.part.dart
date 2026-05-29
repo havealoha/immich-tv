@@ -87,10 +87,14 @@ class _ViewerVideoPlayer extends StatefulWidget {
 }
 
 class _ViewerVideoPlayerState extends State<_ViewerVideoPlayer> {
+  static const _chromeAutoHideDelay = Duration(seconds: 2);
+
   VideoPlayerController? _controller;
   Future<void>? _initializeFuture;
   double? _webLoadProgress;
+  final FocusNode _focusNode = FocusNode(debugLabel: 'viewer-video-player');
   bool _showChrome = true;
+  Timer? _chromeHideTimer;
 
   @override
   void initState() {
@@ -109,6 +113,8 @@ class _ViewerVideoPlayerState extends State<_ViewerVideoPlayer> {
 
   @override
   void dispose() {
+    _chromeHideTimer?.cancel();
+    _focusNode.dispose();
     _disposeController();
     super.dispose();
   }
@@ -131,58 +137,84 @@ class _ViewerVideoPlayerState extends State<_ViewerVideoPlayer> {
           return const _VideoPlayerError();
         }
 
-        return Stack(
-          fit: StackFit.expand,
-          children: [
-            Center(
-              child: AspectRatio(aspectRatio: controller.value.aspectRatio == 0 ? 16 / 9 : controller.value.aspectRatio, child: VideoPlayer(controller)),
-            ),
-            Positioned.fill(
-              child: GestureDetector(behavior: HitTestBehavior.opaque, onTap: () => setState(() => _showChrome = !_showChrome), child: const SizedBox.expand()),
-            ),
-            AnimatedOpacity(
-              opacity: _showChrome || !controller.value.isPlaying ? 1 : 0,
-              duration: const Duration(milliseconds: 180),
-              child: IgnorePointer(
-                ignoring: !_showChrome && controller.value.isPlaying,
-                child: Center(
-                  child: DecoratedBox(
-                    decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.32), shape: BoxShape.circle),
-                    child: IconButton(
-                      onPressed: _togglePlayback,
-                      iconSize: 56,
-                      color: Colors.white,
-                      icon: Icon(controller.value.isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded),
-                    ),
-                  ),
+        return Focus(
+          focusNode: _focusNode,
+          autofocus: true,
+          onKeyEvent: (_, event) {
+            if (event is! KeyDownEvent) {
+              return KeyEventResult.ignored;
+            }
+
+            final key = event.logicalKey;
+            if (key == LogicalKeyboardKey.mediaPlayPause ||
+                key == LogicalKeyboardKey.mediaPlay ||
+                key == LogicalKeyboardKey.mediaPause ||
+                key == LogicalKeyboardKey.select ||
+                key == LogicalKeyboardKey.enter ||
+                key == LogicalKeyboardKey.space) {
+              _togglePlayback();
+              return KeyEventResult.handled;
+            }
+
+            return KeyEventResult.ignored;
+          },
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              Center(
+                child: AspectRatio(aspectRatio: controller.value.aspectRatio == 0 ? 16 / 9 : controller.value.aspectRatio, child: VideoPlayer(controller)),
+              ),
+              Positioned.fill(
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: _handleSurfaceTap,
+                  child: const SizedBox.expand(),
                 ),
               ),
-            ),
-            Positioned(
-              left: AppSpacing.xl,
-              right: AppSpacing.xl,
-              bottom: AppSpacing.xl,
-              child: AnimatedOpacity(
+              AnimatedOpacity(
                 opacity: _showChrome || !controller.value.isPlaying ? 1 : 0,
                 duration: const Duration(milliseconds: 180),
-                child: DecoratedBox(
-                  decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.22), borderRadius: BorderRadius.circular(AppRadii.pill)),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.sm),
-                    child: VideoProgressIndicator(
-                      controller,
-                      allowScrubbing: true,
-                      colors: VideoProgressColors(
-                        playedColor: Colors.white,
-                        bufferedColor: Colors.white.withValues(alpha: 0.35),
-                        backgroundColor: Colors.white.withValues(alpha: 0.12),
+                child: IgnorePointer(
+                  ignoring: !_showChrome && controller.value.isPlaying,
+                  child: Center(
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.32), shape: BoxShape.circle),
+                      child: IconButton(
+                        onPressed: _togglePlayback,
+                        iconSize: 56,
+                        color: Colors.white,
+                        icon: Icon(controller.value.isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded),
                       ),
                     ),
                   ),
                 ),
               ),
-            ),
-          ],
+              Positioned(
+                left: AppSpacing.xl,
+                right: AppSpacing.xl,
+                bottom: AppSpacing.xl,
+                child: AnimatedOpacity(
+                  opacity: _showChrome || !controller.value.isPlaying ? 1 : 0,
+                  duration: const Duration(milliseconds: 180),
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.22), borderRadius: BorderRadius.circular(AppRadii.pill)),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.sm),
+                      child: VideoProgressIndicator(
+                        controller,
+                        allowScrubbing: true,
+                        colors: VideoProgressColors(
+                          playedColor: Colors.white,
+                          bufferedColor: Colors.white.withValues(alpha: 0.35),
+                          backgroundColor: Colors.white.withValues(alpha: 0.12),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
         );
       },
     );
@@ -210,6 +242,7 @@ class _ViewerVideoPlayerState extends State<_ViewerVideoPlayer> {
       httpHeaders: widget.asset.requiresAuth ? ImmichHeaders.mediaSessionToken(widget.accessToken) : const <String, String>{},
       videoPlayerOptions: VideoPlayerOptions(mixWithOthers: false, allowBackgroundPlayback: false),
     );
+    controller.addListener(_handleControllerUpdate);
 
     setState(() {
       _controller = controller;
@@ -218,6 +251,7 @@ class _ViewerVideoPlayerState extends State<_ViewerVideoPlayer> {
         if (!kIsWeb) {
           await controller.play();
         }
+        _scheduleChromeAutoHide(forceShow: true);
       });
     });
   }
@@ -249,10 +283,12 @@ class _ViewerVideoPlayerState extends State<_ViewerVideoPlayer> {
         allowBackgroundPlayback: false,
       ),
     );
+    controller.addListener(_handleControllerUpdate);
 
     _controller = controller;
     await controller.initialize();
     await controller.setLooping(true);
+    _scheduleChromeAutoHide(forceShow: true);
   }
 
   Future<void> _initializeBlobBackedWebPlayer(String playableUrl) async {
@@ -301,6 +337,7 @@ class _ViewerVideoPlayerState extends State<_ViewerVideoPlayer> {
       return;
     }
 
+    _chromeHideTimer?.cancel();
     if (controller.value.isPlaying) {
       await controller.pause();
     } else {
@@ -308,7 +345,10 @@ class _ViewerVideoPlayerState extends State<_ViewerVideoPlayer> {
     }
 
     if (mounted) {
-      setState(() {});
+      setState(() {
+        _showChrome = true;
+      });
+      _scheduleChromeAutoHide();
     }
   }
 
@@ -318,8 +358,78 @@ class _ViewerVideoPlayerState extends State<_ViewerVideoPlayer> {
     _initializeFuture = null;
     _webLoadProgress = null;
     if (controller != null) {
+      controller.removeListener(_handleControllerUpdate);
       await controller.dispose();
     }
+  }
+
+  void _handleSurfaceTap() {
+    final controller = _controller;
+    if (controller == null) {
+      return;
+    }
+
+    setState(() {
+      _showChrome = !_showChrome;
+    });
+
+    if (_showChrome) {
+      _scheduleChromeAutoHide();
+    } else {
+      _chromeHideTimer?.cancel();
+    }
+  }
+
+  void _handleControllerUpdate() {
+    final controller = _controller;
+    if (controller == null || !mounted) {
+      return;
+    }
+
+    if (!controller.value.isInitialized) {
+      return;
+    }
+
+    if (!controller.value.isPlaying) {
+      _chromeHideTimer?.cancel();
+      if (!_showChrome) {
+        setState(() {
+          _showChrome = true;
+        });
+      }
+      return;
+    }
+
+    if (_showChrome) {
+      _scheduleChromeAutoHide();
+    }
+  }
+
+  void _scheduleChromeAutoHide({bool forceShow = false}) {
+    final controller = _controller;
+    if (controller == null || !controller.value.isPlaying) {
+      return;
+    }
+
+    _chromeHideTimer?.cancel();
+    if (forceShow && mounted && !_showChrome) {
+      setState(() {
+        _showChrome = true;
+      });
+    }
+
+    _chromeHideTimer = Timer(_chromeAutoHideDelay, () {
+      if (!mounted) {
+        return;
+      }
+      final currentController = _controller;
+      if (currentController == null || !currentController.value.isPlaying) {
+        return;
+      }
+      setState(() {
+        _showChrome = false;
+      });
+    });
   }
 }
 
