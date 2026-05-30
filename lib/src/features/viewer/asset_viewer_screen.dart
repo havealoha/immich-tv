@@ -24,17 +24,32 @@ part 'asset_viewer_controls.part.dart';
 part 'asset_viewer_media.part.dart';
 
 class AssetViewerScreen extends StatelessWidget {
-  const AssetViewerScreen({super.key, required this.assets, required this.initialIndex, required this.accessToken});
+  const AssetViewerScreen({
+    super.key,
+    required this.assets,
+    required this.initialIndex,
+    required this.accessToken,
+  });
 
   final List<AssetSummary> assets;
   final int initialIndex;
   final String accessToken;
 
-  static Future<void> show(BuildContext context, {required List<AssetSummary> assets, required int initialIndex, required String accessToken}) {
+  static Future<void> show(
+    BuildContext context, {
+    required List<AssetSummary> assets,
+    required int initialIndex,
+    required String accessToken,
+  }) {
     return Navigator.of(context).push(
       PageRouteBuilder<void>(
         opaque: true,
-        pageBuilder: (context, animation, secondaryAnimation) => AssetViewerScreen(assets: assets, initialIndex: initialIndex, accessToken: accessToken),
+        pageBuilder: (context, animation, secondaryAnimation) =>
+            AssetViewerScreen(
+              assets: assets,
+              initialIndex: initialIndex,
+              accessToken: accessToken,
+            ),
         transitionsBuilder: (context, animation, secondaryAnimation, child) {
           return FadeTransition(opacity: animation, child: child);
         },
@@ -45,7 +60,8 @@ class AssetViewerScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (_) => AssetViewerCubit(assets: assets, initialIndex: initialIndex),
+      create: (_) =>
+          AssetViewerCubit(assets: assets, initialIndex: initialIndex),
       child: _AssetViewerView(accessToken: accessToken),
     );
   }
@@ -60,6 +76,28 @@ class _AssetViewerView extends StatefulWidget {
   State<_AssetViewerView> createState() => _AssetViewerViewState();
 }
 
+class _ViewerVideoScrubberHandle {
+  const _ViewerVideoScrubberHandle({
+    required this.togglePlayback,
+    required this.activate,
+    required this.reset,
+    required this.toggleLooping,
+    required this.isAvailable,
+    required this.isPlaying,
+    required this.isScrubModeActive,
+    required this.isLooping,
+  });
+
+  final VoidCallback togglePlayback;
+  final VoidCallback activate;
+  final VoidCallback reset;
+  final VoidCallback toggleLooping;
+  final bool Function() isAvailable;
+  final bool Function() isPlaying;
+  final bool Function() isScrubModeActive;
+  final bool Function() isLooping;
+}
+
 class _AssetViewerViewState extends State<_AssetViewerView> {
   static const _chromeHideDelay = Duration(milliseconds: 1500);
   static const _wallpaperClockDebugDelay = Duration(seconds: 10);
@@ -68,6 +106,10 @@ class _AssetViewerViewState extends State<_AssetViewerView> {
   late final PageController _pageController;
   late final FocusNode _viewerFocusNode;
   late final FocusNode _slideshowButtonFocusNode;
+  late final FocusNode _videoPlayPauseButtonFocusNode;
+  late final FocusNode _videoScrubberButtonFocusNode;
+  late final FocusNode _videoResetButtonFocusNode;
+  late final FocusNode _videoLoopButtonFocusNode;
   late final FocusNode _imageFitButtonFocusNode;
   late final FocusNode _wallpaperButtonFocusNode;
   late final FocusNode _closeButtonFocusNode;
@@ -79,6 +121,7 @@ class _AssetViewerViewState extends State<_AssetViewerView> {
   bool _wallpaperModeActive = false;
   DateTime _wallpaperClockNow = DateTime.now();
   DateTime? _wallpaperModeActivatedAt;
+  _ViewerVideoScrubberHandle? _activeVideoScrubberHandle;
 
   @override
   void initState() {
@@ -87,11 +130,23 @@ class _AssetViewerViewState extends State<_AssetViewerView> {
     _pageController = PageController(initialPage: initialIndex);
     _viewerFocusNode = FocusNode(debugLabel: 'viewer-surface');
     _slideshowButtonFocusNode = FocusNode(debugLabel: 'viewer-slideshow');
+    _videoPlayPauseButtonFocusNode = FocusNode(
+      debugLabel: 'viewer-video-play-pause',
+    );
+    _videoScrubberButtonFocusNode = FocusNode(
+      debugLabel: 'viewer-video-scrubber',
+    );
+    _videoResetButtonFocusNode = FocusNode(debugLabel: 'viewer-video-reset');
+    _videoLoopButtonFocusNode = FocusNode(debugLabel: 'viewer-video-loop');
     _imageFitButtonFocusNode = FocusNode(debugLabel: 'viewer-image-fit');
     _wallpaperButtonFocusNode = FocusNode(debugLabel: 'viewer-wallpaper');
     _closeButtonFocusNode = FocusNode(debugLabel: 'viewer-close');
     _viewerFocusNode.addListener(_handleFocusChange);
     _slideshowButtonFocusNode.addListener(_handleFocusChange);
+    _videoPlayPauseButtonFocusNode.addListener(_handleFocusChange);
+    _videoScrubberButtonFocusNode.addListener(_handleFocusChange);
+    _videoResetButtonFocusNode.addListener(_handleFocusChange);
+    _videoLoopButtonFocusNode.addListener(_handleFocusChange);
     _imageFitButtonFocusNode.addListener(_handleFocusChange);
     _wallpaperButtonFocusNode.addListener(_handleFocusChange);
     _closeButtonFocusNode.addListener(_handleFocusChange);
@@ -111,12 +166,20 @@ class _AssetViewerViewState extends State<_AssetViewerView> {
     _wallpaperClockTicker?.cancel();
     _viewerFocusNode.removeListener(_handleFocusChange);
     _slideshowButtonFocusNode.removeListener(_handleFocusChange);
+    _videoPlayPauseButtonFocusNode.removeListener(_handleFocusChange);
+    _videoScrubberButtonFocusNode.removeListener(_handleFocusChange);
+    _videoResetButtonFocusNode.removeListener(_handleFocusChange);
+    _videoLoopButtonFocusNode.removeListener(_handleFocusChange);
     _imageFitButtonFocusNode.removeListener(_handleFocusChange);
     _wallpaperButtonFocusNode.removeListener(_handleFocusChange);
     _closeButtonFocusNode.removeListener(_handleFocusChange);
     _pageController.dispose();
     _viewerFocusNode.dispose();
     _slideshowButtonFocusNode.dispose();
+    _videoPlayPauseButtonFocusNode.dispose();
+    _videoScrubberButtonFocusNode.dispose();
+    _videoResetButtonFocusNode.dispose();
+    _videoLoopButtonFocusNode.dispose();
     _imageFitButtonFocusNode.dispose();
     _wallpaperButtonFocusNode.dispose();
     _closeButtonFocusNode.dispose();
@@ -128,6 +191,11 @@ class _AssetViewerViewState extends State<_AssetViewerView> {
     return BlocBuilder<AssetViewerCubit, AssetViewerState>(
       builder: (context, state) {
         final slideshowEnabled = state.assets.any((asset) => !asset.isVideo);
+        final currentAssetIsVideo = state.currentAsset.isVideo;
+        final scrubberEnabled = currentAssetIsVideo;
+        final activeVideoHandle = _activeVideoScrubberHandle;
+        final isVideoPlaying = activeVideoHandle?.isPlaying() ?? false;
+        final loopEnabled = activeVideoHandle?.isLooping() ?? true;
         final imageFitEnabled = !state.currentAsset.isVideo;
         final wallpaperEnabled = !state.currentAsset.isVideo;
         final showWallpaperOverlay =
@@ -137,16 +205,25 @@ class _AssetViewerViewState extends State<_AssetViewerView> {
           shortcuts: const <ShortcutActivator, Intent>{
             SingleActivator(LogicalKeyboardKey.arrowLeft): _PreviousIntent(),
             SingleActivator(LogicalKeyboardKey.arrowRight): _NextIntent(),
-            SingleActivator(LogicalKeyboardKey.arrowDown): _FocusActionsIntent(),
+            SingleActivator(LogicalKeyboardKey.arrowDown):
+                _FocusActionsIntent(),
             SingleActivator(LogicalKeyboardKey.arrowUp): _FocusViewerIntent(),
             SingleActivator(LogicalKeyboardKey.escape): DismissIntent(),
           },
           child: Actions(
             actions: <Type, Action<Intent>>{
-              _PreviousIntent: CallbackAction<_PreviousIntent>(onInvoke: (_) => _handlePrevious(state)),
-              _NextIntent: CallbackAction<_NextIntent>(onInvoke: (_) => _handleNext(state, slideshowEnabled)),
-              _FocusActionsIntent: CallbackAction<_FocusActionsIntent>(onInvoke: (_) => _focusActionButtons(slideshowEnabled)),
-              _FocusViewerIntent: CallbackAction<_FocusViewerIntent>(onInvoke: (_) => _focusViewerSurface()),
+              _PreviousIntent: CallbackAction<_PreviousIntent>(
+                onInvoke: (_) => _handlePrevious(state),
+              ),
+              _NextIntent: CallbackAction<_NextIntent>(
+                onInvoke: (_) => _handleNext(state, slideshowEnabled),
+              ),
+              _FocusActionsIntent: CallbackAction<_FocusActionsIntent>(
+                onInvoke: (_) => _focusActionButtons(slideshowEnabled),
+              ),
+              _FocusViewerIntent: CallbackAction<_FocusViewerIntent>(
+                onInvoke: (_) => _focusViewerSurface(),
+              ),
               DismissIntent: CallbackAction<DismissIntent>(
                 onInvoke: (_) {
                   _registerInteraction();
@@ -184,6 +261,14 @@ class _AssetViewerViewState extends State<_AssetViewerView> {
                             asset: asset,
                             accessToken: widget.accessToken,
                             fitMode: state.imageFitMode,
+                            onRegisterVideoScrubberHandle:
+                                index == state.currentIndex
+                                ? _registerVideoScrubberHandle
+                                : null,
+                            onVideoScrubberModeChanged:
+                                index == state.currentIndex
+                                ? _handleVideoScrubberModeChanged
+                                : null,
                           );
                         },
                       ),
@@ -238,25 +323,92 @@ class _AssetViewerViewState extends State<_AssetViewerView> {
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                _ViewerIconActionButton(
-                                  icon: Icons.slideshow_rounded,
-                                  enabled: slideshowEnabled,
-                                  focusNode: _slideshowButtonFocusNode,
-                                  onFocusChange: (_) => _registerInteraction(),
-                                  onPressed: () {
-                                    _registerInteraction();
-                                    _startSlideshow(state);
-                                  },
-                                ),
+                                if (currentAssetIsVideo)
+                                  Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      _ViewerIconActionButton(
+                                        icon: isVideoPlaying
+                                            ? Icons.pause_rounded
+                                            : Icons.play_arrow_rounded,
+                                        enabled: scrubberEnabled,
+                                        focusNode:
+                                            _videoPlayPauseButtonFocusNode,
+                                        onFocusChange: (_) =>
+                                            _registerInteraction(),
+                                        onPressed: () {
+                                          _registerInteraction();
+                                          _activeVideoScrubberHandle
+                                              ?.togglePlayback();
+                                        },
+                                      ),
+                                      const SizedBox(width: AppSpacing.sm),
+                                      _ViewerIconActionButton(
+                                        icon: Icons.video_settings_rounded,
+                                        enabled: scrubberEnabled,
+                                        focusNode:
+                                            _videoScrubberButtonFocusNode,
+                                        onFocusChange: (_) =>
+                                            _registerInteraction(),
+                                        onPressed: () {
+                                          _registerInteraction();
+                                          _activeVideoScrubberHandle
+                                              ?.activate();
+                                        },
+                                      ),
+                                      const SizedBox(width: AppSpacing.sm),
+                                      _ViewerIconActionButton(
+                                        icon: Icons.restart_alt_rounded,
+                                        enabled: scrubberEnabled,
+                                        focusNode: _videoResetButtonFocusNode,
+                                        onFocusChange: (_) =>
+                                            _registerInteraction(),
+                                        onPressed: () {
+                                          _registerInteraction();
+                                          _activeVideoScrubberHandle?.reset();
+                                        },
+                                      ),
+                                      const SizedBox(width: AppSpacing.sm),
+                                      _ViewerIconActionButton(
+                                        icon: loopEnabled
+                                            ? Icons.repeat_one_rounded
+                                            : Icons.repeat_rounded,
+                                        enabled: scrubberEnabled,
+                                        focusNode: _videoLoopButtonFocusNode,
+                                        onFocusChange: (_) =>
+                                            _registerInteraction(),
+                                        onPressed: () {
+                                          _registerInteraction();
+                                          _activeVideoScrubberHandle
+                                              ?.toggleLooping();
+                                        },
+                                      ),
+                                    ],
+                                  )
+                                else
+                                  _ViewerIconActionButton(
+                                    icon: Icons.slideshow_rounded,
+                                    enabled: slideshowEnabled,
+                                    focusNode: _slideshowButtonFocusNode,
+                                    onFocusChange: (_) =>
+                                        _registerInteraction(),
+                                    onPressed: () {
+                                      _registerInteraction();
+                                      _startSlideshow(state);
+                                    },
+                                  ),
                                 if (imageFitEnabled) ...[
                                   const SizedBox(width: AppSpacing.sm),
                                   _ViewerIconActionButton(
                                     icon: _imageFitIcon(state.imageFitMode),
                                     focusNode: _imageFitButtonFocusNode,
-                                    onFocusChange: (_) => _registerInteraction(),
+                                    onFocusChange: (_) =>
+                                        _registerInteraction(),
                                     onPressed: () {
                                       _registerInteraction();
-                                      context.read<AssetViewerCubit>().toggleImageFitMode();
+                                      context
+                                          .read<AssetViewerCubit>()
+                                          .toggleImageFitMode();
                                     },
                                   ),
                                 ],
@@ -265,7 +417,8 @@ class _AssetViewerViewState extends State<_AssetViewerView> {
                                   _ViewerIconActionButton(
                                     icon: Icons.wallpaper_rounded,
                                     focusNode: _wallpaperButtonFocusNode,
-                                    onFocusChange: (_) => _registerInteraction(),
+                                    onFocusChange: (_) =>
+                                        _registerInteraction(),
                                     onPressed: () {
                                       _activateWallpaperMode();
                                     },
@@ -306,7 +459,9 @@ class _AssetViewerViewState extends State<_AssetViewerView> {
   }
 
   Future<void> _startSlideshow(AssetViewerState state) async {
-    final slideshowAssets = state.assets.where((asset) => !asset.isVideo).toList(growable: false);
+    final slideshowAssets = state.assets
+        .where((asset) => !asset.isVideo)
+        .toList(growable: false);
     if (slideshowAssets.isEmpty) {
       return;
     }
@@ -325,7 +480,9 @@ class _AssetViewerViewState extends State<_AssetViewerView> {
       return;
     }
 
-    final initialSlideshowIndex = slideshowAssets.indexWhere((asset) => asset.id == state.currentAsset.id);
+    final initialSlideshowIndex = slideshowAssets.indexWhere(
+      (asset) => asset.id == state.currentAsset.id,
+    );
 
     await SlideshowPlayerScreen.show(
       context,
@@ -338,13 +495,22 @@ class _AssetViewerViewState extends State<_AssetViewerView> {
 
   Object? _handlePrevious(AssetViewerState state) {
     _registerInteraction();
+    if (_activeVideoScrubberHandle?.isScrubModeActive() ?? false) {
+      return null;
+    }
+
     if (_closeButtonFocusNode.hasFocus) {
-      if (_wallpaperButtonFocusNode.canRequestFocus &&
+      if (state.currentAsset.isVideo &&
+          _videoLoopButtonFocusNode.canRequestFocus) {
+        _videoLoopButtonFocusNode.requestFocus();
+      } else if (_wallpaperButtonFocusNode.canRequestFocus &&
           !state.currentAsset.isVideo) {
         _wallpaperButtonFocusNode.requestFocus();
       } else if (_imageFitButtonFocusNode.canRequestFocus &&
           !state.currentAsset.isVideo) {
         _imageFitButtonFocusNode.requestFocus();
+      } else if (state.currentAsset.isVideo) {
+        _videoPlayPauseButtonFocusNode.requestFocus();
       } else {
         _slideshowButtonFocusNode.requestFocus();
       }
@@ -366,6 +532,25 @@ class _AssetViewerViewState extends State<_AssetViewerView> {
       return null;
     }
 
+    if (_videoPlayPauseButtonFocusNode.hasFocus) {
+      return null;
+    }
+
+    if (_videoScrubberButtonFocusNode.hasFocus) {
+      _videoPlayPauseButtonFocusNode.requestFocus();
+      return null;
+    }
+
+    if (_videoResetButtonFocusNode.hasFocus) {
+      _videoScrubberButtonFocusNode.requestFocus();
+      return null;
+    }
+
+    if (_videoLoopButtonFocusNode.hasFocus) {
+      _videoResetButtonFocusNode.requestFocus();
+      return null;
+    }
+
     if (_slideshowButtonFocusNode.hasFocus) {
       return null;
     }
@@ -376,6 +561,10 @@ class _AssetViewerViewState extends State<_AssetViewerView> {
 
   Object? _handleNext(AssetViewerState state, bool slideshowEnabled) {
     _registerInteraction();
+    if (_activeVideoScrubberHandle?.isScrubModeActive() ?? false) {
+      return null;
+    }
+
     if (_slideshowButtonFocusNode.hasFocus) {
       if (_imageFitButtonFocusNode.canRequestFocus &&
           !state.currentAsset.isVideo) {
@@ -385,6 +574,26 @@ class _AssetViewerViewState extends State<_AssetViewerView> {
       } else {
         _closeButtonFocusNode.requestFocus();
       }
+      return null;
+    }
+
+    if (_videoPlayPauseButtonFocusNode.hasFocus) {
+      _videoScrubberButtonFocusNode.requestFocus();
+      return null;
+    }
+
+    if (_videoScrubberButtonFocusNode.hasFocus) {
+      _videoResetButtonFocusNode.requestFocus();
+      return null;
+    }
+
+    if (_videoResetButtonFocusNode.hasFocus) {
+      _videoLoopButtonFocusNode.requestFocus();
+      return null;
+    }
+
+    if (_videoLoopButtonFocusNode.hasFocus) {
+      _closeButtonFocusNode.requestFocus();
       return null;
     }
 
@@ -417,14 +626,24 @@ class _AssetViewerViewState extends State<_AssetViewerView> {
 
   Object? _focusActionButtons(bool slideshowEnabled) {
     _registerInteraction();
+    if (_activeVideoScrubberHandle?.isScrubModeActive() ?? false) {
+      return null;
+    }
+
     if (_slideshowButtonFocusNode.hasFocus ||
+        _videoPlayPauseButtonFocusNode.hasFocus ||
+        _videoScrubberButtonFocusNode.hasFocus ||
+        _videoResetButtonFocusNode.hasFocus ||
+        _videoLoopButtonFocusNode.hasFocus ||
         _imageFitButtonFocusNode.hasFocus ||
         _wallpaperButtonFocusNode.hasFocus ||
         _closeButtonFocusNode.hasFocus) {
       return null;
     }
 
-    if (slideshowEnabled) {
+    if (context.read<AssetViewerCubit>().state.currentAsset.isVideo) {
+      _videoPlayPauseButtonFocusNode.requestFocus();
+    } else if (slideshowEnabled) {
       _slideshowButtonFocusNode.requestFocus();
     } else {
       _closeButtonFocusNode.requestFocus();
@@ -434,7 +653,15 @@ class _AssetViewerViewState extends State<_AssetViewerView> {
 
   Object? _focusViewerSurface() {
     _registerInteraction();
+    if (_activeVideoScrubberHandle?.isScrubModeActive() ?? false) {
+      return null;
+    }
+
     if (_slideshowButtonFocusNode.hasFocus ||
+        _videoPlayPauseButtonFocusNode.hasFocus ||
+        _videoScrubberButtonFocusNode.hasFocus ||
+        _videoResetButtonFocusNode.hasFocus ||
+        _videoLoopButtonFocusNode.hasFocus ||
         _imageFitButtonFocusNode.hasFocus ||
         _wallpaperButtonFocusNode.hasFocus ||
         _closeButtonFocusNode.hasFocus) {
@@ -452,7 +679,11 @@ class _AssetViewerViewState extends State<_AssetViewerView> {
     cubit.jumpTo(index);
     _scheduleWallpaperClock();
     _prefetchNearbyViewerImages(cubit.state.copyWith(currentIndex: index));
-    _pageController.animateToPage(index, duration: const Duration(milliseconds: 240), curve: Curves.easeOutCubic);
+    _pageController.animateToPage(
+      index,
+      duration: const Duration(milliseconds: 240),
+      curve: Curves.easeOutCubic,
+    );
   }
 
   void _prefetchNearbyViewerImages(AssetViewerState state) {
@@ -474,14 +705,47 @@ class _AssetViewerViewState extends State<_AssetViewerView> {
       return;
     }
 
-    context.read<AssetImageRepository>().prefetchImages(urls: nearby, accessToken: widget.accessToken);
+    context.read<AssetImageRepository>().prefetchImages(
+      urls: nearby,
+      accessToken: widget.accessToken,
+    );
   }
 
   bool get _hasAnyActionFocus =>
       _slideshowButtonFocusNode.hasFocus ||
+      _videoPlayPauseButtonFocusNode.hasFocus ||
+      _videoScrubberButtonFocusNode.hasFocus ||
+      _videoResetButtonFocusNode.hasFocus ||
+      _videoLoopButtonFocusNode.hasFocus ||
       _imageFitButtonFocusNode.hasFocus ||
       _wallpaperButtonFocusNode.hasFocus ||
       _closeButtonFocusNode.hasFocus;
+
+  void _registerVideoScrubberHandle(_ViewerVideoScrubberHandle? handle) {
+    if (!mounted) {
+      return;
+    }
+    if (identical(_activeVideoScrubberHandle, handle)) {
+      return;
+    }
+    setState(() {
+      _activeVideoScrubberHandle = handle;
+    });
+  }
+
+  void _handleVideoScrubberModeChanged(bool isActive) {
+    if (!mounted || isActive) {
+      return;
+    }
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted ||
+          !context.read<AssetViewerCubit>().state.currentAsset.isVideo) {
+        return;
+      }
+      _videoScrubberButtonFocusNode.requestFocus();
+    });
+  }
 
   void _handleFocusChange() {
     if (!mounted) {
@@ -530,9 +794,11 @@ class _AssetViewerViewState extends State<_AssetViewerView> {
     _scheduleWallpaperClock();
   }
 
-  Duration get _wallpaperClockDelay => kDebugMode ? _wallpaperClockDebugDelay : _wallpaperClockReleaseDelay;
+  Duration get _wallpaperClockDelay =>
+      kDebugMode ? _wallpaperClockDebugDelay : _wallpaperClockReleaseDelay;
 
-  bool get _currentAssetSupportsWallpaperClock => !context.read<AssetViewerCubit>().state.currentAsset.isVideo;
+  bool get _currentAssetSupportsWallpaperClock =>
+      !context.read<AssetViewerCubit>().state.currentAsset.isVideo;
 
   void _hideWallpaperClock() {
     _wallpaperClockTimer?.cancel();
@@ -593,7 +859,9 @@ class _AssetViewerViewState extends State<_AssetViewerView> {
     });
     _viewerFocusNode.requestFocus();
     _wallpaperClockTicker = Timer.periodic(const Duration(seconds: 1), (_) {
-      if (!mounted || !_showWallpaperClock || !_currentAssetSupportsWallpaperClock) {
+      if (!mounted ||
+          !_showWallpaperClock ||
+          !_currentAssetSupportsWallpaperClock) {
         return;
       }
       setState(() => _wallpaperClockNow = DateTime.now());

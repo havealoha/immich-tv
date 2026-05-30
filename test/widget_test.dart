@@ -264,6 +264,35 @@ void main() {
     expect(find.text('2026-11-10'), findsOneWidget);
   });
 
+  testWidgets('shows a video scrubber action instead of slideshow for videos', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1280, 720);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+
+    await _pumpSignedInApp(
+      tester,
+      mediaRepository: FakeMediaRepository(includeVideoAsset: true),
+    );
+
+    final videoAssetLabel = find.text('Asset video-1').first;
+    await tester.ensureVisible(videoAssetLabel);
+    await tester.tap(videoAssetLabel, warnIfMissed: false);
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byIcon(Icons.pause_rounded).evaluate().length +
+          find.byIcon(Icons.play_arrow_rounded).evaluate().length,
+      1,
+    );
+    expect(find.byIcon(Icons.video_settings_rounded), findsOneWidget);
+    expect(find.byIcon(Icons.restart_alt_rounded), findsOneWidget);
+    expect(find.byIcon(Icons.repeat_one_rounded), findsOneWidget);
+    expect(find.byIcon(Icons.slideshow_rounded), findsNothing);
+    expect(find.byIcon(Icons.close_rounded), findsWidgets);
+  });
+
   testWidgets('starts a slideshow with playback controls', (tester) async {
     tester.view.physicalSize = const Size(1280, 720);
     tester.view.devicePixelRatio = 1.0;
@@ -408,9 +437,13 @@ class FakeServerRepository implements ServerRepository {
 }
 
 class FakeMediaRepository implements MediaRepository {
-  FakeMediaRepository({this.paginatedTimeline = false});
+  FakeMediaRepository({
+    this.paginatedTimeline = false,
+    this.includeVideoAsset = false,
+  });
 
   final bool paginatedTimeline;
+  final bool includeVideoAsset;
 
   @override
   Future<List<AlbumSummary>> fetchAlbums(AuthenticatedSession session) async =>
@@ -451,6 +484,10 @@ class FakeMediaRepository implements MediaRepository {
     int pageSize = 60,
     int? year,
   }) async {
+    if (includeVideoAsset) {
+      return MediaPage(items: _videoTimelinePageOne);
+    }
+
     if (!paginatedTimeline) {
       return MediaPage(items: _timelinePageOne);
     }
@@ -520,5 +557,20 @@ final List<AssetSummary> _timelinePageTwo = [
     displayUrls: const ['mock://asset-3?palette=forest&variant=display'],
     type: 'IMAGE',
     createdAt: DateTime(2026, 11, 11),
+  ),
+];
+
+final List<AssetSummary> _videoTimelinePageOne = [
+  AssetSummary(
+    id: 'video-1',
+    thumbnailUrls: const [
+      'mock://video-1?palette=dusk&variant=thumbnail',
+      'mock://video-1?palette=dusk&variant=thumbnail',
+    ],
+    displayUrls: const [
+      'https://photos.example.com/api/assets/video-1/video/playback',
+    ],
+    type: 'VIDEO',
+    createdAt: DateTime(2026, 11, 12),
   ),
 ];
