@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'dart:ui' as ui;
 
 import '../../../core/network/immich_dio_factory.dart';
 import '../../../core/network/immich_headers.dart';
@@ -20,6 +21,10 @@ class AuthenticatedAssetImage extends StatefulWidget {
     this.placeholderIcon = Icons.image_outlined,
     this.filterQuality = FilterQuality.low,
     this.loadingPlaceholder,
+    this.placeholderImageUrls,
+    this.placeholderBlurSigma,
+    this.loadingOverlay,
+    this.fadeInDuration = const Duration(milliseconds: 220),
   });
 
   final List<String> imageUrls;
@@ -31,6 +36,10 @@ class AuthenticatedAssetImage extends StatefulWidget {
   final IconData placeholderIcon;
   final FilterQuality filterQuality;
   final Widget? loadingPlaceholder;
+  final List<String>? placeholderImageUrls;
+  final double? placeholderBlurSigma;
+  final Widget? loadingOverlay;
+  final Duration fadeInDuration;
 
   @override
   State<AuthenticatedAssetImage> createState() =>
@@ -44,6 +53,7 @@ class _AuthenticatedAssetImageState extends State<AuthenticatedAssetImage> {
   bool _isAdvancingUrl = false;
   String? _webImageUrl;
   Future<Uint8List>? _webImageFuture;
+  bool _hasLoadedFrame = false;
 
   @override
   void initState() {
@@ -106,37 +116,33 @@ class _AuthenticatedAssetImageState extends State<AuthenticatedAssetImage> {
         }
 
         return _wrapImage(
-          Image.network(
-            currentUrl,
-            headers: widget.requiresAuth
-                ? ImmichHeaders.mediaSessionToken(widget.accessToken)
-                : null,
-            fit: widget.fit,
-            gaplessPlayback: true,
-            filterQuality: widget.filterQuality,
-            cacheWidth: targetSize.cacheWidth,
-            cacheHeight: targetSize.cacheHeight,
-            frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
-              if (wasSynchronouslyLoaded || frame != null) {
+          _buildAnimatedImageStack(
+            image: Image.network(
+              currentUrl,
+              headers: widget.requiresAuth
+                  ? ImmichHeaders.mediaSessionToken(widget.accessToken)
+                  : null,
+              fit: widget.fit,
+              gaplessPlayback: true,
+              filterQuality: widget.filterQuality,
+              cacheWidth: targetSize.cacheWidth,
+              cacheHeight: targetSize.cacheHeight,
+              frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
+                final hasFrame = wasSynchronouslyLoaded || frame != null;
+                _updateLoadedFrame(hasFrame);
                 return child;
-              }
-
-              return _ImagePlaceholder(
-                child:
-                    widget.loadingPlaceholder ??
-                    const LoadingSkeleton(showBorder: true),
-              );
-            },
-            errorBuilder: (context, error, stackTrace) {
-              _advanceToNextUrl();
-              return _ImagePlaceholder(
-                child: Icon(
-                  widget.placeholderIcon,
-                  color: AppColors.textMuted,
-                  size: 30,
-                ),
-              );
-            },
+              },
+              errorBuilder: (context, error, stackTrace) {
+                _handleImageError();
+                return _ImagePlaceholder(
+                  child: Icon(
+                    widget.placeholderIcon,
+                    color: AppColors.textMuted,
+                    size: 30,
+                  ),
+                );
+              },
+            ),
           ),
         );
       },
@@ -153,13 +159,7 @@ class _AuthenticatedAssetImageState extends State<AuthenticatedAssetImage> {
       future: future,
       builder: (context, snapshot) {
         if (snapshot.connectionState != ConnectionState.done) {
-          return _wrapImage(
-            _ImagePlaceholder(
-              child:
-                  widget.loadingPlaceholder ??
-                  const LoadingSkeleton(showBorder: true),
-            ),
-          );
+          return _wrapImage(_buildLoadingPlaceholderStack());
         }
 
         if (snapshot.hasError || !snapshot.hasData) {
@@ -176,34 +176,30 @@ class _AuthenticatedAssetImageState extends State<AuthenticatedAssetImage> {
         }
 
         return _wrapImage(
-          Image.memory(
-            snapshot.data!,
-            fit: widget.fit,
-            gaplessPlayback: true,
-            filterQuality: widget.filterQuality,
-            cacheWidth: targetSize.cacheWidth,
-            cacheHeight: targetSize.cacheHeight,
-            frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
-              if (wasSynchronouslyLoaded || frame != null) {
+          _buildAnimatedImageStack(
+            image: Image.memory(
+              snapshot.data!,
+              fit: widget.fit,
+              gaplessPlayback: true,
+              filterQuality: widget.filterQuality,
+              cacheWidth: targetSize.cacheWidth,
+              cacheHeight: targetSize.cacheHeight,
+              frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
+                final hasFrame = wasSynchronouslyLoaded || frame != null;
+                _updateLoadedFrame(hasFrame);
                 return child;
-              }
-
-              return _ImagePlaceholder(
-                child:
-                    widget.loadingPlaceholder ??
-                    const LoadingSkeleton(showBorder: true),
-              );
-            },
-            errorBuilder: (context, error, stackTrace) {
-              _advanceToNextUrl();
-              return _ImagePlaceholder(
-                child: Icon(
-                  widget.placeholderIcon,
-                  color: AppColors.textMuted,
-                  size: 30,
-                ),
-              );
-            },
+              },
+              errorBuilder: (context, error, stackTrace) {
+                _handleImageError();
+                return _ImagePlaceholder(
+                  child: Icon(
+                    widget.placeholderIcon,
+                    color: AppColors.textMuted,
+                    size: 30,
+                  ),
+                );
+              },
+            ),
           ),
         );
       },
@@ -215,6 +211,7 @@ class _AuthenticatedAssetImageState extends State<AuthenticatedAssetImage> {
     _isAdvancingUrl = false;
     _webImageUrl = null;
     _webImageFuture = null;
+    _hasLoadedFrame = false;
   }
 
   void _advanceToNextUrl() {
@@ -233,6 +230,106 @@ class _AuthenticatedAssetImageState extends State<AuthenticatedAssetImage> {
         _isAdvancingUrl = false;
         _webImageUrl = null;
         _webImageFuture = null;
+        _hasLoadedFrame = false;
+      });
+    });
+  }
+
+  void _handleImageError() {
+    if (_urlIndex >= widget.imageUrls.length - 1) {
+      _updateLoadedFrame(true);
+      return;
+    }
+    _advanceToNextUrl();
+  }
+
+  Widget _buildAnimatedImageStack({required Widget image}) {
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        _buildLoadingPlaceholderStack(),
+        AnimatedOpacity(
+          opacity: _hasLoadedFrame ? 1 : 0,
+          duration: widget.fadeInDuration,
+          curve: Curves.easeOutCubic,
+          child: image,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildLoadingPlaceholderStack() {
+    final placeholderLayer = _buildPlaceholderImageLayer();
+    final loadingLayer =
+        widget.loadingOverlay ??
+        widget.loadingPlaceholder ??
+        const LoadingSkeleton(showBorder: true);
+
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        placeholderLayer ??
+            _ImagePlaceholder(child: Center(child: loadingLayer)),
+        if (placeholderLayer != null)
+          Center(child: IgnorePointer(child: loadingLayer)),
+      ],
+    );
+  }
+
+  Widget? _buildPlaceholderImageLayer() {
+    final placeholderImageUrls = widget.placeholderImageUrls;
+    if (placeholderImageUrls == null || placeholderImageUrls.isEmpty) {
+      return null;
+    }
+
+    Widget placeholder = AuthenticatedAssetImage(
+      imageUrls: placeholderImageUrls,
+      accessToken: widget.accessToken,
+      requiresAuth: widget.requiresAuth,
+      fit: widget.fit,
+      borderRadius: widget.borderRadius,
+      placeholderIcon: widget.placeholderIcon,
+      filterQuality: FilterQuality.low,
+      fadeInDuration: Duration.zero,
+      loadingPlaceholder: const SizedBox.shrink(),
+    );
+
+    final blurSigma = widget.placeholderBlurSigma;
+    if (blurSigma != null && blurSigma > 0) {
+      placeholder = ImageFiltered(
+        imageFilter: ui.ImageFilter.blur(sigmaX: blurSigma, sigmaY: blurSigma),
+        child: placeholder,
+      );
+    }
+
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        placeholder,
+        const DecoratedBox(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Color(0x33000000), Color(0x55000000)],
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  void _updateLoadedFrame(bool hasFrame) {
+    if (!hasFrame || _hasLoadedFrame || !mounted) {
+      return;
+    }
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || _hasLoadedFrame) {
+        return;
+      }
+      setState(() {
+        _hasLoadedFrame = true;
       });
     });
   }
@@ -368,101 +465,123 @@ class _MockAssetArt extends StatelessWidget {
     final colors = _paletteColors(palette);
     final isDisplay = variant == 'display';
 
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: colors,
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-      ),
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          Positioned(
-            top: isDisplay ? -40 : -20,
-            right: isDisplay ? -10 : -20,
-            child: Container(
-              width: isDisplay ? 220 : 120,
-              height: isDisplay ? 220 : 120,
-              decoration: const BoxDecoration(
-                shape: BoxShape.circle,
-                color: Color(0x26FFFFFF),
-              ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final compact =
+            constraints.maxWidth < 140 || constraints.maxHeight < 140;
+        final padding = compact
+            ? AppSpacing.sm
+            : (isDisplay ? AppSpacing.xxl : AppSpacing.md);
+
+        return DecoratedBox(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: colors,
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
             ),
           ),
-          Positioned(
-            bottom: isDisplay ? -50 : -24,
-            left: isDisplay ? -20 : -30,
-            child: Container(
-              width: isDisplay ? 260 : 140,
-              height: isDisplay ? 260 : 140,
-              decoration: const BoxDecoration(
-                shape: BoxShape.circle,
-                color: Color(0x1FFFFFFF),
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              Positioned(
+                top: isDisplay ? -40 : -20,
+                right: isDisplay ? -10 : -20,
+                child: Container(
+                  width: compact ? 72 : (isDisplay ? 220 : 120),
+                  height: compact ? 72 : (isDisplay ? 220 : 120),
+                  decoration: const BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Color(0x26FFFFFF),
+                  ),
+                ),
               ),
-            ),
-          ),
-          Padding(
-            padding: EdgeInsets.all(isDisplay ? AppSpacing.xxl : AppSpacing.md),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppSpacing.sm,
-                    vertical: AppSpacing.xxs,
+              Positioned(
+                bottom: isDisplay ? -50 : -24,
+                left: isDisplay ? -20 : -30,
+                child: Container(
+                  width: compact ? 88 : (isDisplay ? 260 : 140),
+                  height: compact ? 88 : (isDisplay ? 260 : 140),
+                  decoration: const BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Color(0x1FFFFFFF),
                   ),
-                  decoration: BoxDecoration(
-                    color: const Color(0x33000000),
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                  child: Text(
-                    palette.replaceAll('-', ' ').toUpperCase(),
-                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 0.8,
+                ),
+              ),
+              Padding(
+                padding: EdgeInsets.all(padding),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: compact ? AppSpacing.xs : AppSpacing.sm,
+                        vertical: AppSpacing.xxs,
+                      ),
+                      decoration: BoxDecoration(
+                        color: const Color(0x33000000),
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                      child: Text(
+                        palette.replaceAll('-', ' ').toUpperCase(),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 0.8,
+                          fontSize: compact ? 8 : null,
+                        ),
+                      ),
                     ),
-                  ),
+                    const Spacer(),
+                    Icon(
+                      Icons.photo_camera_back_outlined,
+                      color: Colors.white.withValues(alpha: 0.92),
+                      size: compact ? 20 : (isDisplay ? 56 : 28),
+                    ),
+                    SizedBox(
+                      height: compact
+                          ? AppSpacing.xxs
+                          : (isDisplay ? AppSpacing.lg : AppSpacing.sm),
+                    ),
+                    Text(
+                      'Scene ${id.split('-').last}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style:
+                          (isDisplay
+                                  ? Theme.of(context).textTheme.headlineLarge
+                                  : Theme.of(context).textTheme.titleMedium)
+                              ?.copyWith(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w800,
+                                fontSize: compact ? 11 : null,
+                              ),
+                    ),
+                    if (!compact) ...[
+                      SizedBox(
+                        height: isDisplay ? AppSpacing.sm : AppSpacing.xxs,
+                      ),
+                      Text(
+                        fit == BoxFit.contain
+                            ? 'Curated mock photo for fullscreen TV preview'
+                            : 'Curated mock photo',
+                        maxLines: isDisplay ? 2 : 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: Colors.white.withValues(alpha: 0.88),
+                          height: 1.4,
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
-                const Spacer(),
-                Icon(
-                  Icons.photo_camera_back_outlined,
-                  color: Colors.white.withValues(alpha: 0.92),
-                  size: isDisplay ? 56 : 28,
-                ),
-                SizedBox(height: isDisplay ? AppSpacing.lg : AppSpacing.sm),
-                Text(
-                  'Scene ${id.split('-').last}',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style:
-                      (isDisplay
-                              ? Theme.of(context).textTheme.headlineLarge
-                              : Theme.of(context).textTheme.titleMedium)
-                          ?.copyWith(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w800,
-                          ),
-                ),
-                SizedBox(height: isDisplay ? AppSpacing.sm : AppSpacing.xxs),
-                Text(
-                  fit == BoxFit.contain
-                      ? 'Curated mock photo for fullscreen TV preview'
-                      : 'Curated mock photo',
-                  maxLines: isDisplay ? 2 : 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: Colors.white.withValues(alpha: 0.88),
-                    height: 1.4,
-                  ),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 

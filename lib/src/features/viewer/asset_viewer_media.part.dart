@@ -32,13 +32,18 @@ class _ViewerPage extends StatelessWidget {
             height: constraints.maxHeight,
             child: AuthenticatedAssetImage(
               imageUrls: asset.displayUrls,
+              placeholderImageUrls: asset.thumbnailUrls,
+              placeholderBlurSigma: 16,
               accessToken: accessToken,
               requiresAuth: asset.requiresAuth,
               fit: fit,
               heroTag: 'asset-${asset.id}',
               placeholderIcon: Icons.photo_outlined,
               filterQuality: FilterQuality.medium,
-              loadingPlaceholder: const _ViewerPhotoLoadingPlaceholder(),
+              loadingOverlay: const _ViewerMediaLoadingOverlay(
+                icon: Icons.photo_outlined,
+                label: 'Loading photo',
+              ),
             ),
           ),
         );
@@ -47,29 +52,85 @@ class _ViewerPage extends StatelessWidget {
   }
 }
 
-class _ViewerPhotoLoadingPlaceholder extends StatelessWidget {
-  const _ViewerPhotoLoadingPlaceholder();
+class _ViewerMediaLoadingOverlay extends StatelessWidget {
+  const _ViewerMediaLoadingOverlay({
+    required this.icon,
+    required this.label,
+    this.progress,
+  });
+
+  final IconData icon;
+  final String label;
+  final double? progress;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final determinateProgress = progress;
+    final progressLabel = determinateProgress == null
+        ? null
+        : '${(determinateProgress * 100).round()}% downloaded';
 
-    return ColoredBox(
-      color: Colors.black,
-      child: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.photo_outlined, color: Colors.white.withValues(alpha: 0.92), size: 44),
-            const SizedBox(height: AppSpacing.md),
-            Text(
-              'Loading photo',
-              textAlign: TextAlign.center,
-              style: theme.textTheme.titleMedium?.copyWith(color: Colors.white, fontWeight: FontWeight.w800),
-            ),
-            const SizedBox(height: AppSpacing.sm),
-            const LoadingSkeleton(width: 136, height: 8, borderRadius: 999, baseColor: Color(0xFF111111), highlightColor: Color(0xFF262626)),
-          ],
+    return Center(
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: Colors.black.withValues(alpha: 0.46),
+          borderRadius: BorderRadius.circular(AppRadii.xl),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.xl,
+            vertical: AppSpacing.lg,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, color: Colors.white.withValues(alpha: 0.92), size: 44),
+              const SizedBox(height: AppSpacing.md),
+              Text(
+                label,
+                textAlign: TextAlign.center,
+                style: theme.textTheme.titleMedium?.copyWith(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const SizedBox(height: AppSpacing.sm),
+              if (determinateProgress == null)
+                const LoadingSkeleton(
+                  width: 148,
+                  height: 8,
+                  borderRadius: 999,
+                  baseColor: Color(0xFF111111),
+                  highlightColor: Color(0xFF262626),
+                )
+              else
+                SizedBox(
+                  width: 220,
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(AppRadii.pill),
+                    child: LinearProgressIndicator(
+                      value: determinateProgress,
+                      minHeight: 8,
+                      backgroundColor: const Color(0xFF111111),
+                      valueColor: const AlwaysStoppedAnimation<Color>(
+                        Colors.white,
+                      ),
+                    ),
+                  ),
+                ),
+              if (progressLabel != null) ...[
+                const SizedBox(height: AppSpacing.sm),
+                Text(
+                  progressLabel,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: Colors.white70,
+                  ),
+                ),
+              ],
+            ],
+          ),
         ),
       ),
     );
@@ -106,7 +167,8 @@ class _ViewerVideoPlayerState extends State<_ViewerVideoPlayer> {
   @override
   void didUpdateWidget(covariant _ViewerVideoPlayer oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.asset.id != widget.asset.id || oldWidget.accessToken != widget.accessToken) {
+    if (oldWidget.asset.id != widget.asset.id ||
+        oldWidget.accessToken != widget.accessToken) {
       _disposeController();
       _initializePlayer();
     }
@@ -124,98 +186,45 @@ class _ViewerVideoPlayerState extends State<_ViewerVideoPlayer> {
   Widget build(BuildContext context) {
     final controller = _controller;
     if (controller == null || _initializeFuture == null) {
-      return _VideoLoadingPlaceholder(progress: _webLoadProgress);
+      return _ViewerVideoLoadingSurface(
+        asset: widget.asset,
+        accessToken: widget.accessToken,
+        progress: _webLoadProgress,
+      );
     }
 
     return FutureBuilder<void>(
       future: _initializeFuture,
       builder: (context, snapshot) {
+        final Widget child;
         if (snapshot.connectionState != ConnectionState.done) {
-          return _VideoLoadingPlaceholder(progress: _webLoadProgress);
+          child = _ViewerVideoLoadingSurface(
+            key: ValueKey<String>('video-loading-${widget.asset.id}'),
+            asset: widget.asset,
+            accessToken: widget.accessToken,
+            progress: _webLoadProgress,
+          );
+        } else if (snapshot.hasError || !controller.value.isInitialized) {
+          child = const _VideoPlayerError(key: ValueKey<String>('video-error'));
+        } else {
+          child = _ViewerVideoContent(
+            key: ValueKey<String>('video-ready-${widget.asset.id}'),
+            controller: controller,
+            focusNode: _focusNode,
+            showChrome: _showChrome,
+            onSurfaceTap: _handleSurfaceTap,
+            onTogglePlayback: _togglePlayback,
+          );
         }
 
-        if (snapshot.hasError || !controller.value.isInitialized) {
-          return const _VideoPlayerError();
-        }
-
-        return Focus(
-          focusNode: _focusNode,
-          autofocus: true,
-          onKeyEvent: (_, event) {
-            if (event is! KeyDownEvent) {
-              return KeyEventResult.ignored;
-            }
-
-            final key = event.logicalKey;
-            if (key == LogicalKeyboardKey.mediaPlayPause ||
-                key == LogicalKeyboardKey.mediaPlay ||
-                key == LogicalKeyboardKey.mediaPause ||
-                key == LogicalKeyboardKey.select ||
-                key == LogicalKeyboardKey.enter ||
-                key == LogicalKeyboardKey.space) {
-              _togglePlayback();
-              return KeyEventResult.handled;
-            }
-
-            return KeyEventResult.ignored;
+        return AnimatedSwitcher(
+          duration: const Duration(milliseconds: 260),
+          switchInCurve: Curves.easeOutCubic,
+          switchOutCurve: Curves.easeInCubic,
+          transitionBuilder: (child, animation) {
+            return FadeTransition(opacity: animation, child: child);
           },
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              Center(
-                child: AspectRatio(aspectRatio: controller.value.aspectRatio == 0 ? 16 / 9 : controller.value.aspectRatio, child: VideoPlayer(controller)),
-              ),
-              Positioned.fill(
-                child: GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onTap: _handleSurfaceTap,
-                  child: const SizedBox.expand(),
-                ),
-              ),
-              AnimatedOpacity(
-                opacity: _showChrome || !controller.value.isPlaying ? 1 : 0,
-                duration: const Duration(milliseconds: 180),
-                child: IgnorePointer(
-                  ignoring: !_showChrome && controller.value.isPlaying,
-                  child: Center(
-                    child: DecoratedBox(
-                      decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.32), shape: BoxShape.circle),
-                      child: IconButton(
-                        onPressed: _togglePlayback,
-                        iconSize: 56,
-                        color: Colors.white,
-                        icon: Icon(controller.value.isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-              Positioned(
-                left: AppSpacing.xl,
-                right: AppSpacing.xl,
-                bottom: AppSpacing.xl,
-                child: AnimatedOpacity(
-                  opacity: _showChrome || !controller.value.isPlaying ? 1 : 0,
-                  duration: const Duration(milliseconds: 180),
-                  child: DecoratedBox(
-                    decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.22), borderRadius: BorderRadius.circular(AppRadii.pill)),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.sm),
-                      child: VideoProgressIndicator(
-                        controller,
-                        allowScrubbing: true,
-                        colors: VideoProgressColors(
-                          playedColor: Colors.white,
-                          bufferedColor: Colors.white.withValues(alpha: 0.35),
-                          backgroundColor: Colors.white.withValues(alpha: 0.12),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
+          child: child,
         );
       },
     );
@@ -240,8 +249,13 @@ class _ViewerVideoPlayerState extends State<_ViewerVideoPlayer> {
 
     final controller = VideoPlayerController.networkUrl(
       Uri.parse(playableUrl),
-      httpHeaders: widget.asset.requiresAuth ? ImmichHeaders.mediaSessionToken(widget.accessToken) : const <String, String>{},
-      videoPlayerOptions: VideoPlayerOptions(mixWithOthers: false, allowBackgroundPlayback: false),
+      httpHeaders: widget.asset.requiresAuth
+          ? ImmichHeaders.mediaSessionToken(widget.accessToken)
+          : const <String, String>{},
+      videoPlayerOptions: VideoPlayerOptions(
+        mixWithOthers: false,
+        allowBackgroundPlayback: false,
+      ),
     );
     controller.addListener(_handleControllerUpdate);
 
@@ -324,12 +338,19 @@ class _ViewerVideoPlayerState extends State<_ViewerVideoPlayer> {
 
       final uri = Uri.tryParse(trimmed);
       final path = uri?.path.toLowerCase() ?? trimmed.toLowerCase();
-      if (path.contains('/video/playback') || path.endsWith('.mp4') || path.endsWith('.webm') || path.endsWith('.m3u8') || path.endsWith('.mov')) {
+      if (path.contains('/video/playback') ||
+          path.endsWith('.mp4') ||
+          path.endsWith('.webm') ||
+          path.endsWith('.m3u8') ||
+          path.endsWith('.mov')) {
         return trimmed;
       }
     }
 
-    return widget.asset.displayUrls.firstWhere((url) => url.trim().isNotEmpty, orElse: () => '');
+    return widget.asset.displayUrls.firstWhere(
+      (url) => url.trim().isNotEmpty,
+      orElse: () => '',
+    );
   }
 
   Future<void> _togglePlayback() async {
@@ -439,60 +460,168 @@ class _ViewerVideoPlayerState extends State<_ViewerVideoPlayer> {
   }
 }
 
-class _VideoLoadingPlaceholder extends StatelessWidget {
-  const _VideoLoadingPlaceholder({this.progress});
+class _ViewerVideoLoadingSurface extends StatelessWidget {
+  const _ViewerVideoLoadingSurface({
+    super.key,
+    required this.asset,
+    required this.accessToken,
+    this.progress,
+  });
 
+  final AssetSummary asset;
+  final String accessToken;
   final double? progress;
 
   @override
   Widget build(BuildContext context) {
-    final determinateProgress = progress;
-    final progressLabel = determinateProgress == null ? null : '${(determinateProgress * 100).round()}% downloaded';
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        AuthenticatedAssetImage(
+          imageUrls: asset.thumbnailUrls,
+          accessToken: accessToken,
+          requiresAuth: asset.requiresAuth,
+          fit: BoxFit.contain,
+          filterQuality: FilterQuality.medium,
+          placeholderIcon: Icons.videocam_outlined,
+          placeholderBlurSigma: 16,
+          loadingOverlay: const SizedBox.shrink(),
+        ),
+        DecoratedBox(
+          decoration: BoxDecoration(
+            color: Colors.black.withValues(alpha: 0.24),
+          ),
+          child: _ViewerMediaLoadingOverlay(
+            icon: Icons.videocam_outlined,
+            label: 'Loading video',
+            progress: progress,
+          ),
+        ),
+      ],
+    );
+  }
+}
 
-    return ColoredBox(
-      color: Colors.black,
-      child: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.videocam_outlined, color: Colors.white.withValues(alpha: 0.92), size: 44),
-            const SizedBox(height: AppSpacing.md),
-            Text(
-              'Loading video',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(color: Colors.white, fontWeight: FontWeight.w800),
+class _ViewerVideoContent extends StatelessWidget {
+  const _ViewerVideoContent({
+    super.key,
+    required this.controller,
+    required this.focusNode,
+    required this.showChrome,
+    required this.onSurfaceTap,
+    required this.onTogglePlayback,
+  });
+
+  final VideoPlayerController controller;
+  final FocusNode focusNode;
+  final bool showChrome;
+  final VoidCallback onSurfaceTap;
+  final VoidCallback onTogglePlayback;
+
+  @override
+  Widget build(BuildContext context) {
+    return Focus(
+      focusNode: focusNode,
+      autofocus: true,
+      onKeyEvent: (_, event) {
+        if (event is! KeyDownEvent) {
+          return KeyEventResult.ignored;
+        }
+
+        final key = event.logicalKey;
+        if (key == LogicalKeyboardKey.mediaPlayPause ||
+            key == LogicalKeyboardKey.mediaPlay ||
+            key == LogicalKeyboardKey.mediaPause ||
+            key == LogicalKeyboardKey.select ||
+            key == LogicalKeyboardKey.enter ||
+            key == LogicalKeyboardKey.space) {
+          onTogglePlayback();
+          return KeyEventResult.handled;
+        }
+
+        return KeyEventResult.ignored;
+      },
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          Center(
+            child: AspectRatio(
+              aspectRatio: controller.value.aspectRatio == 0
+                  ? 16 / 9
+                  : controller.value.aspectRatio,
+              child: VideoPlayer(controller),
             ),
-            const SizedBox(height: AppSpacing.sm),
-            if (determinateProgress == null)
-              const LoadingSkeleton(width: 148, height: 8, borderRadius: 999, baseColor: Color(0xFF111111), highlightColor: Color(0xFF262626))
-            else
-              SizedBox(
-                width: 220,
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(AppRadii.pill),
-                  child: LinearProgressIndicator(
-                    value: determinateProgress,
-                    minHeight: 8,
-                    backgroundColor: const Color(0xFF111111),
-                    valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
+          ),
+          Positioned.fill(
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: onSurfaceTap,
+              child: const SizedBox.expand(),
+            ),
+          ),
+          AnimatedOpacity(
+            opacity: showChrome || !controller.value.isPlaying ? 1 : 0,
+            duration: const Duration(milliseconds: 180),
+            child: IgnorePointer(
+              ignoring: !showChrome && controller.value.isPlaying,
+              child: Center(
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.32),
+                    shape: BoxShape.circle,
+                  ),
+                  child: IconButton(
+                    onPressed: onTogglePlayback,
+                    iconSize: 56,
+                    color: Colors.white,
+                    icon: Icon(
+                      controller.value.isPlaying
+                          ? Icons.pause_rounded
+                          : Icons.play_arrow_rounded,
+                    ),
                   ),
                 ),
               ),
-            if (progressLabel != null) ...[
-              const SizedBox(height: AppSpacing.sm),
-              Text(
-                progressLabel,
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.white70),
+            ),
+          ),
+          Positioned(
+            left: AppSpacing.xl,
+            right: AppSpacing.xl,
+            bottom: AppSpacing.xl,
+            child: AnimatedOpacity(
+              opacity: showChrome || !controller.value.isPlaying ? 1 : 0,
+              duration: const Duration(milliseconds: 180),
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: 0.22),
+                  borderRadius: BorderRadius.circular(AppRadii.pill),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.md,
+                    vertical: AppSpacing.sm,
+                  ),
+                  child: VideoProgressIndicator(
+                    controller,
+                    allowScrubbing: true,
+                    colors: VideoProgressColors(
+                      playedColor: Colors.white,
+                      bufferedColor: Colors.white.withValues(alpha: 0.35),
+                      backgroundColor: Colors.white.withValues(alpha: 0.12),
+                    ),
+                  ),
+                ),
               ),
-            ],
-          ],
-        ),
+            ),
+          ),
+        ],
       ),
     );
   }
 }
 
 class _VideoPlayerError extends StatelessWidget {
-  const _VideoPlayerError();
+  const _VideoPlayerError({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -507,7 +636,11 @@ class _VideoPlayerError extends StatelessWidget {
             Text(
               'This video could not be played',
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.w700, color: Colors.white),
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.w700,
+                color: Colors.white,
+              ),
             ),
             SizedBox(height: AppSpacing.sm),
             Text(

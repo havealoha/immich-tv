@@ -434,12 +434,10 @@ class FakeMediaRepository implements MediaRepository {
       AssetSummary(
         id: 'favorite-1',
         thumbnailUrls: const [
-          'https://photos.example.com/api/assets/favorite-1/thumbnail?size=preview',
-          'https://photos.example.com/api/assets/favorite-1/thumbnail?size=thumbnail',
+          'mock://favorite-1?palette=ember&variant=thumbnail',
+          'mock://favorite-1?palette=ember&variant=thumbnail',
         ],
-        displayUrls: const [
-          'https://photos.example.com/api/assets/favorite-1/original',
-        ],
+        displayUrls: const ['mock://favorite-1?palette=ember&variant=display'],
         type: 'IMAGE',
         createdAt: DateTime(2024, 10, 2),
       ),
@@ -493,24 +491,20 @@ final List<AssetSummary> _timelinePageOne = [
   AssetSummary(
     id: 'asset-1',
     thumbnailUrls: const [
-      'https://photos.example.com/api/assets/asset-1/thumbnail?size=preview',
-      'https://photos.example.com/api/assets/asset-1/thumbnail?size=thumbnail',
+      'mock://asset-1?palette=sea-glass&variant=thumbnail',
+      'mock://asset-1?palette=sea-glass&variant=thumbnail',
     ],
-    displayUrls: const [
-      'https://photos.example.com/api/assets/asset-1/original',
-    ],
+    displayUrls: const ['mock://asset-1?palette=sea-glass&variant=display'],
     type: 'IMAGE',
     createdAt: DateTime(2026, 11, 9),
   ),
   AssetSummary(
     id: 'asset-2',
     thumbnailUrls: const [
-      'https://photos.example.com/api/assets/asset-2/thumbnail?size=preview',
-      'https://photos.example.com/api/assets/asset-2/thumbnail?size=thumbnail',
+      'mock://asset-2?palette=sunrise&variant=thumbnail',
+      'mock://asset-2?palette=sunrise&variant=thumbnail',
     ],
-    displayUrls: const [
-      'https://photos.example.com/api/assets/asset-2/original',
-    ],
+    displayUrls: const ['mock://asset-2?palette=sunrise&variant=display'],
     type: 'IMAGE',
     createdAt: DateTime(2026, 11, 10),
   ),
@@ -520,12 +514,10 @@ final List<AssetSummary> _timelinePageTwo = [
   AssetSummary(
     id: 'asset-3',
     thumbnailUrls: const [
-      'https://photos.example.com/api/assets/asset-3/thumbnail?size=preview',
-      'https://photos.example.com/api/assets/asset-3/thumbnail?size=thumbnail',
+      'mock://asset-3?palette=forest&variant=thumbnail',
+      'mock://asset-3?palette=forest&variant=thumbnail',
     ],
-    displayUrls: const [
-      'https://photos.example.com/api/assets/asset-3/original',
-    ],
+    displayUrls: const ['mock://asset-3?palette=forest&variant=display'],
     type: 'IMAGE',
     createdAt: DateTime(2026, 11, 11),
   ),
