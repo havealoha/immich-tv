@@ -15,7 +15,6 @@ import '../../shared/presentation/app_colors.dart';
 import '../../shared/presentation/app_radii.dart';
 import '../../shared/presentation/app_spacing.dart';
 import '../../shared/presentation/widgets/authenticated_asset_image.dart';
-import '../../shared/presentation/widgets/loading_skeleton.dart';
 import '../../shared/presentation/widgets/tv_focusable.dart';
 import '../slideshow/slideshow_player_screen.dart';
 import 'cubit/asset_viewer_cubit.dart';

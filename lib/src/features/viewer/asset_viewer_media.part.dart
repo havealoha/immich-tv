@@ -56,10 +56,7 @@ class _ViewerPage extends StatelessWidget {
               heroTag: 'asset-${asset.id}',
               placeholderIcon: Icons.photo_outlined,
               filterQuality: FilterQuality.medium,
-              loadingOverlay: const _ViewerMediaLoadingOverlay(
-                icon: Icons.photo_outlined,
-                label: 'Loading photo',
-              ),
+              loadingOverlay: const _ViewerMediaLoadingOverlay(),
             ),
           ),
         );
@@ -69,84 +66,20 @@ class _ViewerPage extends StatelessWidget {
 }
 
 class _ViewerMediaLoadingOverlay extends StatelessWidget {
-  const _ViewerMediaLoadingOverlay({
-    required this.icon,
-    required this.label,
-    this.progress,
-  });
-
-  final IconData icon;
-  final String label;
+  const _ViewerMediaLoadingOverlay({this.progress});
   final double? progress;
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final determinateProgress = progress;
-    final progressLabel = determinateProgress == null
-        ? null
-        : '${(determinateProgress * 100).round()}% downloaded';
-
     return Center(
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: Colors.black.withValues(alpha: 0.46),
-          borderRadius: BorderRadius.circular(AppRadii.xl),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(
-            horizontal: AppSpacing.xl,
-            vertical: AppSpacing.lg,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(icon, color: Colors.white.withValues(alpha: 0.92), size: 44),
-              const SizedBox(height: AppSpacing.md),
-              Text(
-                label,
-                textAlign: TextAlign.center,
-                style: theme.textTheme.titleMedium?.copyWith(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-              const SizedBox(height: AppSpacing.sm),
-              if (determinateProgress == null)
-                const LoadingSkeleton(
-                  width: 148,
-                  height: 8,
-                  borderRadius: 999,
-                  baseColor: Color(0xFF111111),
-                  highlightColor: Color(0xFF262626),
-                )
-              else
-                SizedBox(
-                  width: 220,
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(AppRadii.pill),
-                    child: LinearProgressIndicator(
-                      value: determinateProgress,
-                      minHeight: 8,
-                      backgroundColor: const Color(0xFF111111),
-                      valueColor: const AlwaysStoppedAnimation<Color>(
-                        Colors.white,
-                      ),
-                    ),
-                  ),
-                ),
-              if (progressLabel != null) ...[
-                const SizedBox(height: AppSpacing.sm),
-                Text(
-                  progressLabel,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: Colors.white70,
-                  ),
-                ),
-              ],
-            ],
-          ),
+      child: SizedBox(
+        width: 44,
+        height: 44,
+        child: CircularProgressIndicator(
+          value: progress,
+          strokeWidth: 3.5,
+          backgroundColor: Colors.white.withValues(alpha: 0.18),
+          valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
         ),
       ),
     );
@@ -673,11 +606,7 @@ class _ViewerVideoLoadingSurface extends StatelessWidget {
           decoration: BoxDecoration(
             color: Colors.black.withValues(alpha: 0.24),
           ),
-          child: _ViewerMediaLoadingOverlay(
-            icon: Icons.videocam_outlined,
-            label: 'Loading video',
-            progress: progress,
-          ),
+          child: _ViewerMediaLoadingOverlay(progress: progress),
         ),
       ],
     );
