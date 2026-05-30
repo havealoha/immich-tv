@@ -24,7 +24,7 @@ class AuthenticatedAssetImage extends StatefulWidget {
     this.placeholderImageUrls,
     this.placeholderBlurSigma,
     this.loadingOverlay,
-    this.fadeInDuration = const Duration(milliseconds: 220),
+    this.fadeInDuration = const Duration(milliseconds: 320),
   });
 
   final List<String> imageUrls;
@@ -247,11 +247,26 @@ class _AuthenticatedAssetImageState extends State<AuthenticatedAssetImage> {
     return Stack(
       fit: StackFit.expand,
       children: [
-        _buildLoadingPlaceholderStack(),
         AnimatedOpacity(
-          opacity: _hasLoadedFrame ? 1 : 0,
+          opacity: _hasLoadedFrame ? 0 : 1,
           duration: widget.fadeInDuration,
           curve: Curves.easeOutCubic,
+          child: _buildLoadingPlaceholderStack(),
+        ),
+        TweenAnimationBuilder<double>(
+          tween: Tween<double>(
+            begin: _hasLoadedFrame ? 1 : 0,
+            end: _hasLoadedFrame ? 1 : 0,
+          ),
+          duration: widget.fadeInDuration,
+          curve: Curves.easeOutCubic,
+          builder: (context, value, child) {
+            final scale = 0.985 + (0.015 * value);
+            return Opacity(
+              opacity: value,
+              child: Transform.scale(scale: scale, child: child),
+            );
+          },
           child: image,
         ),
       ],

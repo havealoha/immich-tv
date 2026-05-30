@@ -597,6 +597,7 @@ class _ViewerVideoLoadingSurface extends StatelessWidget {
           accessToken: accessToken,
           requiresAuth: asset.requiresAuth,
           fit: BoxFit.contain,
+          heroTag: 'asset-${asset.id}',
           filterQuality: FilterQuality.medium,
           placeholderIcon: Icons.videocam_outlined,
           placeholderBlurSigma: 16,

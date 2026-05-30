@@ -50,7 +50,19 @@ class AssetViewerScreen extends StatelessWidget {
               accessToken: accessToken,
             ),
         transitionsBuilder: (context, animation, secondaryAnimation, child) {
-          return FadeTransition(opacity: animation, child: child);
+          final curvedAnimation = CurvedAnimation(
+            parent: animation,
+            curve: Curves.easeOutCubic,
+            reverseCurve: Curves.easeInCubic,
+          );
+          final scaleAnimation = Tween<double>(
+            begin: 0.985,
+            end: 1,
+          ).animate(curvedAnimation);
+          return FadeTransition(
+            opacity: curvedAnimation,
+            child: ScaleTransition(scale: scaleAnimation, child: child),
+          );
         },
       ),
     );
