@@ -64,6 +64,8 @@ class _AlbumBrowser extends StatefulWidget {
 }
 
 class _AlbumBrowserState extends State<_AlbumBrowser> {
+  static const _albumRefreshInterval = Duration(minutes: 1);
+
   final FocusNode _selectedAlbumFocusNode = FocusNode(
     debugLabel: 'albums.selected-album',
   );
@@ -72,9 +74,11 @@ class _AlbumBrowserState extends State<_AlbumBrowser> {
   String? _albumAssetsNextPage;
   bool _isLoadingAlbumAssets = false;
   String? _albumAssetsError;
+  Timer? _albumRefreshTimer;
 
   @override
   void dispose() {
+    _albumRefreshTimer?.cancel();
     _selectedAlbumFocusNode.dispose();
     super.dispose();
   }
@@ -96,6 +100,16 @@ class _AlbumBrowserState extends State<_AlbumBrowser> {
         widget.albums.any((album) => album.id == _selectedAlbum!.id);
     if (!selectedAlbumStillExists) {
       _selectAlbum(widget.albums.first);
+      return;
+    }
+
+    if (_selectedAlbum != null) {
+      final refreshedSelectedAlbum = widget.albums.firstWhere(
+        (album) => album.id == _selectedAlbum!.id,
+      );
+      if (refreshedSelectedAlbum != _selectedAlbum) {
+        _selectedAlbum = refreshedSelectedAlbum;
+      }
     }
   }
 
@@ -162,6 +176,7 @@ class _AlbumBrowserState extends State<_AlbumBrowser> {
   Widget build(BuildContext context) => _buildBody(context);
 
   void _selectAlbum(AlbumSummary album) {
+    _ensureAlbumRefreshPolling();
     setState(() {
       _selectedAlbum = album;
       _albumAssets = const [];
@@ -227,15 +242,20 @@ class _AlbumBrowserState extends State<_AlbumBrowser> {
     required AlbumSummary album,
     required String? page,
     required bool replace,
+    bool background = false,
   }) async {
     if (_isLoadingAlbumAssets) {
       return;
     }
 
-    setState(() {
-      _isLoadingAlbumAssets = true;
-      _albumAssetsError = null;
-    });
+    if (background) {
+      _ensureAlbumRefreshPolling();
+    } else {
+      setState(() {
+        _isLoadingAlbumAssets = true;
+        _albumAssetsError = null;
+      });
+    }
 
     try {
       final response = await context
@@ -245,18 +265,37 @@ class _AlbumBrowserState extends State<_AlbumBrowser> {
         return;
       }
 
+      final nextAssets = replace
+          ? _mergeRefreshedAlbumAssets(
+              existing: _albumAssets,
+              refreshedFirstPage: response.items,
+            )
+          : [
+              ..._albumAssets,
+              ..._dedupeAlbumAssets(_albumAssets, response.items),
+            ];
+      final hasChanges =
+          !_listEquals(_albumAssets, nextAssets) ||
+          _albumAssetsNextPage != response.nextPage ||
+          _isLoadingAlbumAssets;
+      if (!hasChanges && background) {
+        return;
+      }
+
       setState(() {
-        _albumAssets = replace
-            ? response.items
-            : [
-                ..._albumAssets,
-                ..._dedupeAlbumAssets(_albumAssets, response.items),
-              ];
+        _albumAssets = nextAssets;
         _albumAssetsNextPage = response.nextPage;
         _isLoadingAlbumAssets = false;
+        if (!background) {
+          _albumAssetsError = null;
+        }
       });
     } catch (error) {
       if (!mounted || _selectedAlbum?.id != album.id) {
+        return;
+      }
+
+      if (background) {
         return;
       }
 
@@ -277,6 +316,59 @@ class _AlbumBrowserState extends State<_AlbumBrowser> {
     return incoming
         .where((item) => !existingIds.contains(item.id))
         .toList(growable: false);
+  }
+
+  List<AssetSummary> _mergeRefreshedAlbumAssets({
+    required List<AssetSummary> existing,
+    required List<AssetSummary> refreshedFirstPage,
+  }) {
+    if (existing.isEmpty) {
+      return refreshedFirstPage;
+    }
+
+    if (_listEquals(existing, refreshedFirstPage)) {
+      return existing;
+    }
+
+    final refreshedIds = refreshedFirstPage.map((item) => item.id).toSet();
+    return List<AssetSummary>.unmodifiable([
+      ...refreshedFirstPage,
+      ...existing.where((item) => !refreshedIds.contains(item.id)),
+    ]);
+  }
+
+  bool _listEquals(List<AssetSummary> left, List<AssetSummary> right) {
+    if (identical(left, right)) {
+      return true;
+    }
+    if (left.length != right.length) {
+      return false;
+    }
+    for (var i = 0; i < left.length; i++) {
+      if (left[i] != right[i]) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  void _ensureAlbumRefreshPolling() {
+    _albumRefreshTimer ??= Timer.periodic(_albumRefreshInterval, (_) {
+      final selectedAlbum = _selectedAlbum;
+      if (!mounted ||
+          selectedAlbum == null ||
+          widget.status != LibraryLoadStatus.success) {
+        return;
+      }
+      unawaited(
+        _loadAlbumAssets(
+          album: selectedAlbum,
+          page: null,
+          replace: true,
+          background: true,
+        ),
+      );
+    });
   }
 }
 
@@ -303,6 +395,9 @@ class _AlbumRail extends StatelessWidget {
   Widget build(BuildContext context) {
     final scale = AppScale.of(context);
     return ListView.separated(
+      key: PageStorageKey<String>(
+        horizontal ? 'album-rail-horizontal' : 'album-rail-vertical',
+      ),
       scrollDirection: horizontal ? Axis.horizontal : Axis.vertical,
       itemCount: albums.length,
       separatorBuilder: (_, _) => SizedBox(
@@ -510,6 +605,7 @@ class _AlbumAssetGrid extends StatelessWidget {
                 final screenSize = MediaQuery.sizeOf(context);
                 final crossAxisCount = _resolveGridCrossAxisCount(screenSize);
                 return GridView.builder(
+                  key: PageStorageKey<String>('album-grid-${album.id}'),
                   cacheExtent: 240,
                   gridDelegate: _buildAssetGridDelegate(
                     constraints.maxWidth,

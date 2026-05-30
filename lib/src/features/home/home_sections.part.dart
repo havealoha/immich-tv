@@ -45,7 +45,8 @@ class _TimelineSectionView extends StatelessWidget {
       menuToggleFocusNode: menuToggleFocusNode,
       onToggleSidebar: onToggleSidebar,
       child: _AnimatedSectionSwap(
-        switchKey: 'timeline-$selectedYear-${_sectionViewState(status, assets)}',
+        switchKey:
+            'timeline-$selectedYear-${_sectionViewState(status, assets)}',
         child: _buildBody(context),
       ),
     );
@@ -87,6 +88,7 @@ class _TimelineSectionView extends StatelessWidget {
         return false;
       },
       child: ListView.builder(
+        key: PageStorageKey<String>('timeline-list-$selectedYear'),
         cacheExtent: 480,
         itemCount: groups.length + (hasMore || isLoadingMore ? 1 : 0),
         itemBuilder: (context, index) {
@@ -206,6 +208,7 @@ class _AssetSectionView extends StatelessWidget {
           final screenSize = MediaQuery.sizeOf(context);
           final crossAxisCount = _resolveGridCrossAxisCount(screenSize);
           return GridView.builder(
+            key: PageStorageKey<String>('asset-grid-$title'),
             cacheExtent: 240,
             gridDelegate: _buildAssetGridDelegate(
               constraints.maxWidth,
@@ -293,7 +296,9 @@ class _TimelineDaySection extends StatelessWidget {
                   session: session,
                   asset: item.asset,
                   autofocus: item.globalIndex == 0,
-                  focusNode: item.globalIndex == 0 ? primaryContentFocusNode : null,
+                  focusNode: item.globalIndex == 0
+                      ? primaryContentFocusNode
+                      : null,
                   openDrawerOnLeft: index % crossAxisCount == 0,
                   onOpenDrawer: onOpenSidebar,
                   prefetchUrls: _nearbyThumbnailUrls(

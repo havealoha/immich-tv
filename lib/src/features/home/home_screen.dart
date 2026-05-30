@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -52,7 +54,9 @@ class _HomeScreenState extends State<HomeScreen> {
     );
     _timelineContentFocusNode = FocusNode(debugLabel: 'home-timeline-content');
     _albumsContentFocusNode = FocusNode(debugLabel: 'home-albums-content');
-    _favoritesContentFocusNode = FocusNode(debugLabel: 'home-favorites-content');
+    _favoritesContentFocusNode = FocusNode(
+      debugLabel: 'home-favorites-content',
+    );
   }
 
   @override
@@ -82,7 +86,8 @@ class _HomeScreenState extends State<HomeScreen> {
         return;
       }
       final drawerIndex = switch (focusIndex) {
-        final int index when index >= 0 && index < _drawerFocusNodes.length => index,
+        final int index when index >= 0 && index < _drawerFocusNodes.length =>
+          index,
         _ => 0,
       };
       _drawerFocusNodes[drawerIndex].requestFocus();
@@ -138,10 +143,8 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return BlocProvider(
       create: (context) =>
-          LibraryCubit(
-            context.read<MediaRepository>(),
-            widget.session,
-          )..loadInitial(),
+          LibraryCubit(context.read<MediaRepository>(), widget.session)
+            ..loadInitial(),
       child: Scaffold(
         backgroundColor: AppColors.background,
         body: SafeArea(
@@ -228,10 +231,8 @@ class _Sidebar extends StatelessWidget {
   final LibraryState state;
   final double width;
   final List<FocusNode> focusNodes;
-  final void Function({
-    bool focusMenuToggle,
-    LibraryTab? focusContentTab,
-  }) onCloseSidebar;
+  final void Function({bool focusMenuToggle, LibraryTab? focusContentTab})
+  onCloseSidebar;
 
   @override
   Widget build(BuildContext context) {
@@ -278,7 +279,9 @@ class _Sidebar extends StatelessWidget {
             scale.space(24, min: 20, max: 24),
           ),
           decoration: const BoxDecoration(
-            border: Border(right: BorderSide(color: AppColors.border, width: 1)),
+            border: Border(
+              right: BorderSide(color: AppColors.border, width: 1),
+            ),
             gradient: LinearGradient(
               colors: [Color(0xFF0A141A), Color(0xFF0B171D)],
               begin: Alignment.topCenter,
@@ -303,7 +306,9 @@ class _Sidebar extends StatelessWidget {
                         icon: Icons.grid_view_rounded,
                         isSelected: state.selectedTab == LibraryTab.timeline,
                         onPressed: () {
-                          context.read<LibraryCubit>().selectTab(LibraryTab.timeline);
+                          context.read<LibraryCubit>().selectTab(
+                            LibraryTab.timeline,
+                          );
                           onCloseSidebar(
                             focusMenuToggle: false,
                             focusContentTab: LibraryTab.timeline,
@@ -311,14 +316,18 @@ class _Sidebar extends StatelessWidget {
                         },
                         focusNode: focusNodes[0],
                       ),
-                      SizedBox(height: scale.space(AppSpacing.xs, min: 8, max: 8)),
+                      SizedBox(
+                        height: scale.space(AppSpacing.xs, min: 8, max: 8),
+                      ),
                       _SidebarMenuButton(
                         label: 'Albums',
                         subtitle: 'Curated collections',
                         icon: Icons.photo_album_outlined,
                         isSelected: state.selectedTab == LibraryTab.albums,
                         onPressed: () {
-                          context.read<LibraryCubit>().selectTab(LibraryTab.albums);
+                          context.read<LibraryCubit>().selectTab(
+                            LibraryTab.albums,
+                          );
                           onCloseSidebar(
                             focusMenuToggle: false,
                             focusContentTab: LibraryTab.albums,
@@ -326,7 +335,9 @@ class _Sidebar extends StatelessWidget {
                         },
                         focusNode: focusNodes[1],
                       ),
-                      SizedBox(height: scale.space(AppSpacing.xs, min: 8, max: 8)),
+                      SizedBox(
+                        height: scale.space(AppSpacing.xs, min: 8, max: 8),
+                      ),
                       _SidebarMenuButton(
                         label: 'Favorites',
                         subtitle: 'Saved highlights',
@@ -348,21 +359,22 @@ class _Sidebar extends StatelessWidget {
                 ),
               ),
               SizedBox(height: scale.space(AppSpacing.md, min: 14, max: 16)),
-          _SidebarActionButton(
-            icon: Icons.switch_account_rounded,
-            label: 'Switch user',
-            focusNode: focusNodes[3],
-            onPressed: () => context.read<AppFlowCubit>().showProfilePicker(),
+              _SidebarActionButton(
+                icon: Icons.switch_account_rounded,
+                label: 'Switch user',
+                focusNode: focusNodes[3],
+                onPressed: () =>
+                    context.read<AppFlowCubit>().showProfilePicker(),
+              ),
+              SizedBox(height: scale.space(AppSpacing.xs, min: 6, max: 8)),
+              _SidebarActionButton(
+                icon: Icons.logout_rounded,
+                label: 'Sign out',
+                focusNode: focusNodes[4],
+                onPressed: () => context.read<AppFlowCubit>().signOut(),
+              ),
+            ],
           ),
-          SizedBox(height: scale.space(AppSpacing.xs, min: 6, max: 8)),
-          _SidebarActionButton(
-            icon: Icons.logout_rounded,
-            label: 'Sign out',
-            focusNode: focusNodes[4],
-            onPressed: () => context.read<AppFlowCubit>().signOut(),
-          ),
-        ],
-      ),
         ),
       ),
     );
@@ -566,7 +578,9 @@ class _SidebarActionButton extends StatelessWidget {
             color: isActive ? const Color(0xFF111F26) : Colors.transparent,
             border: Border(
               left: BorderSide(
-                color: focusState.isFocused ? AppColors.focus : Colors.transparent,
+                color: focusState.isFocused
+                    ? AppColors.focus
+                    : Colors.transparent,
                 width: 3,
               ),
             ),
@@ -696,10 +710,16 @@ class _MenuToggleButton extends StatelessWidget {
                   ? const Color(0xFF111F26)
                   : const Color(0xFF0D1A21),
               borderRadius: BorderRadius.circular(
-                scale.radius(compact ? AppRadii.md : AppRadii.lg, min: 14, max: 18),
+                scale.radius(
+                  compact ? AppRadii.md : AppRadii.lg,
+                  min: 14,
+                  max: 18,
+                ),
               ),
               border: Border.all(
-                color: focusState.isFocused ? AppColors.focus : AppColors.border,
+                color: focusState.isFocused
+                    ? AppColors.focus
+                    : AppColors.border,
                 width: focusState.isFocused ? 2 : 1,
               ),
             ),

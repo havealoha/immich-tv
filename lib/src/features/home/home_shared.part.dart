@@ -66,10 +66,7 @@ class _SectionFrame extends StatelessWidget {
 }
 
 class _AnimatedSectionSwap extends StatelessWidget {
-  const _AnimatedSectionSwap({
-    required this.switchKey,
-    required this.child,
-  });
+  const _AnimatedSectionSwap({required this.switchKey, required this.child});
 
   final Object switchKey;
   final Widget child;
@@ -87,10 +84,7 @@ class _AnimatedSectionSwap extends StatelessWidget {
         ).animate(animation);
         return FadeTransition(
           opacity: animation,
-          child: SlideTransition(
-            position: offsetAnimation,
-            child: child,
-          ),
+          child: SlideTransition(position: offsetAnimation, child: child),
         );
       },
       child: KeyedSubtree(key: ValueKey<Object>(switchKey), child: child),
@@ -185,9 +179,8 @@ class _AssetGridLoadingSkeleton extends StatelessWidget {
                   constraints.maxWidth,
                   screenSize,
                 ),
-                itemBuilder: (context, index) => const LoadingSkeleton(
-                  borderRadius: AppRadii.xl,
-                ),
+                itemBuilder: (context, index) =>
+                    const LoadingSkeleton(borderRadius: AppRadii.xl),
               );
             },
           ),
@@ -256,10 +249,8 @@ class _AlbumRailLoadingSkeleton extends StatelessWidget {
       itemCount: 5,
       separatorBuilder: (context, index) =>
           SizedBox(height: scale.space(AppSpacing.md, min: 14, max: 16)),
-      itemBuilder: (context, index) => const LoadingSkeleton(
-        height: 110,
-        borderRadius: AppRadii.xl,
-      ),
+      itemBuilder: (context, index) =>
+          const LoadingSkeleton(height: 110, borderRadius: AppRadii.xl),
     );
   }
 }
@@ -344,10 +335,7 @@ class _TimelineSectionFrame extends StatelessWidget {
             return Row(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                Flexible(
-                  flex: 3,
-                  child: titleBlock,
-                ),
+                Flexible(flex: 3, child: titleBlock),
                 SizedBox(width: scale.space(AppSpacing.md, min: 12, max: 16)),
                 Expanded(
                   flex: 4,
@@ -415,9 +403,8 @@ class _TimelineYearRail extends StatelessWidget {
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
               itemCount: years.length,
-              separatorBuilder: (_, _) => SizedBox(
-                width: scale.space(AppSpacing.xs, min: 8, max: 10),
-              ),
+              separatorBuilder: (_, _) =>
+                  SizedBox(width: scale.space(AppSpacing.xs, min: 8, max: 10)),
               itemBuilder: (context, index) {
                 final year = years[index];
                 return _TimelineYearChip(
@@ -663,10 +650,7 @@ class _TimelineAssetEntry {
   final int globalIndex;
 }
 
-String _sectionViewState(
-  LibraryLoadStatus status,
-  List<AssetSummary> assets,
-) {
+String _sectionViewState(LibraryLoadStatus status, List<AssetSummary> assets) {
   if (status == LibraryLoadStatus.loading) {
     return 'loading';
   }
