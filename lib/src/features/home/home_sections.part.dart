@@ -277,7 +277,7 @@ class _TimelineDaySection extends StatelessWidget {
               _formatTimelineDay(group.day),
               style: theme.textTheme.headlineSmall?.copyWith(
                 fontWeight: FontWeight.w800,
-                fontSize: scale.text(28, min: 22, max: 28),
+                fontSize: scale.text(22, min: 18, max: 22),
               ),
             ),
             SizedBox(height: scale.space(AppSpacing.md, min: 12, max: 16)),
@@ -361,7 +361,6 @@ class _AssetTileState extends State<_AssetTile> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final scale = AppScale.of(context);
     final tile = TvFocusable(
       focusNode: widget.focusNode,
@@ -378,79 +377,55 @@ class _AssetTileState extends State<_AssetTile> {
         return AnimatedScale(
           duration: const Duration(milliseconds: 180),
           scale: isActive ? 0.985 : 1,
-          child: RepaintBoundary(
-            child: Stack(
-              fit: StackFit.expand,
-              children: [
-                AuthenticatedAssetImage(
-                  imageUrls: widget.asset.thumbnailUrls,
-                  accessToken: widget.session.accessToken,
-                  requiresAuth: widget.asset.requiresAuth,
-                  heroTag: 'asset-${widget.asset.id}',
-                  placeholderIcon: widget.asset.isVideo
-                      ? Icons.smart_display_outlined
-                      : Icons.photo_outlined,
-                  filterQuality: FilterQuality.none,
-                ),
-                DecoratedBox(
-                  decoration: BoxDecoration(
-                    border: Border.all(
-                      color: focusState.isFocused
-                          ? AppColors.focus
-                          : Colors.transparent,
-                      width: scale.sizeOf(2, min: 1.5, max: 2),
-                    ),
+          child: Semantics(
+            label: 'Asset ${widget.asset.id}',
+            button: true,
+            child: RepaintBoundary(
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  AuthenticatedAssetImage(
+                    imageUrls: widget.asset.thumbnailUrls,
+                    accessToken: widget.session.accessToken,
+                    requiresAuth: widget.asset.requiresAuth,
+                    heroTag: 'asset-${widget.asset.id}',
+                    placeholderIcon: widget.asset.isVideo
+                        ? Icons.smart_display_outlined
+                        : Icons.photo_outlined,
+                    filterQuality: FilterQuality.none,
                   ),
-                ),
-                Positioned.fill(
-                  child: DecoratedBox(
+                  DecoratedBox(
                     decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [
-                          Colors.transparent,
-                          Colors.black.withValues(
-                            alpha: isActive ? 0.68 : 0.54,
-                          ),
-                        ],
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
+                      border: Border.all(
+                        color: focusState.isFocused
+                            ? AppColors.focus
+                            : Colors.transparent,
+                        width: scale.sizeOf(2, min: 1.5, max: 2),
                       ),
                     ),
                   ),
-                ),
-                if (widget.asset.isVideo)
-                  const Positioned.fill(
-                    child: IgnorePointer(child: Center(child: _VideoBadge())),
-                  ),
-                Positioned(
-                  left: scale.space(AppSpacing.sm, min: 10, max: 12),
-                  right: scale.space(AppSpacing.sm, min: 10, max: 12),
-                  bottom: scale.space(AppSpacing.sm, min: 10, max: 12),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Asset ${widget.asset.id}',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: theme.textTheme.titleSmall?.copyWith(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w700,
-                          fontSize: scale.text(15, min: 13, max: 15),
+                  Positioned.fill(
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [
+                            Colors.transparent,
+                            Colors.black.withValues(
+                              alpha: isActive ? 0.68 : 0.54,
+                            ),
+                          ],
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
                         ),
                       ),
-                      SizedBox(height: scale.space(2, min: 2, max: 2)),
-                      Text(
-                        _formatDate(widget.asset.createdAt),
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: Colors.white.withValues(alpha: 0.82),
-                          fontSize: scale.text(12, min: 11, max: 12),
-                        ),
-                      ),
-                    ],
+                    ),
                   ),
-                ),
-              ],
+                  if (widget.asset.isVideo)
+                    const Positioned.fill(
+                      child: IgnorePointer(child: Center(child: _VideoBadge())),
+                    ),
+                ],
+              ),
             ),
           ),
         );
@@ -484,13 +459,6 @@ class _AssetTileState extends State<_AssetTile> {
         child: tile,
       ),
     );
-  }
-
-  String _formatDate(DateTime value) {
-    final year = value.year.toString().padLeft(4, '0');
-    final month = value.month.toString().padLeft(2, '0');
-    final day = value.day.toString().padLeft(2, '0');
-    return '$year-$month-$day';
   }
 
   void _prefetchNearbyThumbnails() {

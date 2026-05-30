@@ -14,6 +14,7 @@ import 'package:immichtv/src/core/repositories/auth_repository.dart';
 import 'package:immichtv/src/core/repositories/asset_image_repository.dart';
 import 'package:immichtv/src/core/repositories/media_repository.dart';
 import 'package:immichtv/src/core/repositories/server_repository.dart';
+import 'package:immichtv/src/shared/presentation/widgets/authenticated_asset_image.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -189,7 +190,7 @@ void main() {
 
     await _pumpSignedInApp(tester, mediaRepository: FakeMediaRepository());
 
-    expect(find.text('Asset asset-1'), findsOneWidget);
+    expect(_findAssetThumbnail('asset-1'), findsOneWidget);
 
     await tester.tap(find.byTooltip('Show menu'));
     await tester.pumpAndSettle();
@@ -200,7 +201,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Summer Trip'), findsWidgets);
     expect(find.text('42 assets'), findsOneWidget);
-    expect(find.text('Asset asset-1'), findsOneWidget);
+    expect(_findAssetThumbnail('asset-1'), findsOneWidget);
 
     await tester.tap(find.byTooltip('Show menu'));
     await tester.pumpAndSettle();
@@ -211,7 +212,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.sendKeyEvent(LogicalKeyboardKey.enter);
     await tester.pumpAndSettle();
-    expect(find.text('Asset favorite-1'), findsOneWidget);
+    expect(_findAssetThumbnail('favorite-1'), findsOneWidget);
   });
 
   testWidgets('loads the next timeline page as the grid scrolls', (
@@ -226,14 +227,14 @@ void main() {
       mediaRepository: FakeMediaRepository(paginatedTimeline: true),
     );
 
-    expect(find.text('Asset asset-1'), findsOneWidget);
-    expect(find.text('Asset asset-3'), findsNothing);
+    expect(_findAssetThumbnail('asset-1'), findsOneWidget);
+    expect(_findAssetThumbnail('asset-3'), findsNothing);
 
     await tester.drag(find.byType(GridView).first, const Offset(0, -1200));
     await tester.pump();
     await tester.pumpAndSettle();
 
-    expect(find.text('Asset asset-3'), findsOneWidget);
+    expect(_findAssetThumbnail('asset-3'), findsOneWidget);
   });
 
   testWidgets('opens the fullscreen asset viewer and navigates forward', (
@@ -245,7 +246,7 @@ void main() {
 
     await _pumpSignedInApp(tester, mediaRepository: FakeMediaRepository());
 
-    final firstAssetLabel = find.text('Asset asset-1').first;
+    final firstAssetLabel = _findAssetThumbnail('asset-1').first;
     await tester.ensureVisible(firstAssetLabel);
     await tester.tap(firstAssetLabel, warnIfMissed: false);
     await tester.pumpAndSettle();
@@ -276,7 +277,7 @@ void main() {
       mediaRepository: FakeMediaRepository(includeVideoAsset: true),
     );
 
-    final videoAssetLabel = find.text('Asset video-1').first;
+    final videoAssetLabel = _findAssetThumbnail('video-1').first;
     await tester.ensureVisible(videoAssetLabel);
     await tester.tap(videoAssetLabel, warnIfMissed: false);
     await tester.pumpAndSettle();
@@ -300,7 +301,7 @@ void main() {
 
     await _pumpSignedInApp(tester, mediaRepository: FakeMediaRepository());
 
-    final firstAssetLabel = find.text('Asset asset-1').first;
+    final firstAssetLabel = _findAssetThumbnail('asset-1').first;
     await tester.ensureVisible(firstAssetLabel);
     await tester.tap(firstAssetLabel, warnIfMissed: false);
     await tester.pumpAndSettle();
@@ -365,6 +366,13 @@ Future<void> _pumpSignedInApp(
   await tester.pumpAndSettle();
   await _enterOtpDigits(tester, '1234');
   await tester.pumpAndSettle();
+}
+
+Finder _findAssetThumbnail(String assetId) {
+  return find.byWidgetPredicate((widget) {
+    return widget is AuthenticatedAssetImage &&
+        widget.imageUrls.any((url) => url.contains(assetId));
+  });
 }
 
 class FakeAuthRepository implements AuthRepository {
