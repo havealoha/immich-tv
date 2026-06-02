@@ -400,7 +400,11 @@ class _AssetTileState extends State<_AssetTile> {
                         color: focusState.isFocused
                             ? AppColors.focus
                             : Colors.transparent,
-                        width: scale.sizeOf(2, min: 1.5, max: 2),
+                        width: scale.sizeOf(
+                          AppFocusDecoration.focusedBorderWidth,
+                          min: 2,
+                          max: AppFocusDecoration.focusedBorderWidth,
+                        ),
                       ),
                     ),
                   ),

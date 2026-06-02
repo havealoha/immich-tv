@@ -12,6 +12,8 @@ import '../../core/repositories/asset_image_repository.dart';
 import '../../core/repositories/media_repository.dart';
 import '../../shared/presentation/app_breakpoints.dart';
 import '../../shared/presentation/app_colors.dart';
+import '../../shared/presentation/app_durations.dart';
+import '../../shared/presentation/app_focus_decoration.dart';
 import '../../shared/presentation/app_radii.dart';
 import '../../shared/presentation/app_scale.dart';
 import '../../shared/presentation/app_spacing.dart';
@@ -489,20 +491,24 @@ class _SidebarMenuButtonState extends State<_SidebarMenuButton> {
       focusNode: widget.focusNode,
       onPressed: widget.onPressed,
       builder: (context, focusState) {
+        final isFocused = focusState.isFocused;
         final isActive = widget.isSelected || focusState.isActive;
 
-        return Container(
+        return AnimatedContainer(
+          duration: AppDurations.normal,
           padding: EdgeInsets.symmetric(
             horizontal: scale.space(AppSpacing.md, min: 14, max: 16),
             vertical: scale.space(AppSpacing.md, min: 14, max: 16),
           ),
-          decoration: BoxDecoration(
-            color: isActive ? const Color(0xFF111F26) : Colors.transparent,
-            border: Border(
-              left: BorderSide(
-                color: widget.isSelected ? AppColors.focus : Colors.transparent,
-                width: 3,
-              ),
+          decoration: AppFocusDecoration.surface(
+            isFocused: isFocused,
+            isActive: isActive,
+            isSelected: widget.isSelected,
+            backgroundColor: const Color(0x00000000),
+            activeBackgroundColor: const Color(0xFF111F26),
+            selectedBackgroundColor: const Color(0xFF111F26),
+            borderRadius: BorderRadius.circular(
+              scale.radius(AppRadii.md, min: 16, max: 18),
             ),
           ),
           child: Row(
@@ -566,23 +572,22 @@ class _SidebarActionButton extends StatelessWidget {
       focusNode: focusNode,
       onPressed: onPressed,
       builder: (context, focusState) {
+        final isFocused = focusState.isFocused;
         final isActive = focusState.isActive;
 
         return AnimatedContainer(
-          duration: const Duration(milliseconds: 180),
+          duration: AppDurations.normal,
           padding: EdgeInsets.symmetric(
-            horizontal: 0,
+            horizontal: scale.space(AppSpacing.md, min: 14, max: 16),
             vertical: scale.space(AppSpacing.sm, min: 10, max: 12),
           ),
-          decoration: BoxDecoration(
-            color: isActive ? const Color(0xFF111F26) : Colors.transparent,
-            border: Border(
-              left: BorderSide(
-                color: focusState.isFocused
-                    ? AppColors.focus
-                    : Colors.transparent,
-                width: 3,
-              ),
+          decoration: AppFocusDecoration.surface(
+            isFocused: isFocused,
+            isActive: isActive,
+            backgroundColor: const Color(0x00000000),
+            activeBackgroundColor: const Color(0xFF111F26),
+            borderRadius: BorderRadius.circular(
+              scale.radius(AppRadii.md, min: 16, max: 18),
             ),
           ),
           child: Row(
@@ -697,30 +702,26 @@ class _MenuToggleButton extends StatelessWidget {
       focusNode: focusNode,
       onPressed: onPressed,
       builder: (context, focusState) {
+        final isFocused = focusState.isFocused;
         final isActive = focusState.isActive;
 
         return Tooltip(
           message: tooltip,
           child: AnimatedContainer(
-            duration: const Duration(milliseconds: 180),
+            duration: AppDurations.normal,
             width: scale.sizeOf(compact ? 42 : 48, min: 40, max: 48),
             height: scale.sizeOf(compact ? 42 : 48, min: 40, max: 48),
-            decoration: BoxDecoration(
-              color: isActive
-                  ? const Color(0xFF111F26)
-                  : const Color(0xFF0D1A21),
+            decoration: AppFocusDecoration.surface(
+              isFocused: isFocused,
+              isActive: isActive,
+              backgroundColor: const Color(0xFF0D1A21),
+              activeBackgroundColor: const Color(0xFF111F26),
               borderRadius: BorderRadius.circular(
                 scale.radius(
                   compact ? AppRadii.md : AppRadii.lg,
                   min: 14,
                   max: 18,
                 ),
-              ),
-              border: Border.all(
-                color: focusState.isFocused
-                    ? AppColors.focus
-                    : AppColors.border,
-                width: focusState.isFocused ? 2 : 1,
               ),
             ),
             child: Center(

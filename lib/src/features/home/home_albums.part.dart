@@ -454,10 +454,11 @@ class _AlbumSummaryTileState extends State<_AlbumSummaryTile> {
       focusNode: widget.focusNode,
       onPressed: widget.onPressed,
       builder: (context, focusState) {
+        final isFocused = focusState.isFocused;
         final isActive = widget.isSelected || focusState.isActive;
 
         return AnimatedContainer(
-          duration: const Duration(milliseconds: 180),
+          duration: AppDurations.normal,
           padding: EdgeInsets.all(
             scale.space(
               widget.compact ? AppSpacing.md : AppSpacing.lg,
@@ -465,18 +466,18 @@ class _AlbumSummaryTileState extends State<_AlbumSummaryTile> {
               max: widget.compact ? 18 : 24,
             ),
           ),
-          decoration: BoxDecoration(
-            color: isActive ? const Color(0xFF13212A) : const Color(0xFF0D1A21),
+          decoration: AppFocusDecoration.surface(
+            isFocused: isFocused,
+            isActive: isActive,
+            isSelected: widget.isSelected,
+            backgroundColor: const Color(0xFF0D1A21),
+            activeBackgroundColor: const Color(0xFF13212A),
             borderRadius: BorderRadius.circular(
               scale.radius(
                 AppRadii.lg,
                 min: widget.compact ? 18 : 20,
                 max: widget.compact ? 20 : 24,
               ),
-            ),
-            border: Border.all(
-              color: widget.isSelected ? AppColors.focus : AppColors.border,
-              width: widget.isSelected ? 2 : 1,
             ),
           ),
           child: Column(

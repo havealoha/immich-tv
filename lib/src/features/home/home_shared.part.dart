@@ -364,7 +364,7 @@ class _TimelineSectionFrame extends StatelessWidget {
   }
 }
 
-class _TimelineYearRail extends StatelessWidget {
+class _TimelineYearRail extends StatefulWidget {
   const _TimelineYearRail({
     required this.years,
     required this.selectedYear,
@@ -376,10 +376,29 @@ class _TimelineYearRail extends StatelessWidget {
   final ValueChanged<int> onYearSelected;
 
   @override
+  State<_TimelineYearRail> createState() => _TimelineYearRailState();
+}
+
+class _TimelineYearRailState extends State<_TimelineYearRail> {
+  bool _didAutofocusSelectedYear = false;
+
+  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scale = AppScale.of(context);
     final compactChrome = _useCompactTvChrome(scale);
+    final selectedYear = widget.selectedYear;
+    final shouldAutofocusSelectedYear =
+        !_didAutofocusSelectedYear && selectedYear != null;
+
+    if (shouldAutofocusSelectedYear) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) {
+          return;
+        }
+        _didAutofocusSelectedYear = true;
+      });
+    }
 
     return SizedBox(
       height: compactChrome
@@ -402,16 +421,17 @@ class _TimelineYearRail extends StatelessWidget {
           Expanded(
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
-              itemCount: years.length,
+              itemCount: widget.years.length,
               separatorBuilder: (_, _) =>
                   SizedBox(width: scale.space(AppSpacing.xs, min: 8, max: 10)),
               itemBuilder: (context, index) {
-                final year = years[index];
+                final year = widget.years[index];
                 return _TimelineYearChip(
                   year: year,
                   isSelected: year == selectedYear,
-                  autofocus: year == selectedYear,
-                  onPressed: () => onYearSelected(year),
+                  autofocus:
+                      shouldAutofocusSelectedYear && year == selectedYear,
+                  onPressed: () => widget.onYearSelected(year),
                 );
               },
             ),
@@ -453,33 +473,20 @@ class _TimelineYearChipState extends State<_TimelineYearChip> {
         final isSelected = widget.isSelected;
 
         return AnimatedContainer(
-          duration: const Duration(milliseconds: 180),
+          duration: AppDurations.normal,
           padding: EdgeInsets.symmetric(
             horizontal: scale.space(AppSpacing.md, min: 14, max: 16),
             vertical: scale.space(AppSpacing.sm, min: 10, max: 12),
           ),
-          decoration: BoxDecoration(
-            color: isSelected
-                ? AppColors.focus.withValues(alpha: 0.18)
-                : const Color(0xFF0D1A21),
+          decoration: AppFocusDecoration.surface(
+            isFocused: isFocused,
+            isSelected: isSelected,
+            backgroundColor: const Color(0xFF0D1A21),
+            activeBackgroundColor: const Color(0xFF111F26),
+            selectedBackgroundColor: AppColors.focus.withValues(alpha: 0.18),
             borderRadius: BorderRadius.circular(
               scale.radius(AppRadii.pill, min: 999, max: 999),
             ),
-            border: Border.all(
-              color: isFocused || isSelected
-                  ? AppColors.focus
-                  : AppColors.border,
-              width: isFocused ? 2.4 : (isSelected ? 1.8 : 1),
-            ),
-            boxShadow: isFocused
-                ? [
-                    BoxShadow(
-                      color: AppColors.focusGlow,
-                      blurRadius: 22,
-                      spreadRadius: 2,
-                    ),
-                  ]
-                : const [],
           ),
           child: Center(
             child: Text(
