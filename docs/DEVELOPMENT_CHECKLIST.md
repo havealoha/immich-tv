@@ -61,7 +61,7 @@ This checklist is phase-based so we can move in deliberate slices while keeping 
 ## Phase 6: Performance and Reliability
 
 - [ ] Measure initial load, scroll smoothness, and image memory behavior on TV hardware.
-- [ ] Optimize thumbnail cache strategy and prefetching.
+- [x] Optimize thumbnail cache strategy and prefetching.
 - [ ] Add retry behavior and offline-friendly handling for intermittent networks.
 - [ ] Profile rebuild frequency in key BLoCs and widget trees.
 - [ ] Add integration tests for boot, login, browse, and sign-out flows.
