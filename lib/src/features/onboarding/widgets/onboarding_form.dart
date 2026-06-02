@@ -60,6 +60,7 @@ class OnboardingForm extends StatelessWidget {
     final scale = AppScale.of(context);
     final typographyScale = scale.typographyScale;
     final isCompactWidth = scale.isCompactWidth;
+    final isKeyboardVisible = MediaQuery.viewInsetsOf(context).bottom > 0;
     final isSubmitting = state.isBusy;
     final isServerStep = state.step == OnboardingStep.server;
     final isCredentialsStep = state.step == OnboardingStep.credentials;
@@ -172,6 +173,7 @@ class OnboardingForm extends StatelessWidget {
                   enabled: !isSubmitting,
                   textInputAction: TextInputAction.done,
                   style: fieldTextStyle,
+                  lockDirectionalFocusToKeyboard: isKeyboardVisible,
                   onSubmitted: !isSubmitting ? (_) => onPrimaryAction() : null,
                   decoration: const InputDecoration(
                     labelText: 'Immich server URL',
@@ -189,6 +191,7 @@ class OnboardingForm extends StatelessWidget {
                   enabled: !isSubmitting,
                   textInputAction: TextInputAction.next,
                   style: fieldTextStyle,
+                  lockDirectionalFocusToKeyboard: isKeyboardVisible,
                   onSubmitted: (_) => passwordFieldFocusNode.requestFocus(),
                   decoration: const InputDecoration(labelText: 'Email'),
                 ),
@@ -205,6 +208,7 @@ class OnboardingForm extends StatelessWidget {
                   obscureText: true,
                   style: fieldTextStyle,
                   textInputAction: TextInputAction.next,
+                  lockDirectionalFocusToKeyboard: isKeyboardVisible,
                   onSubmitted: !isSubmitting ? (_) => onPrimaryAction() : null,
                   decoration: const InputDecoration(labelText: 'Password'),
                 ),
@@ -259,6 +263,7 @@ class OnboardingForm extends StatelessWidget {
                       ),
                       textStyle: buttonTextStyle,
                     ),
+                    canRequestFocus: !isKeyboardVisible,
                     onPressed: isSubmitting ? null : onPrimaryAction,
                     child: Text(
                       isSubmitting ? 'Working...' : primaryButtonLabel,
@@ -285,6 +290,7 @@ class _OnboardingTextField extends StatelessWidget {
     this.nextFocusNode,
     this.style,
     this.onSubmitted,
+    this.lockDirectionalFocusToKeyboard = false,
     this.obscureText = false,
   });
 
@@ -297,10 +303,24 @@ class _OnboardingTextField extends StatelessWidget {
   final InputDecoration decoration;
   final TextStyle? style;
   final ValueChanged<String>? onSubmitted;
+  final bool lockDirectionalFocusToKeyboard;
   final bool obscureText;
 
   @override
   Widget build(BuildContext context) {
+    if (lockDirectionalFocusToKeyboard) {
+      return TextField(
+        controller: controller,
+        focusNode: focusNode,
+        enabled: enabled,
+        obscureText: obscureText,
+        textInputAction: textInputAction,
+        style: style,
+        onSubmitted: onSubmitted,
+        decoration: decoration,
+      );
+    }
+
     return Shortcuts(
       shortcuts: const <ShortcutActivator, Intent>{
         SingleActivator(LogicalKeyboardKey.arrowUp): _MoveFocusIntent(-1),
@@ -341,6 +361,7 @@ class _OnboardingActionButton extends StatelessWidget {
     required this.style,
     required this.onPressed,
     required this.child,
+    this.canRequestFocus = true,
     this.previousFocusNode,
   });
 
@@ -349,6 +370,7 @@ class _OnboardingActionButton extends StatelessWidget {
   final ButtonStyle style;
   final VoidCallback? onPressed;
   final Widget child;
+  final bool canRequestFocus;
 
   @override
   Widget build(BuildContext context) {
@@ -367,53 +389,56 @@ class _OnboardingActionButton extends StatelessWidget {
             },
           ),
         },
-        child: ListenableBuilder(
-          listenable: focusNode,
-          builder: (context, _) {
-            final isFocused = focusNode.hasFocus;
-            const buttonRadius = AppRadii.md;
-            const focusRingWidth = 2.5;
-            return AnimatedContainer(
-              duration: const Duration(milliseconds: 160),
-              curve: Curves.easeOutCubic,
-              padding: const EdgeInsets.all(focusRingWidth),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(
-                  buttonRadius + focusRingWidth,
+        child: ExcludeFocus(
+          excluding: !canRequestFocus,
+          child: ListenableBuilder(
+            listenable: focusNode,
+            builder: (context, _) {
+              final isFocused = focusNode.hasFocus;
+              const buttonRadius = AppRadii.md;
+              const focusRingWidth = 2.5;
+              return AnimatedContainer(
+                duration: const Duration(milliseconds: 160),
+                curve: Curves.easeOutCubic,
+                padding: const EdgeInsets.all(focusRingWidth),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(
+                    buttonRadius + focusRingWidth,
+                  ),
+                  border: Border.all(
+                    color: isFocused
+                        ? AppColors.focus
+                        : Colors.transparent,
+                    width: focusRingWidth,
+                  ),
+                  boxShadow: isFocused
+                      ? [
+                          BoxShadow(
+                            color: AppColors.focus.withValues(alpha: 0.28),
+                            blurRadius: 26,
+                            spreadRadius: 2,
+                          ),
+                        ]
+                      : const [],
                 ),
-                border: Border.all(
-                  color: isFocused
-                      ? AppColors.focus
-                      : Colors.transparent,
-                  width: focusRingWidth,
-                ),
-                boxShadow: isFocused
-                    ? [
-                        BoxShadow(
-                          color: AppColors.focus.withValues(alpha: 0.28),
-                          blurRadius: 26,
-                          spreadRadius: 2,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(buttonRadius),
+                  child: FilledButton(
+                    focusNode: focusNode,
+                    style: style.copyWith(
+                      shape: WidgetStatePropertyAll(
+                        RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(buttonRadius),
                         ),
-                      ]
-                    : const [],
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(buttonRadius),
-                child: FilledButton(
-                  focusNode: focusNode,
-                  style: style.copyWith(
-                    shape: WidgetStatePropertyAll(
-                      RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(buttonRadius),
                       ),
                     ),
+                    onPressed: onPressed,
+                    child: child,
                   ),
-                  onPressed: onPressed,
-                  child: child,
                 ),
-              ),
-            );
-          },
+              );
+            },
+          ),
         ),
       ),
     );

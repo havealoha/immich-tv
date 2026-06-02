@@ -60,6 +60,7 @@ class _PinUnlockScreenState extends State<PinUnlockScreen> {
     final theme = Theme.of(context);
     final scale = AppScale.of(context);
     final isTvLayout = scale.isTvLayout;
+    final isKeyboardVisible = MediaQuery.viewInsetsOf(context).bottom > 0;
     final otpSpacing = scale.space(12, min: 10, max: 16);
     final otpDigitSize = scale.sizeOf(isTvLayout ? 68 : 58, min: 48, max: 72);
     final buttonWidth = (otpDigitSize * 4) + (otpSpacing * 3);
@@ -170,6 +171,7 @@ class _PinUnlockScreenState extends State<PinUnlockScreen> {
                       child: _ActionButton(
                         label: _isSubmitting ? 'Unlocking...' : 'Unlock',
                         focusNode: _unlockButtonFocusNode,
+                        canRequestFocus: !isKeyboardVisible,
                         onPressed: _isSubmitting || pin.length != 4
                             ? null
                             : _submit,
@@ -236,48 +238,53 @@ class _ActionButton extends StatelessWidget {
     required this.label,
     required this.focusNode,
     required this.onPressed,
+    this.canRequestFocus = true,
   });
 
   final String label;
   final FocusNode focusNode;
   final VoidCallback? onPressed;
+  final bool canRequestFocus;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    return TvFocusable(
-      focusNode: focusNode,
-      onPressed: onPressed,
-      enabled: onPressed != null,
-      builder: (context, focusState) {
-        final isActive = focusState.isActive;
-        return AnimatedContainer(
-          duration: const Duration(milliseconds: 160),
-          height: 56,
-          decoration: BoxDecoration(
-            color: onPressed == null
-                ? AppColors.surfaceMuted
-                : (isActive ? const Color(0xFF3997FF) : AppColors.immichBlue),
-            borderRadius: BorderRadius.circular(AppRadii.md),
-            border: Border.all(
-              color: focusState.isFocused ? AppColors.focus : AppColors.border,
-              width: focusState.isFocused ? 2 : 1,
-            ),
-          ),
-          child: Center(
-            child: Text(
-              label,
-              style: theme.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w800,
-                color: onPressed == null
-                    ? AppColors.textMuted
-                    : AppColors.actionForeground,
+    return ExcludeFocus(
+      excluding: !canRequestFocus,
+      child: TvFocusable(
+        focusNode: focusNode,
+        onPressed: onPressed,
+        enabled: onPressed != null,
+        builder: (context, focusState) {
+          final isActive = focusState.isActive;
+          return AnimatedContainer(
+            duration: const Duration(milliseconds: 160),
+            height: 56,
+            decoration: BoxDecoration(
+              color: onPressed == null
+                  ? AppColors.surfaceMuted
+                  : (isActive ? const Color(0xFF3997FF) : AppColors.immichBlue),
+              borderRadius: BorderRadius.circular(AppRadii.md),
+              border: Border.all(
+                color: focusState.isFocused ? AppColors.focus : AppColors.border,
+                width: focusState.isFocused ? 2 : 1,
               ),
             ),
-          ),
-        );
-      },
+            child: Center(
+              child: Text(
+                label,
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w800,
+                  color: onPressed == null
+                      ? AppColors.textMuted
+                      : AppColors.actionForeground,
+                ),
+              ),
+            ),
+          );
+        },
+      ),
     );
   }
 }
