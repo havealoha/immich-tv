@@ -6,7 +6,6 @@ import '../../../core/models/saved_profile.dart';
 import '../../../shared/presentation/app_colors.dart';
 import '../../../shared/presentation/app_durations.dart';
 import '../../../shared/presentation/app_focus_decoration.dart';
-import '../../../shared/presentation/app_radii.dart';
 import '../../../shared/presentation/app_scale.dart';
 import '../../../shared/presentation/app_spacing.dart';
 import '../../../shared/presentation/widgets/tv_focusable.dart';
@@ -57,109 +56,93 @@ class SavedProfileCard extends StatelessWidget {
               horizontal: scale.space(isTvLayout ? 12 : 8, min: 8, max: 12),
               vertical: scale.space(isTvLayout ? 10 : 8, min: 8, max: 10),
             ),
-            child: AnimatedContainer(
-              duration: AppDurations.normal,
-              padding: EdgeInsets.symmetric(
-                horizontal: scale.space(isTvLayout ? 18 : 16, min: 14, max: 20),
-                vertical: scale.space(isTvLayout ? 20 : 16, min: 14, max: 20),
-              ),
-              decoration: AppFocusDecoration.surface(
-                isFocused: isFocused,
-                isActive: isActive,
-                backgroundColor: const Color(0xFF0D1A21),
-                activeBackgroundColor: const Color(0xFF13212A),
-                borderRadius: BorderRadius.circular(
-                  scale.radius(AppRadii.lg, min: 18, max: 24),
-                ),
-              ),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  Center(
-                    child: AnimatedContainer(
-                      duration: AppDurations.normal,
-                      padding: EdgeInsets.all(
-                        scale.space(isTvLayout ? 6 : 4, min: 4, max: 6),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Center(
+                  child: AnimatedContainer(
+                    duration: AppDurations.normal,
+                    padding: EdgeInsets.all(
+                      scale.space(isTvLayout ? 6 : 4, min: 4, max: 6),
+                    ),
+                    decoration: AppFocusDecoration.circle(
+                      isFocused: isFocused,
+                      isActive: isActive,
+                      backgroundColor: Colors.transparent,
+                    ),
+                    child: CircleAvatar(
+                      radius: scale.sizeOf(
+                        isTvLayout ? 52 : 42,
+                        min: 40,
+                        max: 50,
                       ),
-                      decoration: AppFocusDecoration.circle(
-                        isFocused: isFocused,
-                        isActive: isActive,
-                        backgroundColor: Colors.transparent,
-                      ),
-                      child: CircleAvatar(
-                        radius: scale.sizeOf(
-                          isTvLayout ? 52 : 42,
-                          min: 40,
-                          max: 50,
-                        ),
-                        backgroundColor: avatarColor,
-                        foregroundColor: Colors.white,
-                        child: Text(
-                          profile.initials,
-                          style:
-                              (isTvLayout
-                                      ? theme.textTheme.headlineMedium
-                                      : theme.textTheme.headlineSmall)
-                                  ?.copyWith(
-                                    fontWeight: FontWeight.w800,
-                                    fontSize: scale.text(
-                                      isTvLayout ? 30 : 24,
-                                      min: 22,
-                                      max: 28,
-                                    ),
+                      backgroundColor: avatarColor,
+                      foregroundColor: Colors.white,
+                      child: Text(
+                        profile.initials,
+                        style:
+                            (isTvLayout
+                                    ? theme.textTheme.headlineMedium
+                                    : theme.textTheme.headlineSmall)
+                                ?.copyWith(
+                                  fontWeight: FontWeight.w800,
+                                  fontSize: scale.text(
+                                    isTvLayout ? 30 : 24,
+                                    min: 22,
+                                    max: 28,
                                   ),
-                        ),
+                                ),
                       ),
                     ),
                   ),
-                  SizedBox(
-                    height: scale.space(
-                      isTvLayout ? 18 : 14,
-                      min: 12,
-                      max: 18,
-                    ),
+                ),
+                SizedBox(
+                  height: scale.space(
+                    isTvLayout ? 18 : 14,
+                    min: 12,
+                    max: 18,
                   ),
-                  Text(
-                    profile.name,
-                    textAlign: TextAlign.center,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style:
-                        (isTvLayout
-                                ? theme.textTheme.headlineSmall
-                                : theme.textTheme.titleLarge)
-                            ?.copyWith(
-                              fontWeight: FontWeight.w800,
-                              fontSize: scale.text(
-                                isTvLayout ? 26 : 22,
-                                min: 18,
-                                max: 24,
-                              ),
+                ),
+                Text(
+                  profile.name,
+                  textAlign: TextAlign.center,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style:
+                      (isTvLayout
+                              ? theme.textTheme.headlineSmall
+                              : theme.textTheme.titleLarge)
+                          ?.copyWith(
+                            fontWeight: FontWeight.w800,
+                            fontSize: scale.text(
+                              isTvLayout ? 26 : 22,
+                              min: 18,
+                              max: 24,
                             ),
-                  ),
-                  SizedBox(height: scale.space(AppSpacing.xs, min: 8, max: 8)),
-                  Text(
-                    profile.email,
-                    textAlign: TextAlign.center,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style:
-                        (isTvLayout
-                                ? theme.textTheme.titleSmall
-                                : theme.textTheme.bodySmall)
-                            ?.copyWith(
-                              color: AppColors.textSecondary,
-                              height: 1.4,
-                              fontSize: scale.text(
-                                isTvLayout ? 15 : 13,
-                                min: 12,
-                                max: 15,
-                              ),
+                          ),
+                ),
+                SizedBox(height: scale.space(AppSpacing.xs, min: 8, max: 8)),
+                Text(
+                  profile.email,
+                  textAlign: TextAlign.center,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style:
+                      (isTvLayout
+                              ? theme.textTheme.titleSmall
+                              : theme.textTheme.bodySmall)
+                          ?.copyWith(
+                            color: AppColors.textSecondary,
+                            height: 1.4,
+                            fontSize: scale.text(
+                              isTvLayout ? 15 : 13,
+                              min: 12,
+                              max: 15,
                             ),
-                  ),
-                ],
-              ),
+                          ),
+                ),
+              ],
             ),
           ),
         );
