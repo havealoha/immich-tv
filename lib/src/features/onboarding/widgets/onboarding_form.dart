@@ -72,7 +72,7 @@ class OnboardingForm extends StatelessWidget {
     final scale = AppScale.of(context);
     final typographyScale = scale.typographyScale;
     final isCompactWidth = scale.isCompactWidth;
-    final isTvKeyboardEntry = isTvLayout;
+    const isTvKeyboardEntry = true;
     final isSystemKeyboardVisible = MediaQuery.viewInsetsOf(context).bottom > 0;
     final isSubmitting = state.isBusy;
     final isServerStep = state.step == OnboardingStep.server;
@@ -94,12 +94,6 @@ class OnboardingForm extends StatelessWidget {
     );
     final fieldSpacing = scale.space(18, min: 14, max: 22);
     final statusPadding = scale.space(16, min: 14, max: 20);
-    final otpSpacing = scale.space(12, min: 10, max: 16);
-    final otpDigitSize = scale.sizeOf(
-      isCompactWidth ? 58 : 68,
-      min: 48,
-      max: 72,
-    );
     final fieldWidthFactor = isTvLayout
         ? 0.92
         : isCompactWidth
@@ -260,49 +254,27 @@ class OnboardingForm extends StatelessWidget {
             ] else ...[
               _ScaledFieldWidth(
                 widthFactor: fieldWidthFactor,
-                child: isTvKeyboardEntry
-                    ? _TvPinStep(
-                        title: isConfirmingPin
-                            ? 'Confirm your 4-digit PIN'
-                            : 'Create a 4-digit PIN',
-                        caption: isConfirmingPin
-                            ? 'Enter the same four digits again.'
-                            : 'Use the PIN you want to unlock this profile on TV.',
-                        titleStyle: pinPromptStyle,
-                        captionStyle: pinCaptionStyle,
-                        controller: isConfirmingPin
-                            ? confirmPinController
-                            : pinController,
-                        focusNode: isConfirmingPin
-                            ? confirmPinFieldFocusNode
-                            : pinFieldFocusNode,
-                        keyboardFocusNode: isConfirmingPin
-                            ? confirmPinKeyboardFocusNode
-                            : pinKeyboardFocusNode,
-                        fieldTextStyle: fieldTextStyle,
-                        enabled: !isSubmitting,
-                      )
-                    : _PinOtpStep(
-                        title: isConfirmingPin
-                            ? 'Confirm your 4-digit PIN'
-                            : 'Create a 4-digit PIN',
-                        caption: isConfirmingPin
-                            ? 'Enter the same four digits again.'
-                            : 'Use the PIN you want to unlock this profile on TV.',
-                        titleStyle: pinPromptStyle,
-                        captionStyle: pinCaptionStyle,
-                        digitSize: otpDigitSize,
-                        spacing: otpSpacing,
-                        enabled: !isSubmitting,
-                        controllers: isConfirmingPin
-                            ? confirmPinDigitControllers
-                            : pinDigitControllers,
-                        focusNodes: isConfirmingPin
-                            ? confirmPinDigitFocusNodes
-                            : pinDigitFocusNodes,
-                        fieldTextStyle: fieldTextStyle,
-                        onComplete: !isSubmitting ? onPrimaryAction : null,
-                      ),
+                child: _TvPinStep(
+                  title: isConfirmingPin
+                      ? 'Confirm your 4-digit PIN'
+                      : 'Create a 4-digit PIN',
+                  caption: isConfirmingPin
+                      ? 'Enter the same four digits again.'
+                      : 'Use the PIN you want to unlock this profile on TV.',
+                  titleStyle: pinPromptStyle,
+                  captionStyle: pinCaptionStyle,
+                  controller: isConfirmingPin
+                      ? confirmPinController
+                      : pinController,
+                  focusNode: isConfirmingPin
+                      ? confirmPinFieldFocusNode
+                      : pinFieldFocusNode,
+                  keyboardFocusNode: isConfirmingPin
+                      ? confirmPinKeyboardFocusNode
+                      : pinKeyboardFocusNode,
+                  fieldTextStyle: fieldTextStyle,
+                  enabled: !isSubmitting,
+                ),
               ),
               if (isTvKeyboardEntry &&
                   activeKeyboardField ==
@@ -544,142 +516,6 @@ class _MoveFocusIntent extends Intent {
   const _MoveFocusIntent(this.delta);
 
   final int delta;
-}
-
-class _PinOtpStep extends StatelessWidget {
-  const _PinOtpStep({
-    required this.title,
-    required this.caption,
-    required this.titleStyle,
-    required this.captionStyle,
-    required this.digitSize,
-    required this.spacing,
-    required this.enabled,
-    required this.controllers,
-    required this.focusNodes,
-    required this.fieldTextStyle,
-    this.onComplete,
-  });
-
-  final String title;
-  final String caption;
-  final TextStyle? titleStyle;
-  final TextStyle? captionStyle;
-  final double digitSize;
-  final double spacing;
-  final bool enabled;
-  final List<TextEditingController> controllers;
-  final List<FocusNode> focusNodes;
-  final TextStyle? fieldTextStyle;
-  final VoidCallback? onComplete;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        Text(title, style: titleStyle, textAlign: TextAlign.center),
-        SizedBox(height: spacing),
-        Text(caption, style: captionStyle, textAlign: TextAlign.center),
-        SizedBox(height: spacing * 1.4),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: List.generate(controllers.length, (index) {
-            return Padding(
-              padding: EdgeInsets.only(
-                right: index == controllers.length - 1 ? 0 : spacing,
-              ),
-              child: _OtpDigitField(
-                controller: controllers[index],
-                focusNode: focusNodes[index],
-                previousFocusNode: index > 0 ? focusNodes[index - 1] : null,
-                nextFocusNode: index < focusNodes.length - 1
-                    ? focusNodes[index + 1]
-                    : null,
-                enabled: enabled,
-                size: digitSize.clamp(48.0, 72.0),
-                textStyle: fieldTextStyle,
-                onComplete: index == controllers.length - 1 ? onComplete : null,
-              ),
-            );
-          }),
-        ),
-      ],
-    );
-  }
-}
-
-class _OtpDigitField extends StatelessWidget {
-  const _OtpDigitField({
-    required this.controller,
-    required this.focusNode,
-    required this.enabled,
-    required this.size,
-    this.previousFocusNode,
-    this.nextFocusNode,
-    this.textStyle,
-    this.onComplete,
-  });
-
-  final TextEditingController controller;
-  final FocusNode focusNode;
-  final FocusNode? previousFocusNode;
-  final FocusNode? nextFocusNode;
-  final bool enabled;
-  final double size;
-  final TextStyle? textStyle;
-  final VoidCallback? onComplete;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: size,
-      child: TextField(
-        controller: controller,
-        focusNode: focusNode,
-        enabled: enabled,
-        autofocus: false,
-        textAlign: TextAlign.center,
-        style: textStyle?.copyWith(
-          fontWeight: FontWeight.w700,
-          fontSize: (textStyle?.fontSize ?? 18) + 2,
-          letterSpacing: 1,
-        ),
-        obscureText: true,
-        keyboardType: TextInputType.number,
-        textInputAction: nextFocusNode == null
-            ? TextInputAction.done
-            : TextInputAction.next,
-        inputFormatters: [
-          FilteringTextInputFormatter.digitsOnly,
-          LengthLimitingTextInputFormatter(1),
-        ],
-        decoration: InputDecoration(
-          hintText: '0',
-          counterText: '',
-          contentPadding: EdgeInsets.symmetric(
-            horizontal: 0,
-            vertical: (size * 0.38).clamp(18.0, 28.0),
-          ),
-        ),
-        onChanged: (value) {
-          if (value.isNotEmpty) {
-            if (nextFocusNode != null) {
-              nextFocusNode!.requestFocus();
-            } else {
-              focusNode.unfocus();
-              onComplete?.call();
-            }
-            return;
-          }
-
-          if (previousFocusNode != null) {
-            previousFocusNode!.requestFocus();
-          }
-        },
-      ),
-    );
-  }
 }
 
 class _ScaledFieldWidth extends StatelessWidget {

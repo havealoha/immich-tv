@@ -84,32 +84,21 @@ void main() {
 
     expect(find.widgetWithText(TextField, 'Immich server URL'), findsOneWidget);
 
-    await tester.tap(find.widgetWithText(TextField, 'Immich server URL'));
-    await tester.pump();
-    await tester.testTextInput.receiveAction(TextInputAction.done);
-    await tester.pumpAndSettle();
+    await _tapKeyboardAction(tester, 'Next');
 
     expect(find.widgetWithText(TextField, 'Email'), findsOneWidget);
     expect(find.widgetWithText(TextField, 'Password'), findsOneWidget);
 
-    await tester.enterText(
-      find.widgetWithText(TextField, 'Email'),
-      'family@example.com',
-    );
-    await tester.enterText(
-      find.widgetWithText(TextField, 'Password'),
-      'demo-password',
-    );
-    await tester.pump();
-    await tester.testTextInput.receiveAction(TextInputAction.done);
-    await tester.pumpAndSettle();
+    await _setFieldValueByLabel(tester, 'Email', 'family@example.com');
+    await _setFieldValueByLabel(tester, 'Password', 'demo-password');
+    await _tapKeyboardAction(tester, 'Continue');
 
     expect(find.text('Create a 4-digit PIN'), findsOneWidget);
-    await _enterOtpDigits(tester, '1234');
+    await _enterKeyboardDigits(tester, '1234');
     await tester.pumpAndSettle();
 
     expect(find.text('Confirm your 4-digit PIN'), findsOneWidget);
-    await _enterOtpDigits(tester, '1234');
+    await _enterKeyboardDigits(tester, '1234');
     await tester.pumpAndSettle();
 
     expect(find.text('Timeline'), findsWidgets);
@@ -133,31 +122,20 @@ void main() {
     );
     await _settleAppFlow(tester);
 
-    await tester.tap(find.widgetWithText(TextField, 'Immich server URL'));
-    await tester.pump();
-    await tester.testTextInput.receiveAction(TextInputAction.done);
-    await tester.pumpAndSettle();
+    await _tapKeyboardAction(tester, 'Next');
 
     expect(find.widgetWithText(TextField, 'Email'), findsOneWidget);
 
-    await tester.enterText(
-      find.widgetWithText(TextField, 'Email'),
-      'keyboard@example.com',
-    );
-    await tester.enterText(
-      find.widgetWithText(TextField, 'Password'),
-      'secret-password',
-    );
-    await tester.pump();
-    await tester.testTextInput.receiveAction(TextInputAction.done);
-    await tester.pumpAndSettle();
+    await _setFieldValueByLabel(tester, 'Email', 'keyboard@example.com');
+    await _setFieldValueByLabel(tester, 'Password', 'secret-password');
+    await _tapKeyboardAction(tester, 'Continue');
 
     expect(find.text('Create a 4-digit PIN'), findsOneWidget);
-    await _enterOtpDigits(tester, '2468');
+    await _enterKeyboardDigits(tester, '2468');
     await tester.pumpAndSettle();
 
     expect(find.text('Confirm your 4-digit PIN'), findsOneWidget);
-    await _enterOtpDigits(tester, '2468');
+    await _enterKeyboardDigits(tester, '2468');
     await tester.pumpAndSettle();
 
     expect(find.text('Timeline'), findsWidgets);
@@ -199,20 +177,10 @@ void main() {
         tester.widget<TextField>(serverFieldFinder).controller!.text;
     expect(updatedServerText.length, greaterThan(initialServerText.length));
 
-    await tester.tap(find.text('Next').first);
-    await tester.pumpAndSettle();
-    await tester.enterText(
-      find.widgetWithText(TextField, 'Email'),
-      'remote@example.com',
-    );
-    await tester.enterText(
-      find.widgetWithText(TextField, 'Password'),
-      'remote-password',
-    );
-    await tester.tap(find.widgetWithText(TextField, 'Password'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Continue'));
-    await tester.pumpAndSettle();
+    await _tapKeyboardAction(tester, 'Next');
+    await _setFieldValueByLabel(tester, 'Email', 'remote@example.com');
+    await _setFieldValueByLabel(tester, 'Password', 'remote-password');
+    await _tapKeyboardAction(tester, 'Continue');
 
     expect(find.byType(OnScreenKeyboard), findsOneWidget);
 
@@ -395,20 +363,49 @@ Future<void> _settleAppFlow(WidgetTester tester) async {
   await tester.pumpAndSettle();
 }
 
-Future<void> _enterOtpDigits(WidgetTester tester, String digits) async {
-  expect(digits.length, 4);
-  final pinFieldFinder = find.widgetWithText(TextField, 'PIN');
-  if (pinFieldFinder.evaluate().isNotEmpty) {
-    await tester.enterText(pinFieldFinder, digits);
+Future<void> _setFieldValueByLabel(
+  WidgetTester tester,
+  String label,
+  String value,
+) async {
+  final fieldFinder = find.widgetWithText(
+    TextField,
+    label,
+    skipOffstage: false,
+  );
+  await tester.ensureVisible(fieldFinder);
+  final field = tester.widget<TextField>(fieldFinder);
+  field.controller!.text = value;
+  field.focusNode?.requestFocus();
+  await tester.pump();
+  await tester.pumpAndSettle();
+}
+
+Future<void> _enterKeyboardDigits(WidgetTester tester, String digits) async {
+  for (final digit in digits.split('')) {
+    final digitFinder = find.descendant(
+      of: find.byType(OnScreenKeyboard),
+      matching: find.text(digit, skipOffstage: false),
+    );
+    await tester.ensureVisible(digitFinder.first);
+    await tester.tap(digitFinder.first);
     await tester.pump();
     await tester.pumpAndSettle();
-    return;
   }
+}
 
-  final fields = find.byType(TextField);
-  for (var index = 0; index < digits.length; index++) {
-    await tester.enterText(fields.at(index), digits[index]);
+Future<void> _tapKeyboardAction(WidgetTester tester, String label) async {
+  final buttonFinder = find.descendant(
+    of: find.byType(OnScreenKeyboard),
+    matching: find.text(label, skipOffstage: false),
+  );
+  if (buttonFinder.evaluate().isEmpty) {
+    fail('Could not find keyboard action "$label"');
   }
+  await tester.ensureVisible(buttonFinder.first);
+  await tester.tap(buttonFinder.first);
+  await tester.pump();
+  await tester.pumpAndSettle();
 }
 
 Future<void> _pumpSignedInApp(
@@ -425,26 +422,13 @@ Future<void> _pumpSignedInApp(
   );
   await _settleAppFlow(tester);
 
-  await tester.tap(find.widgetWithText(TextField, 'Immich server URL'));
-  await tester.pump();
-  await tester.testTextInput.receiveAction(TextInputAction.done);
+  await _tapKeyboardAction(tester, 'Next');
+  await _setFieldValueByLabel(tester, 'Email', 'family@example.com');
+  await _setFieldValueByLabel(tester, 'Password', 'demo-password');
+  await _tapKeyboardAction(tester, 'Continue');
+  await _enterKeyboardDigits(tester, '1234');
   await tester.pumpAndSettle();
-
-  await tester.enterText(
-    find.widgetWithText(TextField, 'Email'),
-    'family@example.com',
-  );
-  await tester.enterText(
-    find.widgetWithText(TextField, 'Password'),
-    'demo-password',
-  );
-  await tester.pump();
-  await tester.testTextInput.receiveAction(TextInputAction.done);
-  await tester.pumpAndSettle();
-
-  await _enterOtpDigits(tester, '1234');
-  await tester.pumpAndSettle();
-  await _enterOtpDigits(tester, '1234');
+  await _enterKeyboardDigits(tester, '1234');
   await tester.pumpAndSettle();
 }
 
