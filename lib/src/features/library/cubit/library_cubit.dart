@@ -1,17 +1,28 @@
+import 'dart:async';
+
+import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../core/errors/app_exception.dart';
+import '../../../core/models/asset_summary.dart';
 import '../../../core/models/authenticated_session.dart';
 import '../../../core/models/media_page.dart';
 import '../../../core/repositories/media_repository.dart';
 import 'library_state.dart';
 
 class LibraryCubit extends Cubit<LibraryState> {
-  LibraryCubit(this._mediaRepository, this._session)
-    : super(LibraryState(selectedTimelineYear: DateTime.now().year));
+  LibraryCubit(
+    this._mediaRepository,
+    this._session, {
+    Duration refreshInterval = const Duration(minutes: 1),
+  }) : _refreshInterval = refreshInterval,
+       super(LibraryState(selectedTimelineYear: DateTime.now().year));
 
   final MediaRepository _mediaRepository;
   final AuthenticatedSession _session;
+  final Duration _refreshInterval;
+  Timer? _refreshTimer;
+  bool _isRefreshing = false;
 
   Future<void> loadInitial() async {
     emit(state.copyWith(status: LibraryLoadStatus.loading, clearError: true));
@@ -45,6 +56,7 @@ class LibraryCubit extends Cubit<LibraryState> {
           clearError: true,
         ),
       );
+      _ensureRefreshPolling();
     } catch (error) {
       emit(
         state.copyWith(
@@ -96,6 +108,7 @@ class LibraryCubit extends Cubit<LibraryState> {
               clearError: true,
             ),
           );
+          _ensureRefreshPolling();
         case LibraryTab.albums:
           final albums = await _mediaRepository.fetchAlbums(_session);
           emit(
@@ -108,6 +121,7 @@ class LibraryCubit extends Cubit<LibraryState> {
               clearError: true,
             ),
           );
+          _ensureRefreshPolling();
         case LibraryTab.favorites:
           final favorites = await _mediaRepository.fetchFavoritesPage(_session);
           emit(
@@ -122,6 +136,7 @@ class LibraryCubit extends Cubit<LibraryState> {
               clearError: true,
             ),
           );
+          _ensureRefreshPolling();
       }
     } catch (error) {
       emit(
@@ -191,6 +206,7 @@ class LibraryCubit extends Cubit<LibraryState> {
           clearError: true,
         ),
       );
+      _ensureRefreshPolling();
     } catch (error) {
       emit(
         state.copyWith(
@@ -286,5 +302,93 @@ class LibraryCubit extends Cubit<LibraryState> {
       LibraryTab.albums => state.hasLoadedAlbums,
       LibraryTab.favorites => state.hasLoadedFavorites,
     };
+  }
+
+  void _ensureRefreshPolling() {
+    _refreshTimer ??= Timer.periodic(_refreshInterval, (_) {
+      unawaited(refreshContent());
+    });
+  }
+
+  Future<void> refreshContent() async {
+    if (_isRefreshing ||
+        state.status != LibraryLoadStatus.success ||
+        state.isLoadingMore) {
+      return;
+    }
+
+    _isRefreshing = true;
+    try {
+      final timelineFuture = _mediaRepository.fetchTimelinePage(
+        _session,
+        year: state.selectedTimelineYear,
+      );
+      final favoritesFuture = _mediaRepository.fetchFavoritesPage(_session);
+      final albumsFuture = _mediaRepository.fetchAlbums(_session);
+
+      final timeline = await timelineFuture;
+      final favorites = await favoritesFuture;
+      final albums = await albumsFuture;
+
+      final refreshedTimeline = _mergeRefreshedAssets(
+        existing: state.timeline,
+        refreshedFirstPage: timeline.items,
+      );
+      final refreshedFavorites = _mergeRefreshedAssets(
+        existing: state.favorites,
+        refreshedFirstPage: favorites.items,
+      );
+
+      final nextState = state.copyWith(
+        timeline: refreshedTimeline,
+        timelineNextPage: timeline.nextPage,
+        clearTimelineNextPage: timeline.nextPage == null,
+        favorites: refreshedFavorites,
+        favoritesNextPage: favorites.nextPage,
+        clearFavoritesNextPage: favorites.nextPage == null,
+        albums: albums,
+        hasLoadedTimeline: true,
+        hasLoadedFavorites: true,
+        hasLoadedAlbums: true,
+        status: LibraryLoadStatus.success,
+        clearError: true,
+      );
+
+      if (nextState != state) {
+        emit(nextState);
+      }
+    } catch (_) {
+      // Keep the current surface stable on background refresh failures.
+    } finally {
+      _isRefreshing = false;
+    }
+  }
+
+  List<AssetSummary> _mergeRefreshedAssets({
+    required List<AssetSummary> existing,
+    required List<AssetSummary> refreshedFirstPage,
+  }) {
+    if (existing.isEmpty) {
+      return refreshedFirstPage;
+    }
+
+    if (listEquals(existing, refreshedFirstPage)) {
+      return existing;
+    }
+
+    final refreshedIds = refreshedFirstPage.map((item) => item.id).toSet();
+    final trailingItems = existing
+        .where((item) => !refreshedIds.contains(item.id))
+        .toList(growable: false);
+    return List<AssetSummary>.unmodifiable([
+      ...refreshedFirstPage,
+      ...trailingItems,
+    ]);
+  }
+
+  @override
+  Future<void> close() {
+    _refreshTimer?.cancel();
+    return super.close();
   }
 }

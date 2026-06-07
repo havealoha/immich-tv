@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:collection';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/painting.dart';
 
 import '../../../core/network/immich_headers.dart';
@@ -19,6 +20,10 @@ class ImmichAssetImageRepository implements AssetImageRepository {
     required List<List<String>> urls,
     required String accessToken,
   }) async {
+    if (kIsWeb) {
+      return;
+    }
+
     for (final candidates in urls) {
       final url = candidates.isNotEmpty ? candidates.first.trim() : '';
       if (url.isEmpty || _inFlightUrls.contains(url)) {

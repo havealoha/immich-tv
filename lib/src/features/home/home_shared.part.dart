@@ -66,10 +66,7 @@ class _SectionFrame extends StatelessWidget {
 }
 
 class _AnimatedSectionSwap extends StatelessWidget {
-  const _AnimatedSectionSwap({
-    required this.switchKey,
-    required this.child,
-  });
+  const _AnimatedSectionSwap({required this.switchKey, required this.child});
 
   final Object switchKey;
   final Widget child;
@@ -87,10 +84,7 @@ class _AnimatedSectionSwap extends StatelessWidget {
         ).animate(animation);
         return FadeTransition(
           opacity: animation,
-          child: SlideTransition(
-            position: offsetAnimation,
-            child: child,
-          ),
+          child: SlideTransition(position: offsetAnimation, child: child),
         );
       },
       child: KeyedSubtree(key: ValueKey<Object>(switchKey), child: child),
@@ -185,9 +179,8 @@ class _AssetGridLoadingSkeleton extends StatelessWidget {
                   constraints.maxWidth,
                   screenSize,
                 ),
-                itemBuilder: (context, index) => const LoadingSkeleton(
-                  borderRadius: AppRadii.xl,
-                ),
+                itemBuilder: (context, index) =>
+                    const LoadingSkeleton(borderRadius: AppRadii.xl),
               );
             },
           ),
@@ -256,10 +249,8 @@ class _AlbumRailLoadingSkeleton extends StatelessWidget {
       itemCount: 5,
       separatorBuilder: (context, index) =>
           SizedBox(height: scale.space(AppSpacing.md, min: 14, max: 16)),
-      itemBuilder: (context, index) => const LoadingSkeleton(
-        height: 110,
-        borderRadius: AppRadii.xl,
-      ),
+      itemBuilder: (context, index) =>
+          const LoadingSkeleton(height: 110, borderRadius: AppRadii.xl),
     );
   }
 }
@@ -344,10 +335,7 @@ class _TimelineSectionFrame extends StatelessWidget {
             return Row(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                Flexible(
-                  flex: 3,
-                  child: titleBlock,
-                ),
+                Flexible(flex: 3, child: titleBlock),
                 SizedBox(width: scale.space(AppSpacing.md, min: 12, max: 16)),
                 Expanded(
                   flex: 4,
@@ -376,7 +364,7 @@ class _TimelineSectionFrame extends StatelessWidget {
   }
 }
 
-class _TimelineYearRail extends StatelessWidget {
+class _TimelineYearRail extends StatefulWidget {
   const _TimelineYearRail({
     required this.years,
     required this.selectedYear,
@@ -388,10 +376,29 @@ class _TimelineYearRail extends StatelessWidget {
   final ValueChanged<int> onYearSelected;
 
   @override
+  State<_TimelineYearRail> createState() => _TimelineYearRailState();
+}
+
+class _TimelineYearRailState extends State<_TimelineYearRail> {
+  bool _didAutofocusSelectedYear = false;
+
+  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scale = AppScale.of(context);
     final compactChrome = _useCompactTvChrome(scale);
+    final selectedYear = widget.selectedYear;
+    final shouldAutofocusSelectedYear =
+        !_didAutofocusSelectedYear && selectedYear != null;
+
+    if (shouldAutofocusSelectedYear) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) {
+          return;
+        }
+        _didAutofocusSelectedYear = true;
+      });
+    }
 
     return SizedBox(
       height: compactChrome
@@ -414,17 +421,17 @@ class _TimelineYearRail extends StatelessWidget {
           Expanded(
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
-              itemCount: years.length,
-              separatorBuilder: (_, _) => SizedBox(
-                width: scale.space(AppSpacing.xs, min: 8, max: 10),
-              ),
+              itemCount: widget.years.length,
+              separatorBuilder: (_, _) =>
+                  SizedBox(width: scale.space(AppSpacing.xs, min: 8, max: 10)),
               itemBuilder: (context, index) {
-                final year = years[index];
+                final year = widget.years[index];
                 return _TimelineYearChip(
                   year: year,
                   isSelected: year == selectedYear,
-                  autofocus: year == selectedYear,
-                  onPressed: () => onYearSelected(year),
+                  autofocus:
+                      shouldAutofocusSelectedYear && year == selectedYear,
+                  onPressed: () => widget.onYearSelected(year),
                 );
               },
             ),
@@ -466,33 +473,20 @@ class _TimelineYearChipState extends State<_TimelineYearChip> {
         final isSelected = widget.isSelected;
 
         return AnimatedContainer(
-          duration: const Duration(milliseconds: 180),
+          duration: AppDurations.normal,
           padding: EdgeInsets.symmetric(
             horizontal: scale.space(AppSpacing.md, min: 14, max: 16),
             vertical: scale.space(AppSpacing.sm, min: 10, max: 12),
           ),
-          decoration: BoxDecoration(
-            color: isSelected
-                ? AppColors.focus.withValues(alpha: 0.18)
-                : const Color(0xFF0D1A21),
+          decoration: AppFocusDecoration.surface(
+            isFocused: isFocused,
+            isSelected: isSelected,
+            backgroundColor: const Color(0xFF0D1A21),
+            activeBackgroundColor: const Color(0xFF111F26),
+            selectedBackgroundColor: AppColors.focus.withValues(alpha: 0.18),
             borderRadius: BorderRadius.circular(
               scale.radius(AppRadii.pill, min: 999, max: 999),
             ),
-            border: Border.all(
-              color: isFocused || isSelected
-                  ? AppColors.focus
-                  : AppColors.border,
-              width: isFocused ? 2.4 : (isSelected ? 1.8 : 1),
-            ),
-            boxShadow: isFocused
-                ? [
-                    BoxShadow(
-                      color: AppColors.focusGlow,
-                      blurRadius: 22,
-                      spreadRadius: 2,
-                    ),
-                  ]
-                : const [],
           ),
           child: Center(
             child: Text(
@@ -663,10 +657,7 @@ class _TimelineAssetEntry {
   final int globalIndex;
 }
 
-String _sectionViewState(
-  LibraryLoadStatus status,
-  List<AssetSummary> assets,
-) {
+String _sectionViewState(LibraryLoadStatus status, List<AssetSummary> assets) {
   if (status == LibraryLoadStatus.loading) {
     return 'loading';
   }

@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 
 import '../../../core/config/demo_mode.dart';
 import '../../../core/errors/app_exception.dart';
@@ -71,8 +72,8 @@ class ImmichServerRepository implements ServerRepository {
         if (error.type == DioExceptionType.connectionError ||
             error.type == DioExceptionType.connectionTimeout ||
             error.type == DioExceptionType.receiveTimeout) {
-          throw const AppException(
-            'We could not reach that server. Check the URL and make sure Immich is available.',
+          throw AppException(
+            _unreachableMessage(config.serverUrl),
             code: 'server_unreachable',
           );
         }
@@ -93,5 +94,17 @@ class ImmichServerRepository implements ServerRepository {
   Uri _stripTrailingSlash(Uri uri) {
     final normalizedPath = uri.path.replaceFirst(RegExp(r'/+$'), '');
     return uri.replace(path: normalizedPath.isEmpty ? '' : normalizedPath);
+  }
+
+  String _unreachableMessage(Uri serverUrl) {
+    if (!kIsWeb) {
+      return 'We could not reach that server. Check the URL and make sure Immich is available.';
+    }
+
+    final schemeHint = serverUrl.scheme == 'http'
+        ? ' If this app is loaded over HTTPS, the browser may block plain HTTP local-network requests.'
+        : '';
+
+    return 'We could not reach that server from the browser. Check that Immich is running, that the server allows browser access from this app origin, and that the browser is not blocking the connection.$schemeHint';
   }
 }

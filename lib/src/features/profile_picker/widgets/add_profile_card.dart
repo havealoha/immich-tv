@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../shared/presentation/app_colors.dart';
+import '../../../shared/presentation/app_durations.dart';
+import '../../../shared/presentation/app_focus_decoration.dart';
 import '../../../shared/presentation/app_scale.dart';
 import '../../../shared/presentation/app_spacing.dart';
 import '../../../shared/presentation/widgets/tv_focusable.dart';
@@ -20,10 +22,11 @@ class AddProfileCard extends StatelessWidget {
     return TvFocusable(
       onPressed: () => context.read<AppFlowCubit>().showOnboarding(),
       builder: (context, focusState) {
+        final isFocused = focusState.isFocused;
         final isActive = focusState.isActive;
 
         return AnimatedScale(
-          duration: const Duration(milliseconds: 180),
+          duration: AppDurations.normal,
           scale: isActive ? 1.02 : 1,
           child: Padding(
             padding: EdgeInsets.symmetric(
@@ -36,27 +39,14 @@ class AddProfileCard extends StatelessWidget {
               children: [
                 Center(
                   child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 180),
+                    duration: AppDurations.normal,
                     padding: EdgeInsets.all(
                       scale.space(isTvLayout ? 6 : 4, min: 4, max: 6),
                     ),
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: focusState.isFocused
-                            ? AppColors.focus
-                            : Colors.transparent,
-                        width: scale.sizeOf(2.4, min: 2, max: 2.4),
-                      ),
-                      boxShadow: isActive
-                          ? [
-                              BoxShadow(
-                                color: AppColors.focus.withValues(alpha: 0.18),
-                                blurRadius: 28,
-                                spreadRadius: 2,
-                              ),
-                            ]
-                          : const [],
+                    decoration: AppFocusDecoration.circle(
+                      isFocused: isFocused,
+                      isActive: isActive,
+                      backgroundColor: Colors.transparent,
                     ),
                     child: Container(
                       width: scale.sizeOf(
@@ -86,7 +76,11 @@ class AddProfileCard extends StatelessWidget {
                   ),
                 ),
                 SizedBox(
-                  height: scale.space(isTvLayout ? 18 : 14, min: 12, max: 18),
+                  height: scale.space(
+                    isTvLayout ? 18 : 14,
+                    min: 12,
+                    max: 18,
+                  ),
                 ),
                 Text(
                   'Add profile',
