@@ -6,11 +6,9 @@ import '../../../core/errors/app_exception.dart';
 import '../../../core/models/saved_profile.dart';
 import '../../../core/repositories/auth_repository.dart';
 import '../../../shared/presentation/app_colors.dart';
-import '../../../shared/presentation/app_radii.dart';
 import '../../../shared/presentation/app_scale.dart';
 import '../../../shared/presentation/app_spacing.dart';
 import '../../../shared/presentation/widgets/on_screen_keyboard/on_screen_keyboard.dart';
-import '../../../shared/presentation/widgets/tv_focusable.dart';
 import 'profile_avatar_color.dart';
 
 class PinUnlockScreen extends StatefulWidget {
@@ -26,7 +24,6 @@ class _PinUnlockScreenState extends State<PinUnlockScreen> {
   final TextEditingController _pinController = TextEditingController();
   final FocusNode _pinFieldFocusNode = FocusNode(debugLabel: 'pin.field');
   final FocusNode _pinKeyboardFocusNode = FocusNode(debugLabel: 'pin.keyboard');
-  final FocusNode _unlockButtonFocusNode = FocusNode(debugLabel: 'pin.unlock');
   bool _isSubmitting = false;
   String? _errorMessage;
 
@@ -45,7 +42,6 @@ class _PinUnlockScreenState extends State<PinUnlockScreen> {
     _pinController.dispose();
     _pinFieldFocusNode.dispose();
     _pinKeyboardFocusNode.dispose();
-    _unlockButtonFocusNode.dispose();
     super.dispose();
   }
 
@@ -53,12 +49,8 @@ class _PinUnlockScreenState extends State<PinUnlockScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scale = AppScale.of(context);
-    final isSystemKeyboardVisible = MediaQuery.viewInsetsOf(context).bottom > 0;
-    final otpSpacing = scale.space(12, min: 10, max: 16);
-    final otpDigitSize = scale.sizeOf(68, min: 48, max: 72);
-    final buttonWidth = (otpDigitSize * 4) + (otpSpacing * 3);
+    final fieldSpacing = scale.space(18, min: 14, max: 22);
     final profileColor = profileAvatarColor(widget.profile);
-    final pin = _pinController.text;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -69,7 +61,7 @@ class _PinUnlockScreenState extends State<PinUnlockScreen> {
             child: Padding(
               padding: const EdgeInsets.all(24),
               child: ConstrainedBox(
-                constraints: BoxConstraints(maxWidth: buttonWidth + 64),
+                constraints: const BoxConstraints(maxWidth: 640),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.center,
@@ -105,57 +97,46 @@ class _PinUnlockScreenState extends State<PinUnlockScreen> {
                         height: 1.45,
                       ),
                     ),
-                    SizedBox(height: otpSpacing * 1.6),
-                    Shortcuts(
-                      shortcuts: const <ShortcutActivator, Intent>{
-                        SingleActivator(
-                          LogicalKeyboardKey.arrowDown,
-                        ): DirectionalFocusIntent(TraversalDirection.down),
+                    SizedBox(height: fieldSpacing),
+                    Focus(
+                      onKeyEvent: (_, event) {
+                        if (event is KeyDownEvent &&
+                            event.logicalKey == LogicalKeyboardKey.arrowDown) {
+                          _pinKeyboardFocusNode.requestFocus();
+                          return KeyEventResult.handled;
+                        }
+                        return KeyEventResult.ignored;
                       },
-                      child: Actions(
-                        actions: <Type, Action<Intent>>{
-                          DirectionalFocusIntent:
-                              CallbackAction<DirectionalFocusIntent>(
-                                onInvoke: (intent) {
-                                  if (intent.direction ==
-                                      TraversalDirection.down) {
-                                    _pinKeyboardFocusNode.requestFocus();
-                                  }
-                                  return null;
-                                },
-                              ),
-                        },
-                        child: TextField(
-                          controller: _pinController,
-                          focusNode: _pinFieldFocusNode,
-                          enabled: !_isSubmitting,
-                          readOnly: true,
-                          showCursor: true,
-                          textAlign: TextAlign.center,
-                          obscureText: true,
-                          obscuringCharacter: '*',
-                          keyboardType: TextInputType.number,
-                          inputFormatters: [
-                            FilteringTextInputFormatter.digitsOnly,
-                            LengthLimitingTextInputFormatter(4),
-                          ],
-                          style:
-                              (theme.textTheme.titleMedium
-                                      ?? theme.textTheme.bodyLarge)
-                                  ?.copyWith(
-                                    fontWeight: FontWeight.w700,
-                                    fontSize: scale.text(22, min: 18, max: 26),
-                                    letterSpacing: 6,
-                                  ),
-                          decoration: const InputDecoration(
-                            labelText: 'PIN',
-                            hintText: '0000',
-                            counterText: '',
-                          ),
+                      child: TextField(
+                        controller: _pinController,
+                        focusNode: _pinFieldFocusNode,
+                        enabled: !_isSubmitting,
+                        readOnly: true,
+                        showCursor: true,
+                        textAlign: TextAlign.center,
+                        obscureText: true,
+                        obscuringCharacter: '*',
+                        keyboardType: TextInputType.number,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly,
+                          LengthLimitingTextInputFormatter(4),
+                        ],
+                        style:
+                            (theme.textTheme.titleMedium
+                                    ?? theme.textTheme.bodyLarge)
+                                ?.copyWith(
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: scale.text(22, min: 18, max: 26),
+                                  letterSpacing: 6,
+                                ),
+                        decoration: const InputDecoration(
+                          labelText: 'PIN',
+                          hintText: '0000',
+                          counterText: '',
                         ),
                       ),
                     ),
-                    SizedBox(height: otpSpacing * 1.2),
+                    SizedBox(height: fieldSpacing),
                     OnScreenKeyboard(
                       controller: _pinController,
                       focusNode: _pinFieldFocusNode,
@@ -164,6 +145,7 @@ class _PinUnlockScreenState extends State<PinUnlockScreen> {
                       enabled: !_isSubmitting,
                       allowDecimal: false,
                       showDecimalButton: false,
+                      showDoneButton: false,
                       maxLength: 4,
                       onMaxLengthReached: _isSubmitting ? null : _submit,
                       doneLabel: 'Unlock',
@@ -180,19 +162,6 @@ class _PinUnlockScreenState extends State<PinUnlockScreen> {
                         ),
                       ),
                     ],
-                    const SizedBox(height: AppSpacing.xl),
-                    SizedBox(
-                      width: buttonWidth,
-                      height: 56,
-                      child: _ActionButton(
-                        label: _isSubmitting ? 'Unlocking...' : 'Unlock',
-                        focusNode: _unlockButtonFocusNode,
-                        canRequestFocus: !isSystemKeyboardVisible,
-                        onPressed: _isSubmitting || pin.length != 4
-                            ? null
-                            : _submit,
-                      ),
-                    ),
                   ],
                 ),
               ),
@@ -241,61 +210,5 @@ class _PinUnlockScreenState extends State<PinUnlockScreen> {
       });
       _pinFieldFocusNode.requestFocus();
     }
-  }
-}
-
-class _ActionButton extends StatelessWidget {
-  const _ActionButton({
-    required this.label,
-    required this.focusNode,
-    required this.onPressed,
-    this.canRequestFocus = true,
-  });
-
-  final String label;
-  final FocusNode focusNode;
-  final VoidCallback? onPressed;
-  final bool canRequestFocus;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return ExcludeFocus(
-      excluding: !canRequestFocus,
-      child: TvFocusable(
-        focusNode: focusNode,
-        onPressed: onPressed,
-        enabled: onPressed != null,
-        builder: (context, focusState) {
-          final isActive = focusState.isActive;
-          return AnimatedContainer(
-            duration: const Duration(milliseconds: 160),
-            height: 56,
-            decoration: BoxDecoration(
-              color: onPressed == null
-                  ? AppColors.surfaceMuted
-                  : (isActive ? const Color(0xFF3997FF) : AppColors.immichBlue),
-              borderRadius: BorderRadius.circular(AppRadii.md),
-              border: Border.all(
-                color: focusState.isFocused ? AppColors.focus : AppColors.border,
-                width: focusState.isFocused ? 2 : 1,
-              ),
-            ),
-            child: Center(
-              child: Text(
-                label,
-                style: theme.textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w800,
-                  color: onPressed == null
-                      ? AppColors.textMuted
-                      : AppColors.actionForeground,
-                ),
-              ),
-            ),
-          );
-        },
-      ),
-    );
   }
 }

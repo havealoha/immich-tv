@@ -348,37 +348,33 @@ class _OnboardingTextField extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (readOnly && keyboardFocusNode != null) {
-      return Shortcuts(
-        shortcuts: const <ShortcutActivator, Intent>{
-          SingleActivator(LogicalKeyboardKey.arrowUp): _MoveFocusIntent(-1),
-          SingleActivator(LogicalKeyboardKey.arrowDown): _MoveFocusIntent(1),
+      return Focus(
+        onKeyEvent: (_, event) {
+          if (event is! KeyDownEvent) {
+            return KeyEventResult.ignored;
+          }
+          final targetFocusNode = switch (event.logicalKey) {
+            LogicalKeyboardKey.arrowUp => previousFocusNode,
+            LogicalKeyboardKey.arrowDown => keyboardFocusNode,
+            _ => null,
+          };
+          if (targetFocusNode == null) {
+            return KeyEventResult.ignored;
+          }
+          targetFocusNode.requestFocus();
+          return KeyEventResult.handled;
         },
-        child: Actions(
-          actions: <Type, Action<Intent>>{
-            _MoveFocusIntent: CallbackAction<_MoveFocusIntent>(
-              onInvoke: (intent) {
-                final targetFocusNode = switch (intent.delta) {
-                  -1 => previousFocusNode,
-                  1 => keyboardFocusNode,
-                  _ => null,
-                };
-                targetFocusNode?.requestFocus();
-                return null;
-              },
-            ),
-          },
-          child: TextField(
-            controller: controller,
-            focusNode: focusNode,
-            enabled: enabled,
-            readOnly: true,
-            showCursor: true,
-            obscureText: obscureText,
-            textInputAction: textInputAction,
-            style: style,
-            onSubmitted: onSubmitted,
-            decoration: decoration,
-          ),
+        child: TextField(
+          controller: controller,
+          focusNode: focusNode,
+          enabled: enabled,
+          readOnly: true,
+          showCursor: true,
+          obscureText: obscureText,
+          textInputAction: textInputAction,
+          style: style,
+          onSubmitted: onSubmitted,
+          decoration: decoration,
         ),
       );
     }
@@ -466,44 +462,37 @@ class _TvPinStep extends StatelessWidget {
         const SizedBox(height: 12),
         Text(caption, style: captionStyle, textAlign: TextAlign.center),
         const SizedBox(height: 18),
-        Shortcuts(
-          shortcuts: const <ShortcutActivator, Intent>{
-            SingleActivator(LogicalKeyboardKey.arrowDown): _MoveFocusIntent(1),
+        Focus(
+          onKeyEvent: (_, event) {
+            if (event is KeyDownEvent &&
+                event.logicalKey == LogicalKeyboardKey.arrowDown) {
+              keyboardFocusNode.requestFocus();
+              return KeyEventResult.handled;
+            }
+            return KeyEventResult.ignored;
           },
-          child: Actions(
-            actions: <Type, Action<Intent>>{
-              _MoveFocusIntent: CallbackAction<_MoveFocusIntent>(
-                onInvoke: (intent) {
-                  if (intent.delta > 0) {
-                    keyboardFocusNode.requestFocus();
-                  }
-                  return null;
-                },
-              ),
-            },
-            child: TextField(
-              controller: controller,
-              focusNode: focusNode,
-              enabled: enabled,
-              readOnly: true,
-              showCursor: true,
-              textAlign: TextAlign.center,
-              obscureText: true,
-              obscuringCharacter: '*',
-              keyboardType: TextInputType.number,
-              inputFormatters: [
-                FilteringTextInputFormatter.digitsOnly,
-                LengthLimitingTextInputFormatter(4),
-              ],
-              style: fieldTextStyle?.copyWith(
-                fontWeight: FontWeight.w700,
-                letterSpacing: 6,
-              ),
-              decoration: const InputDecoration(
-                labelText: 'PIN',
-                hintText: '0000',
-                counterText: '',
-              ),
+          child: TextField(
+            controller: controller,
+            focusNode: focusNode,
+            enabled: enabled,
+            readOnly: true,
+            showCursor: true,
+            textAlign: TextAlign.center,
+            obscureText: true,
+            obscuringCharacter: '*',
+            keyboardType: TextInputType.number,
+            inputFormatters: [
+              FilteringTextInputFormatter.digitsOnly,
+              LengthLimitingTextInputFormatter(4),
+            ],
+            style: fieldTextStyle?.copyWith(
+              fontWeight: FontWeight.w700,
+              letterSpacing: 6,
+            ),
+            decoration: const InputDecoration(
+              labelText: 'PIN',
+              hintText: '0000',
+              counterText: '',
             ),
           ),
         ),

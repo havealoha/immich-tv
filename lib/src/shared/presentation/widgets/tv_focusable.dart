@@ -43,6 +43,19 @@ class _TvFocusableState extends State<TvFocusable> {
   bool _isFocused = false;
   bool _isHovered = false;
 
+  void _invokePressed() {
+    if (!mounted) {
+      return;
+    }
+    widget.onPressed?.call();
+  }
+
+  void _schedulePressed() {
+    Future<void>.microtask(() {
+      _invokePressed();
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final interactive = widget.enabled && widget.onPressed != null;
@@ -66,13 +79,13 @@ class _TvFocusableState extends State<TvFocusable> {
           ? <Type, Action<Intent>>{
               ActivateIntent: CallbackAction<ActivateIntent>(
                 onInvoke: (_) {
-                  widget.onPressed?.call();
+                  _schedulePressed();
                   return null;
                 },
               ),
               ButtonActivateIntent: CallbackAction<ButtonActivateIntent>(
                 onInvoke: (_) {
-                  widget.onPressed?.call();
+                  _schedulePressed();
                   return null;
                 },
               ),
