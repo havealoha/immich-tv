@@ -5,10 +5,12 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../core/errors/app_exception.dart';
 import '../../../core/models/saved_profile.dart';
 import '../../../core/repositories/auth_repository.dart';
+import '../../../shared/presentation/app_breakpoints.dart';
 import '../../../shared/presentation/app_colors.dart';
 import '../../../shared/presentation/app_radii.dart';
 import '../../../shared/presentation/app_scale.dart';
 import '../../../shared/presentation/app_spacing.dart';
+import '../../../shared/presentation/widgets/on_screen_keyboard/on_screen_keyboard.dart';
 import '../../../shared/presentation/widgets/tv_focusable.dart';
 import 'profile_avatar_color.dart';
 
@@ -22,6 +24,9 @@ class PinUnlockScreen extends StatefulWidget {
 }
 
 class _PinUnlockScreenState extends State<PinUnlockScreen> {
+  final TextEditingController _pinController = TextEditingController();
+  final FocusNode _pinFieldFocusNode = FocusNode(debugLabel: 'pin.field');
+  final FocusNode _pinKeyboardFocusNode = FocusNode(debugLabel: 'pin.keyboard');
   late final List<TextEditingController> _digitControllers;
   late final List<FocusNode> _digitFocusNodes;
   final FocusNode _unlockButtonFocusNode = FocusNode(debugLabel: 'pin.unlock');
@@ -38,13 +43,20 @@ class _PinUnlockScreenState extends State<PinUnlockScreen> {
     );
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
-        _digitFocusNodes.first.requestFocus();
+        if (MediaQuery.sizeOf(context).width >= AppBreakpoints.desktop) {
+          _pinFieldFocusNode.requestFocus();
+        } else {
+          _digitFocusNodes.first.requestFocus();
+        }
       }
     });
   }
 
   @override
   void dispose() {
+    _pinController.dispose();
+    _pinFieldFocusNode.dispose();
+    _pinKeyboardFocusNode.dispose();
     for (final controller in _digitControllers) {
       controller.dispose();
     }
@@ -59,8 +71,9 @@ class _PinUnlockScreenState extends State<PinUnlockScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scale = AppScale.of(context);
-    final isTvLayout = scale.isTvLayout;
-    final isKeyboardVisible = MediaQuery.viewInsetsOf(context).bottom > 0;
+    final isTvLayout =
+        MediaQuery.sizeOf(context).width >= AppBreakpoints.desktop;
+    final isSystemKeyboardVisible = MediaQuery.viewInsetsOf(context).bottom > 0;
     final otpSpacing = scale.space(12, min: 10, max: 16);
     final otpDigitSize = scale.sizeOf(isTvLayout ? 68 : 58, min: 48, max: 72);
     final buttonWidth = (otpDigitSize * 4) + (otpSpacing * 3);
@@ -115,45 +128,115 @@ class _PinUnlockScreenState extends State<PinUnlockScreen> {
                       ),
                     ),
                     SizedBox(height: otpSpacing * 1.6),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: List.generate(_digitControllers.length, (
-                        index,
-                      ) {
-                        return Padding(
-                          padding: EdgeInsets.only(
-                            right: index == _digitControllers.length - 1
-                                ? 0
-                                : otpSpacing,
-                          ),
-                          child: _OtpDigitField(
-                            controller: _digitControllers[index],
-                            focusNode: _digitFocusNodes[index],
-                            previousFocusNode: index > 0
-                                ? _digitFocusNodes[index - 1]
-                                : null,
-                            nextFocusNode: index < _digitFocusNodes.length - 1
-                                ? _digitFocusNodes[index + 1]
-                                : null,
+                    if (isTvLayout) ...[
+                      Shortcuts(
+                        shortcuts: const <ShortcutActivator, Intent>{
+                          SingleActivator(
+                            LogicalKeyboardKey.arrowDown,
+                          ): DirectionalFocusIntent(TraversalDirection.down),
+                        },
+                        child: Actions(
+                          actions: <Type, Action<Intent>>{
+                            DirectionalFocusIntent:
+                                CallbackAction<DirectionalFocusIntent>(
+                                  onInvoke: (intent) {
+                                    if (intent.direction ==
+                                        TraversalDirection.down) {
+                                      _pinKeyboardFocusNode.requestFocus();
+                                    }
+                                    return null;
+                                  },
+                                ),
+                          },
+                          child: TextField(
+                            controller: _pinController,
+                            focusNode: _pinFieldFocusNode,
                             enabled: !_isSubmitting,
-                            size: otpDigitSize,
-                            textStyle:
-                                (isTvLayout
-                                        ? theme.textTheme.titleMedium
-                                        : theme.textTheme.bodyLarge)
+                            readOnly: true,
+                            showCursor: true,
+                            textAlign: TextAlign.center,
+                            obscureText: true,
+                            obscuringCharacter: '*',
+                            keyboardType: TextInputType.number,
+                            inputFormatters: [
+                              FilteringTextInputFormatter.digitsOnly,
+                              LengthLimitingTextInputFormatter(4),
+                            ],
+                            style:
+                                (theme.textTheme.titleMedium ??
+                                        theme.textTheme.bodyLarge)
                                     ?.copyWith(
+                                      fontWeight: FontWeight.w700,
                                       fontSize: scale.text(
-                                        18,
-                                        min: 15,
-                                        max: 22,
+                                        22,
+                                        min: 18,
+                                        max: 26,
                                       ),
+                                      letterSpacing: 6,
                                     ),
-                            onChanged: _handleDigitChanged,
-                            onComplete: !_isSubmitting ? _submit : null,
+                            decoration: const InputDecoration(
+                              labelText: 'PIN',
+                              hintText: '0000',
+                              counterText: '',
+                            ),
                           ),
-                        );
-                      }),
-                    ),
+                        ),
+                      ),
+                      SizedBox(height: otpSpacing * 1.2),
+                      OnScreenKeyboard(
+                        controller: _pinController,
+                        focusNode: _pinFieldFocusNode,
+                        firstKeyFocusNode: _pinKeyboardFocusNode,
+                        type: OnScreenKeyboardType.numeric,
+                        enabled: !_isSubmitting,
+                        allowDecimal: false,
+                        showDecimalButton: false,
+                        maxLength: 4,
+                        onMaxLengthReached: _isSubmitting ? null : _submit,
+                        doneLabel: 'Unlock',
+                        onChanged: (_) => _handleDigitChanged(),
+                        onDone: _isSubmitting ? null : _submit,
+                      ),
+                    ] else
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: List.generate(_digitControllers.length, (
+                          index,
+                        ) {
+                          return Padding(
+                            padding: EdgeInsets.only(
+                              right: index == _digitControllers.length - 1
+                                  ? 0
+                                  : otpSpacing,
+                            ),
+                            child: _OtpDigitField(
+                              controller: _digitControllers[index],
+                              focusNode: _digitFocusNodes[index],
+                              previousFocusNode: index > 0
+                                  ? _digitFocusNodes[index - 1]
+                                  : null,
+                              nextFocusNode: index < _digitFocusNodes.length - 1
+                                  ? _digitFocusNodes[index + 1]
+                                  : null,
+                              enabled: !_isSubmitting,
+                              size: otpDigitSize,
+                              textStyle:
+                                  (isTvLayout
+                                          ? theme.textTheme.titleMedium
+                                          : theme.textTheme.bodyLarge)
+                                      ?.copyWith(
+                                        fontSize: scale.text(
+                                          18,
+                                          min: 15,
+                                          max: 22,
+                                        ),
+                                      ),
+                              onChanged: _handleDigitChanged,
+                              onComplete: !_isSubmitting ? _submit : null,
+                            ),
+                          );
+                        }),
+                      ),
                     if (_errorMessage != null) ...[
                       const SizedBox(height: AppSpacing.lg),
                       Text(
@@ -171,7 +254,7 @@ class _PinUnlockScreenState extends State<PinUnlockScreen> {
                       child: _ActionButton(
                         label: _isSubmitting ? 'Unlocking...' : 'Unlock',
                         focusNode: _unlockButtonFocusNode,
-                        canRequestFocus: !isKeyboardVisible,
+                        canRequestFocus: !isSystemKeyboardVisible,
                         onPressed: _isSubmitting || pin.length != 4
                             ? null
                             : _submit,
@@ -188,7 +271,9 @@ class _PinUnlockScreenState extends State<PinUnlockScreen> {
   }
 
   String get _currentPin =>
-      _digitControllers.map((controller) => controller.text).join();
+      _pinController.text.isNotEmpty
+      ? _pinController.text
+      : _digitControllers.map((controller) => controller.text).join();
 
   void _handleDigitChanged() {
     if (_errorMessage != null) {
@@ -219,6 +304,7 @@ class _PinUnlockScreenState extends State<PinUnlockScreen> {
 
       Navigator.of(context).pop(session);
     } catch (error) {
+      _pinController.clear();
       for (final controller in _digitControllers) {
         controller.clear();
       }
@@ -228,7 +314,11 @@ class _PinUnlockScreenState extends State<PinUnlockScreen> {
             ? error.message
             : 'We could not unlock that profile right now.';
       });
-      _digitFocusNodes.first.requestFocus();
+      if (MediaQuery.sizeOf(context).width >= AppBreakpoints.desktop) {
+        _pinFieldFocusNode.requestFocus();
+      } else {
+        _digitFocusNodes.first.requestFocus();
+      }
     }
   }
 }

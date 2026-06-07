@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../../shared/presentation/app_colors.dart';
-import '../../../shared/presentation/app_radii.dart';
 import '../../../shared/presentation/app_scale.dart';
+import '../../../shared/presentation/widgets/on_screen_keyboard/on_screen_keyboard.dart';
 import '../cubit/onboarding_state.dart';
 import 'onboarding_status_banner.dart';
+
+enum OnboardingKeyboardField { server, email, password, pin, confirmPin }
 
 class OnboardingForm extends StatelessWidget {
   const OnboardingForm({
@@ -28,8 +30,13 @@ class OnboardingForm extends StatelessWidget {
     required this.passwordFieldFocusNode,
     required this.pinFieldFocusNode,
     required this.confirmPinFieldFocusNode,
-    required this.actionButtonFocusNode,
+    required this.serverKeyboardFocusNode,
+    required this.emailKeyboardFocusNode,
+    required this.passwordKeyboardFocusNode,
+    required this.pinKeyboardFocusNode,
+    required this.confirmPinKeyboardFocusNode,
     required this.isConfirmingPin,
+    required this.activeKeyboardField,
     required this.onPrimaryAction,
   });
 
@@ -51,8 +58,13 @@ class OnboardingForm extends StatelessWidget {
   final FocusNode passwordFieldFocusNode;
   final FocusNode pinFieldFocusNode;
   final FocusNode confirmPinFieldFocusNode;
-  final FocusNode actionButtonFocusNode;
+  final FocusNode serverKeyboardFocusNode;
+  final FocusNode emailKeyboardFocusNode;
+  final FocusNode passwordKeyboardFocusNode;
+  final FocusNode pinKeyboardFocusNode;
+  final FocusNode confirmPinKeyboardFocusNode;
   final bool isConfirmingPin;
+  final OnboardingKeyboardField? activeKeyboardField;
   final VoidCallback onPrimaryAction;
 
   @override
@@ -60,19 +72,11 @@ class OnboardingForm extends StatelessWidget {
     final scale = AppScale.of(context);
     final typographyScale = scale.typographyScale;
     final isCompactWidth = scale.isCompactWidth;
-    final isKeyboardVisible = MediaQuery.viewInsetsOf(context).bottom > 0;
+    final isTvKeyboardEntry = isTvLayout;
+    final isSystemKeyboardVisible = MediaQuery.viewInsetsOf(context).bottom > 0;
     final isSubmitting = state.isBusy;
     final isServerStep = state.step == OnboardingStep.server;
     final isCredentialsStep = state.step == OnboardingStep.credentials;
-
-    final primaryButtonLabel = switch (state.step) {
-      OnboardingStep.server => 'Validate server',
-      OnboardingStep.credentials => 'Continue to PIN setup',
-      OnboardingStep.pin =>
-        isConfirmingPin
-            ? 'Save profile and continue'
-            : 'Continue to confirm PIN',
-    };
 
     final fieldTextStyle =
         (isTvLayout ? theme.textTheme.titleMedium : theme.textTheme.bodyLarge)
@@ -89,7 +93,6 @@ class OnboardingForm extends StatelessWidget {
       height: 1.45,
     );
     final fieldSpacing = scale.space(18, min: 14, max: 22);
-    final buttonHeight = scale.sizeOf(56, min: 50, max: 60);
     final statusPadding = scale.space(16, min: 14, max: 20);
     final otpSpacing = scale.space(12, min: 10, max: 16);
     final otpDigitSize = scale.sizeOf(
@@ -102,14 +105,6 @@ class OnboardingForm extends StatelessWidget {
         : isCompactWidth
         ? 1.0
         : 0.94;
-    final buttonTextStyle =
-        (isTvLayout ? theme.textTheme.titleSmall : theme.textTheme.titleMedium)
-            ?.copyWith(
-              fontWeight: FontWeight.w700,
-              height: 1.1,
-              fontSize: scale.text(18, min: 15, max: 20),
-            );
-
     return Theme(
       data: theme.copyWith(
         inputDecorationTheme: theme.inputDecorationTheme.copyWith(
@@ -169,11 +164,12 @@ class OnboardingForm extends StatelessWidget {
                 child: _OnboardingTextField(
                   controller: serverController,
                   focusNode: serverFieldFocusNode,
-                  nextFocusNode: actionButtonFocusNode,
                   enabled: !isSubmitting,
                   textInputAction: TextInputAction.done,
                   style: fieldTextStyle,
-                  lockDirectionalFocusToKeyboard: isKeyboardVisible,
+                  readOnly: isTvKeyboardEntry,
+                  keyboardFocusNode: serverKeyboardFocusNode,
+                  lockDirectionalFocusToKeyboard: isSystemKeyboardVisible,
                   onSubmitted: !isSubmitting ? (_) => onPrimaryAction() : null,
                   decoration: const InputDecoration(
                     labelText: 'Immich server URL',
@@ -181,6 +177,21 @@ class OnboardingForm extends StatelessWidget {
                   ),
                 ),
               ),
+              if (isTvKeyboardEntry &&
+                  activeKeyboardField == OnboardingKeyboardField.server) ...[
+                SizedBox(height: fieldSpacing),
+                _ScaledFieldWidth(
+                  widthFactor: fieldWidthFactor,
+                  child: OnScreenKeyboard(
+                    controller: serverController,
+                    focusNode: serverFieldFocusNode,
+                    firstKeyFocusNode: serverKeyboardFocusNode,
+                    enabled: !isSubmitting,
+                    doneLabel: 'Next',
+                    onDone: onPrimaryAction,
+                  ),
+                ),
+              ],
             ] else if (isCredentialsStep) ...[
               _ScaledFieldWidth(
                 widthFactor: fieldWidthFactor,
@@ -191,11 +202,28 @@ class OnboardingForm extends StatelessWidget {
                   enabled: !isSubmitting,
                   textInputAction: TextInputAction.next,
                   style: fieldTextStyle,
-                  lockDirectionalFocusToKeyboard: isKeyboardVisible,
+                  readOnly: isTvKeyboardEntry,
+                  keyboardFocusNode: emailKeyboardFocusNode,
+                  lockDirectionalFocusToKeyboard: isSystemKeyboardVisible,
                   onSubmitted: (_) => passwordFieldFocusNode.requestFocus(),
                   decoration: const InputDecoration(labelText: 'Email'),
                 ),
               ),
+              if (isTvKeyboardEntry &&
+                  activeKeyboardField == OnboardingKeyboardField.email) ...[
+                SizedBox(height: fieldSpacing),
+                _ScaledFieldWidth(
+                  widthFactor: fieldWidthFactor,
+                  child: OnScreenKeyboard(
+                    controller: emailController,
+                    focusNode: emailFieldFocusNode,
+                    firstKeyFocusNode: emailKeyboardFocusNode,
+                    enabled: !isSubmitting,
+                    doneLabel: 'Next',
+                    onDone: () => passwordFieldFocusNode.requestFocus(),
+                  ),
+                ),
+              ],
               SizedBox(height: fieldSpacing),
               _ScaledFieldWidth(
                 widthFactor: fieldWidthFactor,
@@ -203,74 +231,109 @@ class OnboardingForm extends StatelessWidget {
                   controller: passwordController,
                   focusNode: passwordFieldFocusNode,
                   previousFocusNode: emailFieldFocusNode,
-                  nextFocusNode: actionButtonFocusNode,
                   enabled: !isSubmitting,
                   obscureText: true,
                   style: fieldTextStyle,
                   textInputAction: TextInputAction.next,
-                  lockDirectionalFocusToKeyboard: isKeyboardVisible,
+                  readOnly: isTvKeyboardEntry,
+                  keyboardFocusNode: passwordKeyboardFocusNode,
+                  lockDirectionalFocusToKeyboard: isSystemKeyboardVisible,
                   onSubmitted: !isSubmitting ? (_) => onPrimaryAction() : null,
                   decoration: const InputDecoration(labelText: 'Password'),
                 ),
               ),
+              if (isTvKeyboardEntry &&
+                  activeKeyboardField == OnboardingKeyboardField.password) ...[
+                SizedBox(height: fieldSpacing),
+                _ScaledFieldWidth(
+                  widthFactor: fieldWidthFactor,
+                  child: OnScreenKeyboard(
+                    controller: passwordController,
+                    focusNode: passwordFieldFocusNode,
+                    firstKeyFocusNode: passwordKeyboardFocusNode,
+                    enabled: !isSubmitting,
+                    doneLabel: 'Continue',
+                    onDone: onPrimaryAction,
+                  ),
+                ),
+              ],
             ] else ...[
               _ScaledFieldWidth(
                 widthFactor: fieldWidthFactor,
-                child: _PinOtpStep(
-                  title: isConfirmingPin
-                      ? 'Confirm your 4-digit PIN'
-                      : 'Create a 4-digit PIN',
-                  caption: isConfirmingPin
-                      ? 'Enter the same four digits again.'
-                      : 'Use the PIN you want to unlock this profile on TV.',
-                  titleStyle: pinPromptStyle,
-                  captionStyle: pinCaptionStyle,
-                  digitSize: otpDigitSize,
-                  spacing: otpSpacing,
-                  enabled: !isSubmitting,
-                  controllers: isConfirmingPin
-                      ? confirmPinDigitControllers
-                      : pinDigitControllers,
-                  focusNodes: isConfirmingPin
-                      ? confirmPinDigitFocusNodes
-                      : pinDigitFocusNodes,
-                  fieldTextStyle: fieldTextStyle,
-                  onComplete: !isSubmitting ? onPrimaryAction : null,
-                ),
-              ),
-            ],
-            if (state.step != OnboardingStep.pin) ...[
-              SizedBox(height: scale.space(18, min: 16, max: 22)),
-              _ScaledFieldWidth(
-                widthFactor: fieldWidthFactor,
-                child: SizedBox(
-                  width: double.infinity,
-                  height: buttonHeight,
-                  child: _OnboardingActionButton(
-                    focusNode: actionButtonFocusNode,
-                    previousFocusNode: switch (state.step) {
-                      OnboardingStep.server => serverFieldFocusNode,
-                      OnboardingStep.credentials => passwordFieldFocusNode,
-                      OnboardingStep.pin =>
-                        isConfirmingPin
+                child: isTvKeyboardEntry
+                    ? _TvPinStep(
+                        title: isConfirmingPin
+                            ? 'Confirm your 4-digit PIN'
+                            : 'Create a 4-digit PIN',
+                        caption: isConfirmingPin
+                            ? 'Enter the same four digits again.'
+                            : 'Use the PIN you want to unlock this profile on TV.',
+                        titleStyle: pinPromptStyle,
+                        captionStyle: pinCaptionStyle,
+                        controller: isConfirmingPin
+                            ? confirmPinController
+                            : pinController,
+                        focusNode: isConfirmingPin
                             ? confirmPinFieldFocusNode
                             : pinFieldFocusNode,
-                    },
-                    style: FilledButton.styleFrom(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: scale.space(20, min: 18, max: 24),
-                        vertical: scale.space(12, min: 10, max: 14),
+                        keyboardFocusNode: isConfirmingPin
+                            ? confirmPinKeyboardFocusNode
+                            : pinKeyboardFocusNode,
+                        fieldTextStyle: fieldTextStyle,
+                        enabled: !isSubmitting,
+                      )
+                    : _PinOtpStep(
+                        title: isConfirmingPin
+                            ? 'Confirm your 4-digit PIN'
+                            : 'Create a 4-digit PIN',
+                        caption: isConfirmingPin
+                            ? 'Enter the same four digits again.'
+                            : 'Use the PIN you want to unlock this profile on TV.',
+                        titleStyle: pinPromptStyle,
+                        captionStyle: pinCaptionStyle,
+                        digitSize: otpDigitSize,
+                        spacing: otpSpacing,
+                        enabled: !isSubmitting,
+                        controllers: isConfirmingPin
+                            ? confirmPinDigitControllers
+                            : pinDigitControllers,
+                        focusNodes: isConfirmingPin
+                            ? confirmPinDigitFocusNodes
+                            : pinDigitFocusNodes,
+                        fieldTextStyle: fieldTextStyle,
+                        onComplete: !isSubmitting ? onPrimaryAction : null,
                       ),
-                      textStyle: buttonTextStyle,
-                    ),
-                    canRequestFocus: !isKeyboardVisible,
-                    onPressed: isSubmitting ? null : onPrimaryAction,
-                    child: Text(
-                      isSubmitting ? 'Working...' : primaryButtonLabel,
-                    ),
+              ),
+              if (isTvKeyboardEntry &&
+                  activeKeyboardField ==
+                      (isConfirmingPin
+                          ? OnboardingKeyboardField.confirmPin
+                          : OnboardingKeyboardField.pin)) ...[
+                SizedBox(height: fieldSpacing),
+                _ScaledFieldWidth(
+                  widthFactor: fieldWidthFactor,
+                  child: OnScreenKeyboard(
+                    controller: isConfirmingPin
+                        ? confirmPinController
+                        : pinController,
+                    focusNode: isConfirmingPin
+                        ? confirmPinFieldFocusNode
+                        : pinFieldFocusNode,
+                    firstKeyFocusNode: isConfirmingPin
+                        ? confirmPinKeyboardFocusNode
+                        : pinKeyboardFocusNode,
+                    type: OnScreenKeyboardType.numeric,
+                    enabled: !isSubmitting,
+                    allowDecimal: false,
+                    showDecimalButton: false,
+                    showDoneButton: false,
+                    maxLength: 4,
+                    onMaxLengthReached: !isSubmitting ? onPrimaryAction : null,
+                    doneLabel: isConfirmingPin ? 'Save' : 'Next',
+                    onDone: onPrimaryAction,
                   ),
                 ),
-              ),
+              ],
             ],
           ],
         ),
@@ -292,6 +355,8 @@ class _OnboardingTextField extends StatelessWidget {
     this.onSubmitted,
     this.lockDirectionalFocusToKeyboard = false,
     this.obscureText = false,
+    this.readOnly = false,
+    this.keyboardFocusNode,
   });
 
   final TextEditingController controller;
@@ -305,14 +370,54 @@ class _OnboardingTextField extends StatelessWidget {
   final ValueChanged<String>? onSubmitted;
   final bool lockDirectionalFocusToKeyboard;
   final bool obscureText;
+  final bool readOnly;
+  final FocusNode? keyboardFocusNode;
 
   @override
   Widget build(BuildContext context) {
-    if (lockDirectionalFocusToKeyboard) {
+    if (readOnly && keyboardFocusNode != null) {
+      return Shortcuts(
+        shortcuts: const <ShortcutActivator, Intent>{
+          SingleActivator(LogicalKeyboardKey.arrowUp): _MoveFocusIntent(-1),
+          SingleActivator(LogicalKeyboardKey.arrowDown): _MoveFocusIntent(1),
+        },
+        child: Actions(
+          actions: <Type, Action<Intent>>{
+            _MoveFocusIntent: CallbackAction<_MoveFocusIntent>(
+              onInvoke: (intent) {
+                final targetFocusNode = switch (intent.delta) {
+                  -1 => previousFocusNode,
+                  1 => keyboardFocusNode,
+                  _ => null,
+                };
+                targetFocusNode?.requestFocus();
+                return null;
+              },
+            ),
+          },
+          child: TextField(
+            controller: controller,
+            focusNode: focusNode,
+            enabled: enabled,
+            readOnly: true,
+            showCursor: true,
+            obscureText: obscureText,
+            textInputAction: textInputAction,
+            style: style,
+            onSubmitted: onSubmitted,
+            decoration: decoration,
+          ),
+        ),
+      );
+    }
+
+    if (lockDirectionalFocusToKeyboard || readOnly) {
       return TextField(
         controller: controller,
         focusNode: focusNode,
         enabled: enabled,
+        readOnly: readOnly,
+        showCursor: true,
         obscureText: obscureText,
         textInputAction: textInputAction,
         style: style,
@@ -344,6 +449,8 @@ class _OnboardingTextField extends StatelessWidget {
           controller: controller,
           focusNode: focusNode,
           enabled: enabled,
+          readOnly: readOnly,
+          showCursor: true,
           obscureText: obscureText,
           textInputAction: textInputAction,
           style: style,
@@ -355,92 +462,80 @@ class _OnboardingTextField extends StatelessWidget {
   }
 }
 
-class _OnboardingActionButton extends StatelessWidget {
-  const _OnboardingActionButton({
+class _TvPinStep extends StatelessWidget {
+  const _TvPinStep({
+    required this.title,
+    required this.caption,
+    required this.titleStyle,
+    required this.captionStyle,
+    required this.controller,
     required this.focusNode,
-    required this.style,
-    required this.onPressed,
-    required this.child,
-    this.canRequestFocus = true,
-    this.previousFocusNode,
+    required this.keyboardFocusNode,
+    required this.fieldTextStyle,
+    required this.enabled,
   });
 
+  final String title;
+  final String caption;
+  final TextStyle? titleStyle;
+  final TextStyle? captionStyle;
+  final TextEditingController controller;
   final FocusNode focusNode;
-  final FocusNode? previousFocusNode;
-  final ButtonStyle style;
-  final VoidCallback? onPressed;
-  final Widget child;
-  final bool canRequestFocus;
+  final FocusNode keyboardFocusNode;
+  final TextStyle? fieldTextStyle;
+  final bool enabled;
 
   @override
   Widget build(BuildContext context) {
-    return Shortcuts(
-      shortcuts: const <ShortcutActivator, Intent>{
-        SingleActivator(LogicalKeyboardKey.arrowUp): _MoveFocusIntent(-1),
-      },
-      child: Actions(
-        actions: <Type, Action<Intent>>{
-          _MoveFocusIntent: CallbackAction<_MoveFocusIntent>(
-            onInvoke: (intent) {
-              if (intent.delta < 0) {
-                previousFocusNode?.requestFocus();
-              }
-              return null;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Text(title, style: titleStyle, textAlign: TextAlign.center),
+        const SizedBox(height: 12),
+        Text(caption, style: captionStyle, textAlign: TextAlign.center),
+        const SizedBox(height: 18),
+        Shortcuts(
+          shortcuts: const <ShortcutActivator, Intent>{
+            SingleActivator(LogicalKeyboardKey.arrowDown): _MoveFocusIntent(1),
+          },
+          child: Actions(
+            actions: <Type, Action<Intent>>{
+              _MoveFocusIntent: CallbackAction<_MoveFocusIntent>(
+                onInvoke: (intent) {
+                  if (intent.delta > 0) {
+                    keyboardFocusNode.requestFocus();
+                  }
+                  return null;
+                },
+              ),
             },
-          ),
-        },
-        child: ExcludeFocus(
-          excluding: !canRequestFocus,
-          child: ListenableBuilder(
-            listenable: focusNode,
-            builder: (context, _) {
-              final isFocused = focusNode.hasFocus;
-              const buttonRadius = AppRadii.md;
-              const focusRingWidth = 2.5;
-              return AnimatedContainer(
-                duration: const Duration(milliseconds: 160),
-                curve: Curves.easeOutCubic,
-                padding: const EdgeInsets.all(focusRingWidth),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(
-                    buttonRadius + focusRingWidth,
-                  ),
-                  border: Border.all(
-                    color: isFocused
-                        ? AppColors.focus
-                        : Colors.transparent,
-                    width: focusRingWidth,
-                  ),
-                  boxShadow: isFocused
-                      ? [
-                          BoxShadow(
-                            color: AppColors.focus.withValues(alpha: 0.28),
-                            blurRadius: 26,
-                            spreadRadius: 2,
-                          ),
-                        ]
-                      : const [],
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(buttonRadius),
-                  child: FilledButton(
-                    focusNode: focusNode,
-                    style: style.copyWith(
-                      shape: WidgetStatePropertyAll(
-                        RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(buttonRadius),
-                        ),
-                      ),
-                    ),
-                    onPressed: onPressed,
-                    child: child,
-                  ),
-                ),
-              );
-            },
+            child: TextField(
+              controller: controller,
+              focusNode: focusNode,
+              enabled: enabled,
+              readOnly: true,
+              showCursor: true,
+              textAlign: TextAlign.center,
+              obscureText: true,
+              obscuringCharacter: '*',
+              keyboardType: TextInputType.number,
+              inputFormatters: [
+                FilteringTextInputFormatter.digitsOnly,
+                LengthLimitingTextInputFormatter(4),
+              ],
+              style: fieldTextStyle?.copyWith(
+                fontWeight: FontWeight.w700,
+                letterSpacing: 6,
+              ),
+              decoration: const InputDecoration(
+                labelText: 'PIN',
+                hintText: '0000',
+                counterText: '',
+              ),
+            ),
           ),
         ),
-      ),
+      ],
     );
   }
 }

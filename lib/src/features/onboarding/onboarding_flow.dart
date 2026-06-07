@@ -7,6 +7,7 @@ import '../../core/config/app_environment.dart';
 import '../../core/errors/app_exception.dart';
 import '../../core/repositories/auth_repository.dart';
 import '../../core/repositories/server_repository.dart';
+import '../../shared/presentation/app_breakpoints.dart';
 import '../app_flow/cubit/app_flow_cubit.dart';
 import 'cubit/onboarding_cubit.dart';
 import 'cubit/onboarding_state.dart';
@@ -29,12 +30,22 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
   final _serverFieldFocusNode = FocusNode(debugLabel: 'serverField');
   final _emailFieldFocusNode = FocusNode(debugLabel: 'emailField');
   final _passwordFieldFocusNode = FocusNode(debugLabel: 'passwordField');
+  final _serverKeyboardFocusNode = FocusNode(debugLabel: 'serverKeyboard');
+  final _emailKeyboardFocusNode = FocusNode(debugLabel: 'emailKeyboard');
+  final _passwordKeyboardFocusNode = FocusNode(
+    debugLabel: 'passwordKeyboard',
+  );
+  final _pinKeyboardFocusNode = FocusNode(debugLabel: 'pinKeyboard');
+  final _confirmPinKeyboardFocusNode = FocusNode(
+    debugLabel: 'confirmPinKeyboard',
+  );
   late final List<TextEditingController> _pinDigitControllers;
   late final List<TextEditingController> _confirmPinDigitControllers;
   late final List<FocusNode> _pinDigitFocusNodes;
   late final List<FocusNode> _confirmPinDigitFocusNodes;
-  final _actionButtonFocusNode = FocusNode(debugLabel: 'primaryAction');
   bool _isConfirmingPin = false;
+  OnboardingKeyboardField? _activeKeyboardField =
+      OnboardingKeyboardField.server;
 
   FocusNode get _pinFieldFocusNode => _pinDigitFocusNodes.first;
   FocusNode get _confirmPinFieldFocusNode => _confirmPinDigitFocusNodes.first;
@@ -60,6 +71,11 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
       4,
       (index) => FocusNode(debugLabel: 'confirmPinField.$index'),
     );
+    _serverFieldFocusNode.addListener(_handleKeyboardFocusChange);
+    _emailFieldFocusNode.addListener(_handleKeyboardFocusChange);
+    _passwordFieldFocusNode.addListener(_handleKeyboardFocusChange);
+    _pinFieldFocusNode.addListener(_handleKeyboardFocusChange);
+    _confirmPinFieldFocusNode.addListener(_handleKeyboardFocusChange);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) {
         return;
@@ -84,13 +100,22 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
     _serverFieldFocusNode.dispose();
     _emailFieldFocusNode.dispose();
     _passwordFieldFocusNode.dispose();
+    _serverKeyboardFocusNode.dispose();
+    _emailKeyboardFocusNode.dispose();
+    _passwordKeyboardFocusNode.dispose();
+    _pinKeyboardFocusNode.dispose();
+    _confirmPinKeyboardFocusNode.dispose();
     for (final focusNode in _pinDigitFocusNodes) {
       focusNode.dispose();
     }
     for (final focusNode in _confirmPinDigitFocusNodes) {
       focusNode.dispose();
     }
-    _actionButtonFocusNode.dispose();
+    _serverFieldFocusNode.removeListener(_handleKeyboardFocusChange);
+    _emailFieldFocusNode.removeListener(_handleKeyboardFocusChange);
+    _passwordFieldFocusNode.removeListener(_handleKeyboardFocusChange);
+    _pinFieldFocusNode.removeListener(_handleKeyboardFocusChange);
+    _confirmPinFieldFocusNode.removeListener(_handleKeyboardFocusChange);
     super.dispose();
   }
 
@@ -129,7 +154,9 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
               child: OnboardingForm(
                 theme: Theme.of(context),
                 state: state,
-                isTvLayout: MediaQuery.sizeOf(context).width >= 1600,
+                isTvLayout:
+                    MediaQuery.sizeOf(context).width >=
+                    AppBreakpoints.desktop,
                 useMockServices: useMockServices,
                 serverController: _serverController,
                 emailController: _emailController,
@@ -145,8 +172,13 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
                 passwordFieldFocusNode: _passwordFieldFocusNode,
                 pinFieldFocusNode: _pinFieldFocusNode,
                 confirmPinFieldFocusNode: _confirmPinFieldFocusNode,
-                actionButtonFocusNode: _actionButtonFocusNode,
+                serverKeyboardFocusNode: _serverKeyboardFocusNode,
+                emailKeyboardFocusNode: _emailKeyboardFocusNode,
+                passwordKeyboardFocusNode: _passwordKeyboardFocusNode,
+                pinKeyboardFocusNode: _pinKeyboardFocusNode,
+                confirmPinKeyboardFocusNode: _confirmPinKeyboardFocusNode,
                 isConfirmingPin: _isConfirmingPin,
+                activeKeyboardField: _activeKeyboardField,
                 onPrimaryAction: () => _handlePrimaryAction(context, state),
               ),
             );
@@ -186,7 +218,10 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
       return;
     }
 
-    final pin = _joinDigits(_pinDigitControllers);
+    final pin = _currentPinValue(
+      controller: _pinController,
+      digitControllers: _pinDigitControllers,
+    );
     if (!_isConfirmingPin) {
       if (!RegExp(r'^\d{4}$').hasMatch(pin)) {
         messenger.showSnackBar(
@@ -212,7 +247,10 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
       return;
     }
 
-    final confirmedPin = _joinDigits(_confirmPinDigitControllers);
+    final confirmedPin = _currentPinValue(
+      controller: _confirmPinController,
+      digitControllers: _confirmPinDigitControllers,
+    );
     _confirmPinController.text = confirmedPin;
     if (!RegExp(r'^\d{4}$').hasMatch(pin)) {
       messenger.showSnackBar(
@@ -259,6 +297,17 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
   String _joinDigits(List<TextEditingController> controllers) =>
       controllers.map((controller) => controller.text).join();
 
+  String _currentPinValue({
+    required TextEditingController controller,
+    required List<TextEditingController> digitControllers,
+  }) {
+    final controllerValue = controller.text.trim();
+    if (controllerValue.isNotEmpty) {
+      return controllerValue;
+    }
+    return _joinDigits(digitControllers);
+  }
+
   void _focusFirstIncomplete(
     List<TextEditingController> controllers,
     List<FocusNode> focusNodes,
@@ -282,5 +331,35 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
       controller.clear();
     }
     _isConfirmingPin = false;
+    _activeKeyboardField = OnboardingKeyboardField.pin;
+  }
+
+  void _handleKeyboardFocusChange() {
+    final nextField = _focusedKeyboardField;
+    if (nextField == null || nextField == _activeKeyboardField) {
+      return;
+    }
+    setState(() {
+      _activeKeyboardField = nextField;
+    });
+  }
+
+  OnboardingKeyboardField? get _focusedKeyboardField {
+    if (_serverFieldFocusNode.hasFocus) {
+      return OnboardingKeyboardField.server;
+    }
+    if (_emailFieldFocusNode.hasFocus) {
+      return OnboardingKeyboardField.email;
+    }
+    if (_passwordFieldFocusNode.hasFocus) {
+      return OnboardingKeyboardField.password;
+    }
+    if (_confirmPinFieldFocusNode.hasFocus) {
+      return OnboardingKeyboardField.confirmPin;
+    }
+    if (_pinFieldFocusNode.hasFocus) {
+      return OnboardingKeyboardField.pin;
+    }
+    return null;
   }
 }

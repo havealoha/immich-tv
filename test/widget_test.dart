@@ -15,6 +15,7 @@ import 'package:immichtv/src/core/repositories/asset_image_repository.dart';
 import 'package:immichtv/src/core/repositories/media_repository.dart';
 import 'package:immichtv/src/core/repositories/server_repository.dart';
 import 'package:immichtv/src/shared/presentation/widgets/authenticated_asset_image.dart';
+import 'package:immichtv/src/shared/presentation/widgets/on_screen_keyboard/on_screen_keyboard.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -36,7 +37,8 @@ void main() {
     await _settleAppFlow(tester);
 
     expect(find.widgetWithText(TextField, 'Immich server URL'), findsOneWidget);
-    expect(find.text('Validate server'), findsOneWidget);
+    expect(find.text('Validate server'), findsNothing);
+    expect(find.text('Next'), findsWidgets);
   });
 
   testWidgets('shows the saved profile picker when profiles exist', (
@@ -66,7 +68,7 @@ void main() {
   testWidgets('walks through validation and sign-in into home shell', (
     tester,
   ) async {
-    tester.view.physicalSize = const Size(1280, 720);
+    tester.view.physicalSize = const Size(1100, 720);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.reset);
 
@@ -82,7 +84,9 @@ void main() {
 
     expect(find.widgetWithText(TextField, 'Immich server URL'), findsOneWidget);
 
-    await tester.tap(find.text('Validate server'));
+    await tester.tap(find.widgetWithText(TextField, 'Immich server URL'));
+    await tester.pump();
+    await tester.testTextInput.receiveAction(TextInputAction.done);
     await tester.pumpAndSettle();
 
     expect(find.widgetWithText(TextField, 'Email'), findsOneWidget);
@@ -96,8 +100,8 @@ void main() {
       find.widgetWithText(TextField, 'Password'),
       'demo-password',
     );
-    await tester.ensureVisible(find.text('Continue to PIN setup'));
-    await tester.tap(find.text('Continue to PIN setup'));
+    await tester.pump();
+    await tester.testTextInput.receiveAction(TextInputAction.done);
     await tester.pumpAndSettle();
 
     expect(find.text('Create a 4-digit PIN'), findsOneWidget);
@@ -115,7 +119,7 @@ void main() {
   testWidgets('supports keyboard-style submit flow on onboarding', (
     tester,
   ) async {
-    tester.view.physicalSize = const Size(1280, 720);
+    tester.view.physicalSize = const Size(1100, 720);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.reset);
 
@@ -129,7 +133,7 @@ void main() {
     );
     await _settleAppFlow(tester);
 
-    await tester.tap(find.byType(TextField).first);
+    await tester.tap(find.widgetWithText(TextField, 'Immich server URL'));
     await tester.pump();
     await tester.testTextInput.receiveAction(TextInputAction.done);
     await tester.pumpAndSettle();
@@ -160,10 +164,76 @@ void main() {
     expect(find.textContaining('keyboard@example.com'), findsOneWidget);
   });
 
-  testWidgets('supports remote-style navigation in the sidebar', (
+  testWidgets('supports remote-only auth entry with the on-screen keyboard', (
     tester,
   ) async {
     tester.view.physicalSize = const Size(1280, 720);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(
+      ImmichTvApp(
+        authRepository: FakeAuthRepository(),
+        assetImageRepository: FakeAssetImageRepository(),
+        serverRepository: FakeServerRepository(),
+        mediaRepository: FakeMediaRepository(),
+      ),
+    );
+    await _settleAppFlow(tester);
+
+    expect(find.byType(OnScreenKeyboard), findsOneWidget);
+
+    final serverFieldFinder = find.widgetWithText(
+      TextField,
+      'Immich server URL',
+    );
+    final initialServerText =
+        tester.widget<TextField>(serverFieldFinder).controller!.text;
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+    await tester.pumpAndSettle();
+    await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+    await tester.pumpAndSettle();
+
+    final updatedServerText =
+        tester.widget<TextField>(serverFieldFinder).controller!.text;
+    expect(updatedServerText.length, greaterThan(initialServerText.length));
+
+    await tester.tap(find.text('Next').first);
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.widgetWithText(TextField, 'Email'),
+      'remote@example.com',
+    );
+    await tester.enterText(
+      find.widgetWithText(TextField, 'Password'),
+      'remote-password',
+    );
+    await tester.tap(find.widgetWithText(TextField, 'Password'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Continue'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(OnScreenKeyboard), findsOneWidget);
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+    await tester.pumpAndSettle();
+    await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+    await tester.pumpAndSettle();
+    await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+    await tester.pumpAndSettle();
+    await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+    await tester.pumpAndSettle();
+    await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Confirm your 4-digit PIN'), findsOneWidget);
+  });
+
+  testWidgets('supports remote-style navigation in the sidebar', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1100, 720);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.reset);
 
@@ -184,7 +254,7 @@ void main() {
   testWidgets('switches between library sections and shows empty states', (
     tester,
   ) async {
-    tester.view.physicalSize = const Size(1280, 720);
+    tester.view.physicalSize = const Size(1100, 720);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.reset);
 
@@ -218,7 +288,7 @@ void main() {
   testWidgets('loads the next timeline page as the grid scrolls', (
     tester,
   ) async {
-    tester.view.physicalSize = const Size(1280, 720);
+    tester.view.physicalSize = const Size(1100, 720);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.reset);
 
@@ -240,7 +310,7 @@ void main() {
   testWidgets('opens the fullscreen asset viewer and navigates forward', (
     tester,
   ) async {
-    tester.view.physicalSize = const Size(1280, 720);
+    tester.view.physicalSize = const Size(1100, 720);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.reset);
 
@@ -268,7 +338,7 @@ void main() {
   testWidgets('shows a video scrubber action instead of slideshow for videos', (
     tester,
   ) async {
-    tester.view.physicalSize = const Size(1280, 720);
+    tester.view.physicalSize = const Size(1100, 720);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.reset);
 
@@ -295,7 +365,7 @@ void main() {
   });
 
   testWidgets('starts a slideshow with playback controls', (tester) async {
-    tester.view.physicalSize = const Size(1280, 720);
+    tester.view.physicalSize = const Size(1100, 720);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.reset);
 
@@ -327,6 +397,14 @@ Future<void> _settleAppFlow(WidgetTester tester) async {
 
 Future<void> _enterOtpDigits(WidgetTester tester, String digits) async {
   expect(digits.length, 4);
+  final pinFieldFinder = find.widgetWithText(TextField, 'PIN');
+  if (pinFieldFinder.evaluate().isNotEmpty) {
+    await tester.enterText(pinFieldFinder, digits);
+    await tester.pump();
+    await tester.pumpAndSettle();
+    return;
+  }
+
   final fields = find.byType(TextField);
   for (var index = 0; index < digits.length; index++) {
     await tester.enterText(fields.at(index), digits[index]);
@@ -347,7 +425,9 @@ Future<void> _pumpSignedInApp(
   );
   await _settleAppFlow(tester);
 
-  await tester.tap(find.text('Validate server'));
+  await tester.tap(find.widgetWithText(TextField, 'Immich server URL'));
+  await tester.pump();
+  await tester.testTextInput.receiveAction(TextInputAction.done);
   await tester.pumpAndSettle();
 
   await tester.enterText(
@@ -358,8 +438,8 @@ Future<void> _pumpSignedInApp(
     find.widgetWithText(TextField, 'Password'),
     'demo-password',
   );
-  await tester.ensureVisible(find.text('Continue to PIN setup'));
-  await tester.tap(find.text('Continue to PIN setup'));
+  await tester.pump();
+  await tester.testTextInput.receiveAction(TextInputAction.done);
   await tester.pumpAndSettle();
 
   await _enterOtpDigits(tester, '1234');
