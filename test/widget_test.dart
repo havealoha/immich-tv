@@ -318,7 +318,8 @@ void main() {
     final videoAssetLabel = _findAssetThumbnail('video-1').first;
     await tester.ensureVisible(videoAssetLabel);
     await tester.tap(videoAssetLabel, warnIfMissed: false);
-    await tester.pumpAndSettle();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
 
     expect(
       find.byIcon(Icons.pause_rounded).evaluate().length +

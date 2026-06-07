@@ -110,7 +110,6 @@ class _ViewerVideoScrubberHandle {
 }
 
 class _AssetViewerViewState extends State<_AssetViewerView> {
-  static const _chromeHideDelay = Duration(milliseconds: 1500);
   static const _wallpaperClockDebugDelay = Duration(seconds: 10);
   static const _wallpaperClockReleaseDelay = Duration(minutes: 2);
   static const _slideshowDurationOptions = <int>[5, 8, 12];
@@ -124,7 +123,6 @@ class _AssetViewerViewState extends State<_AssetViewerView> {
   late final FocusNode _imageFitButtonFocusNode;
   late final FocusNode _wallpaperButtonFocusNode;
   late final FocusNode _closeButtonFocusNode;
-  Timer? _chromeHideTimer;
   Timer? _wallpaperClockTimer;
   Timer? _wallpaperClockTicker;
   bool _showChrome = true;
@@ -172,7 +170,6 @@ class _AssetViewerViewState extends State<_AssetViewerView> {
 
   @override
   void dispose() {
-    _chromeHideTimer?.cancel();
     _wallpaperClockTimer?.cancel();
     _wallpaperClockTicker?.cancel();
     _viewerFocusNode.removeListener(_handleFocusChange);
@@ -769,7 +766,6 @@ class _AssetViewerViewState extends State<_AssetViewerView> {
     }
 
     if (_hasAnyActionFocus) {
-      _chromeHideTimer?.cancel();
       if (!_showChrome) {
         setState(() => _showChrome = true);
       }
@@ -786,21 +782,9 @@ class _AssetViewerViewState extends State<_AssetViewerView> {
     }
 
     _hideWallpaperClock();
-    _chromeHideTimer?.cancel();
     if (!_showChrome) {
       setState(() => _showChrome = true);
     }
-
-    if (!_viewerFocusNode.hasFocus || _hasAnyActionFocus) {
-      return;
-    }
-
-    _chromeHideTimer = Timer(_chromeHideDelay, () {
-      if (!mounted || !_viewerFocusNode.hasFocus || _hasAnyActionFocus) {
-        return;
-      }
-      setState(() => _showChrome = false);
-    });
 
     _scheduleWallpaperClock();
   }

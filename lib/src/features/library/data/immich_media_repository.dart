@@ -459,6 +459,7 @@ class ImmichMediaRepository implements MediaRepository {
   ) {
     if (type.toUpperCase().contains('VIDEO')) {
       return [
+        session.serverConfig.apiEndpoint('assets/$id/original').toString(),
         session.serverConfig
             .apiEndpoint('assets/$id/thumbnail')
             .replace(queryParameters: const {'size': 'preview'})
