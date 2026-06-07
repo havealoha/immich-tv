@@ -98,52 +98,41 @@ class _PinUnlockScreenState extends State<PinUnlockScreen> {
                       ),
                     ),
                     SizedBox(height: fieldSpacing),
-                    Shortcuts(
-                      shortcuts: const <ShortcutActivator, Intent>{
-                        SingleActivator(
-                          LogicalKeyboardKey.arrowDown,
-                        ): DirectionalFocusIntent(TraversalDirection.down),
+                    Focus(
+                      onKeyEvent: (_, event) {
+                        if (event is KeyDownEvent &&
+                            event.logicalKey == LogicalKeyboardKey.arrowDown) {
+                          _pinKeyboardFocusNode.requestFocus();
+                          return KeyEventResult.handled;
+                        }
+                        return KeyEventResult.ignored;
                       },
-                      child: Actions(
-                        actions: <Type, Action<Intent>>{
-                          DirectionalFocusIntent:
-                              CallbackAction<DirectionalFocusIntent>(
-                                onInvoke: (intent) {
-                                  if (intent.direction ==
-                                      TraversalDirection.down) {
-                                    _pinKeyboardFocusNode.requestFocus();
-                                  }
-                                  return null;
-                                },
-                              ),
-                        },
-                        child: TextField(
-                          controller: _pinController,
-                          focusNode: _pinFieldFocusNode,
-                          enabled: !_isSubmitting,
-                          readOnly: true,
-                          showCursor: true,
-                          textAlign: TextAlign.center,
-                          obscureText: true,
-                          obscuringCharacter: '*',
-                          keyboardType: TextInputType.number,
-                          inputFormatters: [
-                            FilteringTextInputFormatter.digitsOnly,
-                            LengthLimitingTextInputFormatter(4),
-                          ],
-                          style:
-                              (theme.textTheme.titleMedium
-                                      ?? theme.textTheme.bodyLarge)
-                                  ?.copyWith(
-                                    fontWeight: FontWeight.w700,
-                                    fontSize: scale.text(22, min: 18, max: 26),
-                                    letterSpacing: 6,
-                                  ),
-                          decoration: const InputDecoration(
-                            labelText: 'PIN',
-                            hintText: '0000',
-                            counterText: '',
-                          ),
+                      child: TextField(
+                        controller: _pinController,
+                        focusNode: _pinFieldFocusNode,
+                        enabled: !_isSubmitting,
+                        readOnly: true,
+                        showCursor: true,
+                        textAlign: TextAlign.center,
+                        obscureText: true,
+                        obscuringCharacter: '*',
+                        keyboardType: TextInputType.number,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly,
+                          LengthLimitingTextInputFormatter(4),
+                        ],
+                        style:
+                            (theme.textTheme.titleMedium
+                                    ?? theme.textTheme.bodyLarge)
+                                ?.copyWith(
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: scale.text(22, min: 18, max: 26),
+                                  letterSpacing: 6,
+                                ),
+                        decoration: const InputDecoration(
+                          labelText: 'PIN',
+                          hintText: '0000',
+                          counterText: '',
                         ),
                       ),
                     ),
