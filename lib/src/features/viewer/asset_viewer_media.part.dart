@@ -104,7 +104,6 @@ class _ViewerVideoPlayer extends StatefulWidget {
 }
 
 class _ViewerVideoPlayerState extends State<_ViewerVideoPlayer> {
-  static const _chromeAutoHideDelay = Duration(seconds: 2);
   static const _scrubDurations = <Duration>[
     Duration(seconds: 5),
     Duration(seconds: 10),
@@ -130,7 +129,6 @@ class _ViewerVideoPlayerState extends State<_ViewerVideoPlayer> {
   bool _isScrubModeActive = false;
   bool _isLooping = true;
   bool? _wasPlaying;
-  Timer? _chromeHideTimer;
 
   @override
   void initState() {
@@ -159,7 +157,6 @@ class _ViewerVideoPlayerState extends State<_ViewerVideoPlayer> {
 
   @override
   void dispose() {
-    _chromeHideTimer?.cancel();
     widget.onRegisterScrubberHandle?.call(null);
     widget.onScrubModeChanged?.call(false);
     _focusNode.dispose();
@@ -225,8 +222,8 @@ class _ViewerVideoPlayerState extends State<_ViewerVideoPlayer> {
   }
 
   Future<void> _initializePlayer() async {
-    final playableUrl = _resolvePlayableVideoUrl();
-    if (playableUrl.isEmpty) {
+    final playableUrls = _resolvePlayableVideoUrls();
+    if (playableUrls.isEmpty) {
       return;
     }
 
@@ -236,35 +233,55 @@ class _ViewerVideoPlayerState extends State<_ViewerVideoPlayer> {
 
     if (kIsWeb && widget.asset.requiresAuth) {
       setState(() {
-        _initializeFuture = _initializeAuthenticatedWebPlayer(playableUrl);
+        _initializeFuture = _initializeAuthenticatedWebPlayer(
+          playableUrls.first,
+        );
       });
       return;
     }
 
-    final controller = VideoPlayerController.networkUrl(
-      Uri.parse(playableUrl),
-      httpHeaders: widget.asset.requiresAuth
-          ? ImmichHeaders.mediaSessionToken(widget.accessToken)
-          : const <String, String>{},
-      videoPlayerOptions: VideoPlayerOptions(
-        mixWithOthers: false,
-        allowBackgroundPlayback: false,
-      ),
-    );
-    controller.addListener(_handleControllerUpdate);
-
     setState(() {
-      _controller = controller;
-      _initializeFuture = controller.initialize().then((_) async {
+      _initializeFuture = _initializeNativePlayer(playableUrls);
+    });
+  }
+
+  Future<void> _initializeNativePlayer(List<String> playableUrls) async {
+    Object? lastError;
+
+    for (final playableUrl in playableUrls) {
+      final controller = VideoPlayerController.networkUrl(
+        Uri.parse(playableUrl),
+        httpHeaders: widget.asset.requiresAuth
+            ? ImmichHeaders.mediaSessionToken(widget.accessToken)
+            : const <String, String>{},
+        videoPlayerOptions: VideoPlayerOptions(
+          mixWithOthers: false,
+          allowBackgroundPlayback: false,
+        ),
+      );
+      controller.addListener(_handleControllerUpdate);
+
+      try {
+        _controller = controller;
+        await controller.initialize();
         _isLooping = true;
         await controller.setLooping(_isLooping);
-        if (!kIsWeb) {
-          await controller.play();
-        }
+        await controller.play();
         _registerScrubberHandle();
-        _scheduleChromeAutoHide(forceShow: true);
-      });
-    });
+        return;
+      } catch (error) {
+        lastError = error;
+        controller.removeListener(_handleControllerUpdate);
+        await controller.dispose();
+        if (identical(_controller, controller)) {
+          _controller = null;
+        }
+      }
+    }
+
+    if (lastError != null) {
+      throw lastError;
+    }
   }
 
   Future<void> _initializeAuthenticatedWebPlayer(String playableUrl) async {
@@ -301,7 +318,6 @@ class _ViewerVideoPlayerState extends State<_ViewerVideoPlayer> {
     _isLooping = true;
     await controller.setLooping(_isLooping);
     _registerScrubberHandle();
-    _scheduleChromeAutoHide(forceShow: true);
   }
 
   Future<void> _initializeBlobBackedWebPlayer(String playableUrl) async {
@@ -327,7 +343,11 @@ class _ViewerVideoPlayerState extends State<_ViewerVideoPlayer> {
     }
   }
 
-  String _resolvePlayableVideoUrl() {
+  List<String> _resolvePlayableVideoUrls() {
+    final originalUrls = <String>[];
+    final playbackUrls = <String>[];
+    final directMediaUrls = <String>[];
+
     for (final url in widget.asset.displayUrls) {
       final trimmed = url.trim();
       if (trimmed.isEmpty) {
@@ -336,19 +356,27 @@ class _ViewerVideoPlayerState extends State<_ViewerVideoPlayer> {
 
       final uri = Uri.tryParse(trimmed);
       final path = uri?.path.toLowerCase() ?? trimmed.toLowerCase();
-      if (path.contains('/video/playback') ||
-          path.endsWith('.mp4') ||
+      if (path.contains('/original')) {
+        originalUrls.add(trimmed);
+        continue;
+      }
+      if (path.contains('/video/playback')) {
+        playbackUrls.add(trimmed);
+        continue;
+      }
+      if (path.endsWith('.mp4') ||
           path.endsWith('.webm') ||
           path.endsWith('.m3u8') ||
           path.endsWith('.mov')) {
-        return trimmed;
+        directMediaUrls.add(trimmed);
       }
     }
 
-    return widget.asset.displayUrls.firstWhere(
-      (url) => url.trim().isNotEmpty,
-      orElse: () => '',
-    );
+    return <String>[
+      ...originalUrls,
+      ...playbackUrls,
+      ...directMediaUrls,
+    ];
   }
 
   Future<void> _togglePlayback() async {
@@ -357,7 +385,6 @@ class _ViewerVideoPlayerState extends State<_ViewerVideoPlayer> {
       return;
     }
 
-    _chromeHideTimer?.cancel();
     if (controller.value.isPlaying) {
       await controller.pause();
     } else {
@@ -368,7 +395,6 @@ class _ViewerVideoPlayerState extends State<_ViewerVideoPlayer> {
       setState(() {
         _showChrome = true;
       });
-      _scheduleChromeAutoHide();
     }
   }
 
@@ -400,9 +426,7 @@ class _ViewerVideoPlayerState extends State<_ViewerVideoPlayer> {
     });
 
     if (_showChrome) {
-      _scheduleChromeAutoHide();
-    } else {
-      _chromeHideTimer?.cancel();
+      return;
     }
   }
 
@@ -424,7 +448,6 @@ class _ViewerVideoPlayerState extends State<_ViewerVideoPlayer> {
     _registerScrubberHandle();
 
     if (!isPlaying) {
-      _chromeHideTimer?.cancel();
       if (!_showChrome) {
         setState(() {
           _showChrome = true;
@@ -432,37 +455,6 @@ class _ViewerVideoPlayerState extends State<_ViewerVideoPlayer> {
       }
       return;
     }
-
-    _scheduleChromeAutoHide();
-  }
-
-  void _scheduleChromeAutoHide({bool forceShow = false}) {
-    final controller = _controller;
-    if (controller == null ||
-        !controller.value.isPlaying ||
-        _isScrubModeActive) {
-      return;
-    }
-
-    _chromeHideTimer?.cancel();
-    if (forceShow && mounted && !_showChrome) {
-      setState(() {
-        _showChrome = true;
-      });
-    }
-
-    _chromeHideTimer = Timer(_chromeAutoHideDelay, () {
-      if (!mounted) {
-        return;
-      }
-      final currentController = _controller;
-      if (currentController == null || !currentController.value.isPlaying) {
-        return;
-      }
-      setState(() {
-        _showChrome = false;
-      });
-    });
   }
 
   void _registerScrubberHandle() {
@@ -491,7 +483,6 @@ class _ViewerVideoPlayerState extends State<_ViewerVideoPlayer> {
       return;
     }
 
-    _chromeHideTimer?.cancel();
     if (mounted) {
       setState(() {
         _showChrome = true;
@@ -516,7 +507,6 @@ class _ViewerVideoPlayerState extends State<_ViewerVideoPlayer> {
       _showChrome = true;
     });
     widget.onScrubModeChanged?.call(false);
-    _scheduleChromeAutoHide(forceShow: true);
   }
 
   Future<void> _seekRelative(Duration delta) async {
@@ -679,31 +669,6 @@ class _ViewerVideoContent extends StatelessWidget {
               behavior: HitTestBehavior.opaque,
               onTap: onSurfaceTap,
               child: const SizedBox.expand(),
-            ),
-          ),
-          AnimatedOpacity(
-            opacity: showChrome || !controller.value.isPlaying ? 1 : 0,
-            duration: const Duration(milliseconds: 180),
-            child: IgnorePointer(
-              ignoring: !showChrome && controller.value.isPlaying,
-              child: Center(
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    color: Colors.black.withValues(alpha: 0.32),
-                    shape: BoxShape.circle,
-                  ),
-                  child: IconButton(
-                    onPressed: onTogglePlayback,
-                    iconSize: 56,
-                    color: Colors.white,
-                    icon: Icon(
-                      controller.value.isPlaying
-                          ? Icons.pause_rounded
-                          : Icons.play_arrow_rounded,
-                    ),
-                  ),
-                ),
-              ),
             ),
           ),
           Positioned(
