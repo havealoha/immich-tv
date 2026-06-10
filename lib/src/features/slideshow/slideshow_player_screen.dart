@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../core/models/asset_summary.dart';
+import '../../core/models/immich_auth_method.dart';
 import '../../shared/presentation/app_colors.dart';
 import '../../shared/presentation/app_radii.dart';
 import '../../shared/presentation/app_spacing.dart';
@@ -17,6 +18,7 @@ class SlideshowPlayerScreen extends StatefulWidget {
     super.key,
     required this.assets,
     required this.accessToken,
+    this.authMethod = ImmichAuthMethod.password,
     required this.initialDurationSeconds,
     this.initialIndex = 0,
     this.shuffle = false,
@@ -24,6 +26,7 @@ class SlideshowPlayerScreen extends StatefulWidget {
 
   final List<AssetSummary> assets;
   final String accessToken;
+  final ImmichAuthMethod authMethod;
   final int initialDurationSeconds;
   final int initialIndex;
   final bool shuffle;
@@ -32,6 +35,7 @@ class SlideshowPlayerScreen extends StatefulWidget {
     BuildContext context, {
     required List<AssetSummary> assets,
     required String accessToken,
+    ImmichAuthMethod authMethod = ImmichAuthMethod.password,
     required int initialDurationSeconds,
     int initialIndex = 0,
     bool shuffle = false,
@@ -43,6 +47,7 @@ class SlideshowPlayerScreen extends StatefulWidget {
             SlideshowPlayerScreen(
               assets: assets,
               accessToken: accessToken,
+              authMethod: authMethod,
               initialDurationSeconds: initialDurationSeconds,
               initialIndex: initialIndex,
               shuffle: shuffle,
@@ -100,8 +105,10 @@ class _SlideshowPlayerScreenState extends State<SlideshowPlayerScreen> {
       shortcuts: const <ShortcutActivator, Intent>{
         SingleActivator(LogicalKeyboardKey.arrowLeft): _PreviousIntent(),
         SingleActivator(LogicalKeyboardKey.arrowRight): _NextIntent(),
-        SingleActivator(LogicalKeyboardKey.arrowDown): _FocusSlideshowActionsIntent(),
-        SingleActivator(LogicalKeyboardKey.arrowUp): _FocusSlideshowSurfaceIntent(),
+        SingleActivator(LogicalKeyboardKey.arrowDown):
+            _FocusSlideshowActionsIntent(),
+        SingleActivator(LogicalKeyboardKey.arrowUp):
+            _FocusSlideshowSurfaceIntent(),
         SingleActivator(LogicalKeyboardKey.space): _TogglePlaybackIntent(),
         SingleActivator(LogicalKeyboardKey.escape): DismissIntent(),
       },
@@ -151,6 +158,7 @@ class _SlideshowPlayerScreenState extends State<SlideshowPlayerScreen> {
                           child: AuthenticatedAssetImage(
                             imageUrls: asset.displayUrls,
                             accessToken: widget.accessToken,
+                            authMethod: widget.authMethod,
                             requiresAuth: asset.requiresAuth,
                             fit: BoxFit.contain,
                             heroTag: 'slideshow-${asset.id}',
@@ -400,7 +408,6 @@ class _SlideshowActionButton extends StatefulWidget {
 }
 
 class _SlideshowActionButtonState extends State<_SlideshowActionButton> {
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

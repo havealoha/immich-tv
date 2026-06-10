@@ -10,6 +10,7 @@ class _ViewerPage extends StatelessWidget {
   const _ViewerPage({
     required this.asset,
     required this.accessToken,
+    required this.authMethod,
     required this.fitMode,
     this.onRegisterVideoScrubberHandle,
     this.onVideoScrubberModeChanged,
@@ -17,6 +18,7 @@ class _ViewerPage extends StatelessWidget {
 
   final AssetSummary asset;
   final String accessToken;
+  final ImmichAuthMethod authMethod;
   final ViewerImageFitMode fitMode;
   final ValueChanged<_ViewerVideoScrubberHandle?>?
   onRegisterVideoScrubberHandle;
@@ -28,6 +30,7 @@ class _ViewerPage extends StatelessWidget {
       return _ViewerVideoPlayer(
         asset: asset,
         accessToken: accessToken,
+        authMethod: authMethod,
         onRegisterScrubberHandle: onRegisterVideoScrubberHandle,
         onScrubModeChanged: onVideoScrubberModeChanged,
       );
@@ -51,6 +54,7 @@ class _ViewerPage extends StatelessWidget {
               placeholderImageUrls: asset.thumbnailUrls,
               placeholderBlurSigma: 16,
               accessToken: accessToken,
+              authMethod: authMethod,
               requiresAuth: asset.requiresAuth,
               fit: fit,
               heroTag: 'asset-${asset.id}',
@@ -90,12 +94,14 @@ class _ViewerVideoPlayer extends StatefulWidget {
   const _ViewerVideoPlayer({
     required this.asset,
     required this.accessToken,
+    required this.authMethod,
     this.onRegisterScrubberHandle,
     this.onScrubModeChanged,
   });
 
   final AssetSummary asset;
   final String accessToken;
+  final ImmichAuthMethod authMethod;
   final ValueChanged<_ViewerVideoScrubberHandle?>? onRegisterScrubberHandle;
   final ValueChanged<bool>? onScrubModeChanged;
 
@@ -175,6 +181,7 @@ class _ViewerVideoPlayerState extends State<_ViewerVideoPlayer> {
       return _ViewerVideoLoadingSurface(
         asset: widget.asset,
         accessToken: widget.accessToken,
+        authMethod: widget.authMethod,
         progress: _webLoadProgress,
       );
     }
@@ -188,6 +195,7 @@ class _ViewerVideoPlayerState extends State<_ViewerVideoPlayer> {
             key: ValueKey<String>('video-loading-${widget.asset.id}'),
             asset: widget.asset,
             accessToken: widget.accessToken,
+            authMethod: widget.authMethod,
             progress: _webLoadProgress,
           );
         } else if (snapshot.hasError || !controller.value.isInitialized) {
@@ -252,7 +260,10 @@ class _ViewerVideoPlayerState extends State<_ViewerVideoPlayer> {
       final controller = VideoPlayerController.networkUrl(
         Uri.parse(playableUrl),
         httpHeaders: widget.asset.requiresAuth
-            ? ImmichHeaders.mediaSessionToken(widget.accessToken)
+            ? ImmichHeaders.mediaHeaders(
+                token: widget.accessToken,
+                authMethod: widget.authMethod,
+              )
             : const <String, String>{},
         videoPlayerOptions: VideoPlayerOptions(
           mixWithOthers: false,
@@ -324,6 +335,7 @@ class _ViewerVideoPlayerState extends State<_ViewerVideoPlayer> {
     final objectUrl = await WebAuthenticatedVideoCache.instance.getObjectUrl(
       sourceUrl: playableUrl,
       accessToken: widget.accessToken,
+      authMethod: widget.authMethod,
       onReceiveProgress: (received, total) {
         if (!mounted) {
           return;
@@ -372,11 +384,7 @@ class _ViewerVideoPlayerState extends State<_ViewerVideoPlayer> {
       }
     }
 
-    return <String>[
-      ...originalUrls,
-      ...playbackUrls,
-      ...directMediaUrls,
-    ];
+    return <String>[...originalUrls, ...playbackUrls, ...directMediaUrls];
   }
 
   Future<void> _togglePlayback() async {
@@ -570,11 +578,13 @@ class _ViewerVideoLoadingSurface extends StatelessWidget {
     super.key,
     required this.asset,
     required this.accessToken,
+    required this.authMethod,
     this.progress,
   });
 
   final AssetSummary asset;
   final String accessToken;
+  final ImmichAuthMethod authMethod;
   final double? progress;
 
   @override
@@ -585,6 +595,7 @@ class _ViewerVideoLoadingSurface extends StatelessWidget {
         AuthenticatedAssetImage(
           imageUrls: asset.thumbnailUrls,
           accessToken: accessToken,
+          authMethod: authMethod,
           requiresAuth: asset.requiresAuth,
           fit: BoxFit.contain,
           heroTag: 'asset-${asset.id}',

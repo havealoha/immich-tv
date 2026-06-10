@@ -1,16 +1,18 @@
 class SavedProfileSecret {
-  const SavedProfileSecret({required this.password, required this.pin});
+  const SavedProfileSecret({this.password, this.apiKey, required this.pin});
 
-  final String password;
+  final String? password;
+  final String? apiKey;
   final String pin;
 
   Map<String, dynamic> toJson() {
-    return {'password': password, 'pin': pin};
+    return {'password': password, 'apiKey': apiKey, 'pin': pin};
   }
 
   factory SavedProfileSecret.fromJson(Map<String, dynamic> json) {
     return SavedProfileSecret(
-      password: json['password'] as String,
+      password: json['password'] as String?,
+      apiKey: json['apiKey'] as String?,
       pin: json['pin'] as String,
     );
   }

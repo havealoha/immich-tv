@@ -5,6 +5,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../core/config/demo_mode.dart';
 import '../../core/config/app_environment.dart';
 import '../../core/errors/app_exception.dart';
+import '../../core/models/immich_auth_method.dart';
 import '../../core/repositories/auth_repository.dart';
 import '../../core/repositories/server_repository.dart';
 import '../../shared/presentation/app_breakpoints.dart';
@@ -25,16 +26,22 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
   final _serverController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _apiKeyController = TextEditingController();
   final _pinController = TextEditingController();
   final _confirmPinController = TextEditingController();
   final _serverFieldFocusNode = FocusNode(debugLabel: 'serverField');
+  final _passwordAuthMethodFocusNode = FocusNode(
+    debugLabel: 'passwordAuthMethod',
+  );
+  final _apiKeyAuthMethodFocusNode = FocusNode(debugLabel: 'apiKeyAuthMethod');
   final _emailFieldFocusNode = FocusNode(debugLabel: 'emailField');
   final _passwordFieldFocusNode = FocusNode(debugLabel: 'passwordField');
+  final _apiKeyFieldFocusNode = FocusNode(debugLabel: 'apiKeyField');
+  final _apiKeyPasteFocusNode = FocusNode(debugLabel: 'apiKeyPaste');
   final _serverKeyboardFocusNode = FocusNode(debugLabel: 'serverKeyboard');
   final _emailKeyboardFocusNode = FocusNode(debugLabel: 'emailKeyboard');
-  final _passwordKeyboardFocusNode = FocusNode(
-    debugLabel: 'passwordKeyboard',
-  );
+  final _passwordKeyboardFocusNode = FocusNode(debugLabel: 'passwordKeyboard');
+  final _apiKeyKeyboardFocusNode = FocusNode(debugLabel: 'apiKeyKeyboard');
   final _pinKeyboardFocusNode = FocusNode(debugLabel: 'pinKeyboard');
   final _confirmPinKeyboardFocusNode = FocusNode(
     debugLabel: 'confirmPinKeyboard',
@@ -57,6 +64,7 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
       _serverController.text = DemoMode.serverUrl;
       _emailController.text = DemoMode.email;
       _passwordController.text = DemoMode.password;
+      _apiKeyController.text = 'demo-api-key';
     }
     _pinDigitControllers = List.generate(4, (_) => TextEditingController());
     _confirmPinDigitControllers = List.generate(
@@ -74,6 +82,7 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
     _serverFieldFocusNode.addListener(_handleKeyboardFocusChange);
     _emailFieldFocusNode.addListener(_handleKeyboardFocusChange);
     _passwordFieldFocusNode.addListener(_handleKeyboardFocusChange);
+    _apiKeyFieldFocusNode.addListener(_handleKeyboardFocusChange);
     _pinFieldFocusNode.addListener(_handleKeyboardFocusChange);
     _confirmPinFieldFocusNode.addListener(_handleKeyboardFocusChange);
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -89,6 +98,7 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
     _serverController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
+    _apiKeyController.dispose();
     _pinController.dispose();
     _confirmPinController.dispose();
     for (final controller in _pinDigitControllers) {
@@ -98,11 +108,16 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
       controller.dispose();
     }
     _serverFieldFocusNode.dispose();
+    _passwordAuthMethodFocusNode.dispose();
+    _apiKeyAuthMethodFocusNode.dispose();
     _emailFieldFocusNode.dispose();
     _passwordFieldFocusNode.dispose();
+    _apiKeyFieldFocusNode.dispose();
+    _apiKeyPasteFocusNode.dispose();
     _serverKeyboardFocusNode.dispose();
     _emailKeyboardFocusNode.dispose();
     _passwordKeyboardFocusNode.dispose();
+    _apiKeyKeyboardFocusNode.dispose();
     _pinKeyboardFocusNode.dispose();
     _confirmPinKeyboardFocusNode.dispose();
     for (final focusNode in _pinDigitFocusNodes) {
@@ -114,6 +129,7 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
     _serverFieldFocusNode.removeListener(_handleKeyboardFocusChange);
     _emailFieldFocusNode.removeListener(_handleKeyboardFocusChange);
     _passwordFieldFocusNode.removeListener(_handleKeyboardFocusChange);
+    _apiKeyFieldFocusNode.removeListener(_handleKeyboardFocusChange);
     _pinFieldFocusNode.removeListener(_handleKeyboardFocusChange);
     _confirmPinFieldFocusNode.removeListener(_handleKeyboardFocusChange);
     super.dispose();
@@ -134,7 +150,11 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
           }
           final targetFocusNode = switch (state.step) {
             OnboardingStep.server => _serverFieldFocusNode,
-            OnboardingStep.credentials => _emailFieldFocusNode,
+            OnboardingStep.authMethod => _passwordAuthMethodFocusNode,
+            OnboardingStep.credentials => switch (state.authMethod) {
+              ImmichAuthMethod.password => _emailFieldFocusNode,
+              ImmichAuthMethod.apiKey => _apiKeyFieldFocusNode,
+            },
             OnboardingStep.pin =>
               _isConfirmingPin ? _confirmPinFieldFocusNode : _pinFieldFocusNode,
           };
@@ -155,12 +175,12 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
                 theme: Theme.of(context),
                 state: state,
                 isTvLayout:
-                    MediaQuery.sizeOf(context).width >=
-                    AppBreakpoints.desktop,
+                    MediaQuery.sizeOf(context).width >= AppBreakpoints.desktop,
                 useMockServices: useMockServices,
                 serverController: _serverController,
                 emailController: _emailController,
                 passwordController: _passwordController,
+                apiKeyController: _apiKeyController,
                 pinController: _pinController,
                 confirmPinController: _confirmPinController,
                 pinDigitControllers: _pinDigitControllers,
@@ -168,17 +188,24 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
                 pinDigitFocusNodes: _pinDigitFocusNodes,
                 confirmPinDigitFocusNodes: _confirmPinDigitFocusNodes,
                 serverFieldFocusNode: _serverFieldFocusNode,
+                passwordAuthMethodFocusNode: _passwordAuthMethodFocusNode,
+                apiKeyAuthMethodFocusNode: _apiKeyAuthMethodFocusNode,
                 emailFieldFocusNode: _emailFieldFocusNode,
                 passwordFieldFocusNode: _passwordFieldFocusNode,
+                apiKeyFieldFocusNode: _apiKeyFieldFocusNode,
+                apiKeyPasteFocusNode: _apiKeyPasteFocusNode,
                 pinFieldFocusNode: _pinFieldFocusNode,
                 confirmPinFieldFocusNode: _confirmPinFieldFocusNode,
                 serverKeyboardFocusNode: _serverKeyboardFocusNode,
                 emailKeyboardFocusNode: _emailKeyboardFocusNode,
                 passwordKeyboardFocusNode: _passwordKeyboardFocusNode,
+                apiKeyKeyboardFocusNode: _apiKeyKeyboardFocusNode,
                 pinKeyboardFocusNode: _pinKeyboardFocusNode,
                 confirmPinKeyboardFocusNode: _confirmPinKeyboardFocusNode,
                 isConfirmingPin: _isConfirmingPin,
                 activeKeyboardField: _activeKeyboardField,
+                onAuthMethodChanged: (authMethod) =>
+                    _handleAuthMethodChanged(context, authMethod),
                 onPrimaryAction: () => _handlePrimaryAction(context, state),
               ),
             );
@@ -202,11 +229,23 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
       return;
     }
 
+    if (state.step == OnboardingStep.authMethod) {
+      onboardingCubit.selectAuthMethod(state.authMethod);
+      return;
+    }
+
     if (state.step == OnboardingStep.credentials) {
-      await onboardingCubit.signIn(
-        email: _emailController.text.trim(),
-        password: _passwordController.text,
-      );
+      switch (state.authMethod) {
+        case ImmichAuthMethod.password:
+          await onboardingCubit.signIn(
+            email: _emailController.text.trim(),
+            password: _passwordController.text,
+          );
+        case ImmichAuthMethod.apiKey:
+          await onboardingCubit.signInWithApiKey(
+            apiKey: _apiKeyController.text.trim(),
+          );
+      }
       return;
     }
 
@@ -277,7 +316,12 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
     try {
       await authRepository.saveProfile(
         session: session,
-        password: _passwordController.text,
+        password: session.authMethod == ImmichAuthMethod.password
+            ? _passwordController.text
+            : null,
+        apiKey: session.authMethod == ImmichAuthMethod.apiKey
+            ? _apiKeyController.text.trim()
+            : null,
         pin: pin,
       );
     } catch (error) {
@@ -348,6 +392,9 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
     if (_serverFieldFocusNode.hasFocus) {
       return OnboardingKeyboardField.server;
     }
+    if (_apiKeyFieldFocusNode.hasFocus) {
+      return OnboardingKeyboardField.apiKey;
+    }
     if (_emailFieldFocusNode.hasFocus) {
       return OnboardingKeyboardField.email;
     }
@@ -361,5 +408,15 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
       return OnboardingKeyboardField.pin;
     }
     return null;
+  }
+
+  void _handleAuthMethodChanged(
+    BuildContext context,
+    ImmichAuthMethod authMethod,
+  ) {
+    context.read<OnboardingCubit>().selectAuthMethod(authMethod);
+    setState(() {
+      _activeKeyboardField = null;
+    });
   }
 }

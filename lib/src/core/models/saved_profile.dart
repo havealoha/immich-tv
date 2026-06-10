@@ -1,5 +1,6 @@
 import 'package:equatable/equatable.dart';
 
+import 'immich_auth_method.dart';
 import 'server_config.dart';
 
 class SavedProfile extends Equatable {
@@ -9,6 +10,7 @@ class SavedProfile extends Equatable {
     required this.email,
     required this.serverConfig,
     required this.lastUsedAt,
+    this.authMethod = ImmichAuthMethod.password,
   });
 
   final String id;
@@ -16,6 +18,7 @@ class SavedProfile extends Equatable {
   final String email;
   final ServerConfig serverConfig;
   final DateTime lastUsedAt;
+  final ImmichAuthMethod authMethod;
 
   String get initials {
     final source = name.trim().isEmpty ? email : name;
@@ -34,6 +37,7 @@ class SavedProfile extends Equatable {
     String? email,
     ServerConfig? serverConfig,
     DateTime? lastUsedAt,
+    ImmichAuthMethod? authMethod,
   }) {
     return SavedProfile(
       id: id ?? this.id,
@@ -41,6 +45,7 @@ class SavedProfile extends Equatable {
       email: email ?? this.email,
       serverConfig: serverConfig ?? this.serverConfig,
       lastUsedAt: lastUsedAt ?? this.lastUsedAt,
+      authMethod: authMethod ?? this.authMethod,
     );
   }
 
@@ -51,6 +56,7 @@ class SavedProfile extends Equatable {
       'email': email,
       'serverConfig': serverConfig.toJson(),
       'lastUsedAt': lastUsedAt.toIso8601String(),
+      'authMethod': authMethod.storageValue,
     };
   }
 
@@ -63,9 +69,19 @@ class SavedProfile extends Equatable {
         json['serverConfig'] as Map<String, dynamic>,
       ),
       lastUsedAt: DateTime.parse(json['lastUsedAt'] as String),
+      authMethod: ImmichAuthMethod.fromStorageValue(
+        json['authMethod'] as String?,
+      ),
     );
   }
 
   @override
-  List<Object?> get props => [id, name, email, serverConfig, lastUsedAt];
+  List<Object?> get props => [
+    id,
+    name,
+    email,
+    serverConfig,
+    lastUsedAt,
+    authMethod,
+  ];
 }

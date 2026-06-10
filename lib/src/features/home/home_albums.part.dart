@@ -637,6 +637,7 @@ class _AlbumAssetGrid extends StatelessWidget {
                         assets: assets,
                         initialIndex: index,
                         accessToken: session.accessToken,
+                        authMethod: session.authMethod,
                       ),
                     );
                   },

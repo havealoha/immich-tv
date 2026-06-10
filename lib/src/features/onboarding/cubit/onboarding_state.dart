@@ -1,9 +1,10 @@
 import 'package:equatable/equatable.dart';
 
 import '../../../core/models/authenticated_session.dart';
+import '../../../core/models/immich_auth_method.dart';
 import '../../../core/models/server_config.dart';
 
-enum OnboardingStep { server, credentials, pin }
+enum OnboardingStep { server, authMethod, credentials, pin }
 
 enum OnboardingStatus { idle, validatingServer, signingIn, savingProfile }
 
@@ -14,6 +15,7 @@ class OnboardingState extends Equatable {
     this.serverConfig,
     this.pendingSession,
     this.errorMessage,
+    this.authMethod = ImmichAuthMethod.password,
   });
 
   final OnboardingStep step;
@@ -21,6 +23,7 @@ class OnboardingState extends Equatable {
   final ServerConfig? serverConfig;
   final AuthenticatedSession? pendingSession;
   final String? errorMessage;
+  final ImmichAuthMethod authMethod;
 
   bool get isBusy => status != OnboardingStatus.idle;
   bool get hasValidatedServer => serverConfig != null;
@@ -32,6 +35,7 @@ class OnboardingState extends Equatable {
     ServerConfig? serverConfig,
     AuthenticatedSession? pendingSession,
     String? errorMessage,
+    ImmichAuthMethod? authMethod,
     bool clearServerConfig = false,
     bool clearPendingSession = false,
     bool clearError = false,
@@ -46,6 +50,7 @@ class OnboardingState extends Equatable {
           ? null
           : (pendingSession ?? this.pendingSession),
       errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
+      authMethod: authMethod ?? this.authMethod,
     );
   }
 
@@ -56,5 +61,6 @@ class OnboardingState extends Equatable {
     serverConfig,
     pendingSession,
     errorMessage,
+    authMethod,
   ];
 }

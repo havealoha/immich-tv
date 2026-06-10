@@ -5,6 +5,7 @@ import 'package:dio/dio.dart';
 import '../../../core/config/demo_mode.dart';
 import '../../../core/errors/app_exception.dart';
 import '../../../core/models/authenticated_session.dart';
+import '../../../core/models/immich_auth_method.dart';
 import '../../../core/models/saved_profile.dart';
 import '../../../core/models/saved_profile_secret.dart';
 import '../../../core/models/server_config.dart';
@@ -40,15 +41,16 @@ class ImmichAuthRepository implements AuthRepository {
     }
 
     if (DemoMode.matchesServerUrl(serverConfig.serverUrl)) {
-      if (!DemoMode.matchesCredentials(email: trimmedEmail, password: password)) {
+      if (!DemoMode.matchesCredentials(
+        email: trimmedEmail,
+        password: password,
+      )) {
         throw AppException(
           'Use the demo credentials for ${DemoMode.serverUrl}.',
           code: 'invalid_demo_credentials',
         );
       }
-      return MockAuthRepository(
-        profileStorage: _profileStorage,
-      ).signIn(
+      return MockAuthRepository(profileStorage: _profileStorage).signIn(
         serverConfig: serverConfig,
         email: trimmedEmail,
         password: password,
@@ -67,6 +69,36 @@ class ImmichAuthRepository implements AuthRepository {
   }
 
   @override
+  Future<AuthenticatedSession> signInWithApiKey({
+    required ServerConfig serverConfig,
+    required String apiKey,
+  }) async {
+    final trimmedApiKey = apiKey.trim();
+    if (trimmedApiKey.isEmpty) {
+      throw const AppException(
+        'Enter an API key to continue.',
+        code: 'missing_api_key',
+      );
+    }
+
+    if (DemoMode.matchesServerUrl(serverConfig.serverUrl)) {
+      return MockAuthRepository(
+        profileStorage: _profileStorage,
+      ).signInWithApiKey(serverConfig: serverConfig, apiKey: trimmedApiKey);
+    }
+
+    try {
+      return await _authenticateWithCredential(
+        serverConfig: serverConfig,
+        credential: trimmedApiKey,
+        authMethod: ImmichAuthMethod.apiKey,
+      );
+    } on DioException catch (error) {
+      throw _mapApiKeyError(error);
+    }
+  }
+
+  @override
   Future<List<SavedProfile>> getSavedProfiles() {
     return _profileStorage.readProfiles();
   }
@@ -74,22 +106,33 @@ class ImmichAuthRepository implements AuthRepository {
   @override
   Future<void> saveProfile({
     required AuthenticatedSession session,
-    required String password,
+    String? password,
+    String? apiKey,
     required String pin,
   }) async {
     _validatePin(pin);
-    if (password.isEmpty) {
-      throw const AppException(
-        'Enter both email and password to save this profile.',
-        code: 'missing_credentials',
-      );
+    switch (session.authMethod) {
+      case ImmichAuthMethod.password:
+        if (password == null || password.isEmpty) {
+          throw const AppException(
+            'Enter both email and password to save this profile.',
+            code: 'missing_credentials',
+          );
+        }
+      case ImmichAuthMethod.apiKey:
+        if (apiKey == null || apiKey.isEmpty) {
+          throw const AppException(
+            'Enter an API key to save this profile.',
+            code: 'missing_api_key',
+          );
+        }
     }
 
     final profile = _savedProfileFromSession(session);
     await _profileStorage.saveProfile(profile);
     await _profileStorage.saveProfileSecret(
       profileId: profile.id,
-      secret: SavedProfileSecret(password: password, pin: pin),
+      secret: SavedProfileSecret(password: password, apiKey: apiKey, pin: pin),
     );
   }
 
@@ -137,15 +180,24 @@ class ImmichAuthRepository implements AuthRepository {
     }
 
     try {
-      final session = await _signInRemote(
-        serverConfig: profile.serverConfig,
-        email: profile.email,
-        password: secret.password,
-      );
+      final session = switch (profile.authMethod) {
+        ImmichAuthMethod.password => await _signInRemote(
+          serverConfig: profile.serverConfig,
+          email: profile.email,
+          password: secret.password ?? '',
+        ),
+        ImmichAuthMethod.apiKey => await _authenticateWithCredential(
+          serverConfig: profile.serverConfig,
+          credential: secret.apiKey ?? '',
+          authMethod: ImmichAuthMethod.apiKey,
+        ),
+      };
       await _profileStorage.saveProfile(_savedProfileFromSession(session));
       return session;
     } on DioException catch (error) {
-      throw _mapSignInError(error);
+      throw profile.authMethod == ImmichAuthMethod.apiKey
+          ? _mapApiKeyError(error)
+          : _mapSignInError(error);
     }
   }
 
@@ -173,19 +225,10 @@ class ImmichAuthRepository implements AuthRepository {
       );
     }
 
-    final profileResponse = await _dio.get<Map<String, dynamic>>(
-      serverConfig.apiEndpoint('users/me').toString(),
-      options: Options(headers: ImmichHeaders.sessionToken(token)),
-    );
-
-    final user = UserProfile.fromJson(
-      profileResponse.data ?? const <String, dynamic>{},
-    );
-
-    final session = AuthenticatedSession(
+    final session = await _authenticateWithCredential(
       serverConfig: serverConfig,
-      accessToken: token,
-      user: user,
+      credential: token,
+      authMethod: ImmichAuthMethod.password,
     );
 
     await primeBrowserImmichSession(
@@ -195,6 +238,33 @@ class ImmichAuthRepository implements AuthRepository {
     );
 
     return session;
+  }
+
+  Future<AuthenticatedSession> _authenticateWithCredential({
+    required ServerConfig serverConfig,
+    required String credential,
+    required ImmichAuthMethod authMethod,
+  }) async {
+    final profileResponse = await _dio.get<Map<String, dynamic>>(
+      serverConfig.apiEndpoint('users/me').toString(),
+      options: Options(
+        headers: ImmichHeaders.authHeaders(
+          token: credential,
+          authMethod: authMethod,
+        ),
+      ),
+    );
+
+    final user = UserProfile.fromJson(
+      profileResponse.data ?? const <String, dynamic>{},
+    );
+
+    return AuthenticatedSession(
+      serverConfig: serverConfig,
+      accessToken: credential,
+      user: user,
+      authMethod: authMethod,
+    );
   }
 
   AppException _mapSignInError(DioException error) {
@@ -213,6 +283,22 @@ class ImmichAuthRepository implements AuthRepository {
     );
   }
 
+  AppException _mapApiKeyError(DioException error) {
+    final statusCode = error.response?.statusCode;
+    if (statusCode == 401 || statusCode == 403) {
+      return const AppException(
+        'Immich rejected that API key. Check that it is still valid and has not been revoked.',
+        code: 'invalid_api_key',
+      );
+    }
+
+    return AppException(
+      'We could not verify that API key right now.',
+      code: 'api_key_failed',
+      cause: error,
+    );
+  }
+
   SavedProfile _savedProfileFromSession(AuthenticatedSession session) {
     return SavedProfile(
       id: _profileIdForSession(session),
@@ -220,6 +306,7 @@ class ImmichAuthRepository implements AuthRepository {
       email: session.user.email,
       serverConfig: session.serverConfig,
       lastUsedAt: DateTime.now(),
+      authMethod: session.authMethod,
     );
   }
 

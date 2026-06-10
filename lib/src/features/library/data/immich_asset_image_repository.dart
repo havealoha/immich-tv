@@ -4,6 +4,7 @@ import 'dart:collection';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/painting.dart';
 
+import '../../../core/models/immich_auth_method.dart';
 import '../../../core/network/immich_headers.dart';
 import '../../../core/repositories/asset_image_repository.dart';
 
@@ -19,6 +20,7 @@ class ImmichAssetImageRepository implements AssetImageRepository {
   Future<void> prefetchImages({
     required List<List<String>> urls,
     required String accessToken,
+    required ImmichAuthMethod authMethod,
   }) async {
     if (kIsWeb) {
       return;
@@ -32,7 +34,10 @@ class ImmichAssetImageRepository implements AssetImageRepository {
 
       final provider = NetworkImage(
         url,
-        headers: ImmichHeaders.mediaSessionToken(accessToken),
+        headers: ImmichHeaders.mediaHeaders(
+          token: accessToken,
+          authMethod: authMethod,
+        ),
       );
       _inFlightUrls.add(url);
       try {

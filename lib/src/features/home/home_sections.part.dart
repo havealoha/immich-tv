@@ -237,6 +237,7 @@ class _AssetSectionView extends StatelessWidget {
                   assets: assets,
                   initialIndex: index,
                   accessToken: session.accessToken,
+                  authMethod: session.authMethod,
                 ),
               );
             },
@@ -310,6 +311,7 @@ class _TimelineDaySection extends StatelessWidget {
                     assets: allAssets,
                     initialIndex: item.globalIndex,
                     accessToken: session.accessToken,
+                    authMethod: session.authMethod,
                   ),
                 );
               },
@@ -387,6 +389,7 @@ class _AssetTileState extends State<_AssetTile> {
                   AuthenticatedAssetImage(
                     imageUrls: widget.asset.thumbnailUrls,
                     accessToken: widget.session.accessToken,
+                    authMethod: widget.session.authMethod,
                     requiresAuth: widget.asset.requiresAuth,
                     heroTag: 'asset-${widget.asset.id}',
                     placeholderIcon: widget.asset.isVideo
@@ -481,6 +484,7 @@ class _AssetTileState extends State<_AssetTile> {
     context.read<AssetImageRepository>().prefetchImages(
       urls: widget.prefetchUrls,
       accessToken: widget.session.accessToken,
+      authMethod: widget.session.authMethod,
     );
   }
 }

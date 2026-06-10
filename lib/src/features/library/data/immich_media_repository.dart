@@ -26,9 +26,7 @@ class ImmichMediaRepository implements MediaRepository {
 
     final response = await _dio.get<List<dynamic>>(
       session.serverConfig.apiEndpoint('albums').toString(),
-      options: Options(
-        headers: ImmichHeaders.sessionToken(session.accessToken),
-      ),
+      options: Options(headers: ImmichHeaders.sessionHeaders(session)),
     );
 
     final items = response.data ?? const [];
@@ -76,7 +74,7 @@ class ImmichMediaRepository implements MediaRepository {
       },
       options: Options(
         headers: {
-          ...ImmichHeaders.sessionToken(session.accessToken),
+          ...ImmichHeaders.sessionHeaders(session),
           'Content-Type': 'application/json',
         },
       ),
@@ -126,7 +124,7 @@ class ImmichMediaRepository implements MediaRepository {
       data: requestBody,
       options: Options(
         headers: {
-          ...ImmichHeaders.sessionToken(session.accessToken),
+          ...ImmichHeaders.sessionHeaders(session),
           'Content-Type': 'application/json',
         },
       ),
@@ -175,13 +173,13 @@ class ImmichMediaRepository implements MediaRepository {
       return searchTimeline;
     }
 
-      logger.warning(
-        'Timeline search returned no assets, falling back to timeline bucket API',
-      );
-      if (year != null) {
-        return const MediaPage(items: []);
-      }
-      final headers = ImmichHeaders.sessionToken(session.accessToken);
+    logger.warning(
+      'Timeline search returned no assets, falling back to timeline bucket API',
+    );
+    if (year != null) {
+      return const MediaPage(items: []);
+    }
+    final headers = ImmichHeaders.sessionHeaders(session);
 
     final bucketCandidates = [
       {
@@ -274,7 +272,7 @@ class ImmichMediaRepository implements MediaRepository {
         data: requestBody,
         options: Options(
           headers: {
-            ...ImmichHeaders.sessionToken(session.accessToken),
+            ...ImmichHeaders.sessionHeaders(session),
             'Content-Type': 'application/json',
           },
         ),

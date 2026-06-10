@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'dart:ui' as ui;
 
+import '../../../core/models/immich_auth_method.dart';
 import '../../../core/network/immich_dio_factory.dart';
 import '../../../core/network/immich_headers.dart';
 import '../app_colors.dart';
@@ -14,6 +15,7 @@ class AuthenticatedAssetImage extends StatefulWidget {
     super.key,
     required this.imageUrls,
     required this.accessToken,
+    this.authMethod = ImmichAuthMethod.password,
     this.requiresAuth = true,
     this.fit = BoxFit.cover,
     this.heroTag,
@@ -29,6 +31,7 @@ class AuthenticatedAssetImage extends StatefulWidget {
 
   final List<String> imageUrls;
   final String accessToken;
+  final ImmichAuthMethod authMethod;
   final bool requiresAuth;
   final BoxFit fit;
   final String? heroTag;
@@ -64,6 +67,7 @@ class _AuthenticatedAssetImageState extends State<AuthenticatedAssetImage> {
   void didUpdateWidget(covariant AuthenticatedAssetImage oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.accessToken != widget.accessToken ||
+        oldWidget.authMethod != widget.authMethod ||
         oldWidget.requiresAuth != widget.requiresAuth ||
         oldWidget.imageUrls.join('|') != widget.imageUrls.join('|')) {
       _resetImageState();
@@ -120,7 +124,10 @@ class _AuthenticatedAssetImageState extends State<AuthenticatedAssetImage> {
             image: Image.network(
               currentUrl,
               headers: widget.requiresAuth
-                  ? ImmichHeaders.mediaSessionToken(widget.accessToken)
+                  ? ImmichHeaders.mediaHeaders(
+                      token: widget.accessToken,
+                      authMethod: widget.authMethod,
+                    )
                   : null,
               fit: widget.fit,
               gaplessPlayback: true,
@@ -300,6 +307,7 @@ class _AuthenticatedAssetImageState extends State<AuthenticatedAssetImage> {
     Widget placeholder = AuthenticatedAssetImage(
       imageUrls: placeholderImageUrls,
       accessToken: widget.accessToken,
+      authMethod: widget.authMethod,
       requiresAuth: widget.requiresAuth,
       fit: widget.fit,
       borderRadius: widget.borderRadius,
@@ -364,7 +372,10 @@ class _AuthenticatedAssetImageState extends State<AuthenticatedAssetImage> {
       url,
       options: Options(
         headers: widget.requiresAuth
-            ? ImmichHeaders.mediaSessionToken(widget.accessToken)
+            ? ImmichHeaders.mediaHeaders(
+                token: widget.accessToken,
+                authMethod: widget.authMethod,
+              )
             : null,
         responseType: ResponseType.bytes,
       ),
