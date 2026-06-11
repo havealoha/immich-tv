@@ -472,25 +472,17 @@ class _PersonSummaryTileState extends State<_PersonSummaryTile> {
               SizedBox(width: scale.space(AppSpacing.md, min: 14, max: 16)),
               Expanded(
                 child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       widget.person.name,
-                      maxLines: 1,
+                      maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: theme.textTheme.titleLarge?.copyWith(
                         fontWeight: FontWeight.w800,
-                        fontSize: scale.text(22, min: 18, max: 22),
-                      ),
-                    ),
-                    SizedBox(
-                      height: scale.space(AppSpacing.xs, min: 6, max: 8),
-                    ),
-                    Text(
-                      '${widget.person.assetCount} assets',
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: AppColors.textSecondary,
-                        fontSize: scale.text(14, min: 12, max: 14),
+                        fontSize: scale.text(18, min: 15, max: 18),
+                        height: 1.2,
                       ),
                     ),
                   ],
