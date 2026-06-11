@@ -55,12 +55,39 @@ jobs:
           echo "build_number=${build_number}" >> "$GITHUB_OUTPUT"
           echo "apk_name=${apk_name}" >> "$GITHUB_OUTPUT"
 
+      - name: Detect release strategy
+        id: release_strategy
+        shell: bash
+        run: |
+          ref_type="${GITHUB_REF_TYPE}"
+          ref_name="${GITHUB_REF_NAME}"
+          version_name="${{ steps.version.outputs.version_name }}"
+          build_version="${{ steps.version.outputs.build_version }}"
+          version_tag="v${version_name}"
+          previous_version=""
+          version_changed="false"
+
+          if [[ "$ref_type" != "tag" ]] && git rev-parse HEAD^ >/dev/null 2>&1; then
+            previous_version="$(
+              git show HEAD^:pubspec.yaml 2>/dev/null | grep '^version:' | awk '{print $2}' || true
+            )"
+            if [[ -n "$previous_version" && "$previous_version" != "$build_version" ]]; then
+              version_changed="true"
+            fi
+          fi
+
+          echo "previous_version=${previous_version}" >> "$GITHUB_OUTPUT"
+          echo "version_changed=${version_changed}" >> "$GITHUB_OUTPUT"
+          echo "version_tag=${version_tag}" >> "$GITHUB_OUTPUT"
+
       - name: Resolve release metadata
         id: release_meta
         shell: bash
         run: |
           ref_type="${GITHUB_REF_TYPE}"
           ref_name="${GITHUB_REF_NAME}"
+          version_tag="${{ steps.release_strategy.outputs.version_tag }}"
+          version_changed="${{ steps.release_strategy.outputs.version_changed }}"
 
           if [[ "$ref_type" == "tag" ]]; then
             release_channel="versioned"
@@ -68,6 +95,14 @@ jobs:
             release_name="Immich TV ${ref_name}"
             prerelease="false"
             if [[ "$ref_name" == *"-"* ]]; then
+              prerelease="true"
+            fi
+          elif [[ "$ref_name" == "master" && "$version_changed" == "true" ]]; then
+            release_channel="versioned"
+            release_tag="$version_tag"
+            release_name="Immich TV ${version_tag}"
+            prerelease="false"
+            if [[ "$version_tag" == *"-"* ]]; then
               prerelease="true"
             fi
           else
@@ -97,6 +132,24 @@ jobs:
             echo "Tag ${GITHUB_REF_NAME} does not match pubspec version ${expected_tag}" >&2
             exit 1
           fi
+
+      - name: Create version tag for master release
+        if: github.ref_type != 'tag' && steps.release_meta.outputs.release_channel == 'versioned'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          release_tag="${{ steps.release_meta.outputs.release_tag }}"
+
+          if git ls-remote --exit-code --tags origin "refs/tags/${release_tag}" >/dev/null 2>&1; then
+            echo "Tag ${release_tag} already exists on origin"
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -a "${release_tag}" -m "Release ${release_tag}"
+          git push origin "refs/tags/${release_tag}"
 
       - name: Build release APK
         run: >
