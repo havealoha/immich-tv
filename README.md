@@ -10,52 +10,64 @@
   <img src="assets/png/appstore.png" alt="Immich TV App Store icon" width="88">
 </p>
 
-TV-first Immich client for browsing your self-hosted photo library from the couch.
+TV-first Immich client for browsing your self-hosted photo and video library from the couch.
 
-Immich TV is a read-focused Flutter app built for large screens and remote navigation. It connects to your existing Immich server and gives you a TV-friendly experience for timeline browsing, albums, favorites, fullscreen viewing, and ambient slideshow playback.
+Immich TV is a read-focused Flutter app built for large screens, remote navigation, and fullscreen playback. It connects to your existing Immich server and gives you a living-room experience designed for Android TV and Google TV first, while still supporting the wider Flutter platform matrix for development and validation.
 
 ## Website
 
-Open the live marketing site here:
-
 - https://immichtvapp.web.app/
+
+## Google Play
+
+- Play Store: https://play.google.com/store/apps/details?id=com.workwithafridi.immichtv
+- Public install milestone: `500+ downloads` on Google Play as of June 11, 2026
 
 ## Status
 
-This project is being prepared for open source and is actively evolving.
+Immich TV is actively evolving and already usable as a focused TV browsing client.
 
-Current focus areas:
+Current product direction:
 
 - Android TV / Google TV first
-- Remote-friendly navigation and focus behavior
-- Timeline browsing with year-based filtering
-- Fullscreen asset viewing for photos and videos
-- Slideshow playback with simple TV-first controls
+- Remote-first navigation and focus behavior
+- Read-only browsing and playback
+- Store-ready packaging and release polish
+- Better resilience for large libraries and degraded networks
 
 ## Features
 
 - Connect to an existing Immich server
-- Authenticate with your Immich account
+- Sign in with either your Immich login or an API token
+- Save profiles locally for fast re-entry on shared TV devices
 - Browse timeline assets in a TV-optimized layout
 - Jump between years from a horizontal year rail
-- Open albums and favorites
+- Open albums, people, and favorites
+- Browse person-specific media from the People tab
 - View photos and videos fullscreen
-- Start a slideshow directly from the asset viewer
-- Save profiles locally with PIN-based reopening
+- Start slideshow playback directly from the viewer
+- Use a layout tuned for TV remotes, keyboards, and pointer input
+- Switch between live server access and demo content for testing
+
+## Platform Focus
+
+- Primary target: Android TV and Google TV
+- Supported development targets: Android, web, Windows, macOS, and Linux
+- UX priority: large-screen readability, predictable focus movement, and simple playback controls
 
 ## Tech Stack
 
 - Flutter
-- BLoC for state management
-- Dio for API access
-- `video_player` for video playback
-- `flutter_secure_storage` and local persistence for saved sessions/profiles
+- Dart 3.11
+- `flutter_bloc`
+- Dio
+- `flutter_secure_storage`
+- `shared_preferences`
+- `video_player`
 
-## Project Goals
+## Current Version
 
-- Deliver a polished TV-native gallery experience for Immich users
-- Keep the initial product read-only and safe for home use
-- Prioritize smooth focus handling, large-screen readability, and simple playback flows
+- App version: `1.1.3+11`
 
 ## Getting Started
 
@@ -72,15 +84,16 @@ flutter pub get
 flutter run
 ```
 
-### Analyze
+### Quality checks
 
 ```bash
 flutter analyze
+flutter test
 ```
 
-### Demo Access
+## Demo Access
 
-Immich TV includes a built-in demo mode for testers.
+Immich TV includes a built-in demo mode for testing.
 
 Enter this exact server URL in the onboarding flow:
 
@@ -97,6 +110,18 @@ Password: demo1234
 
 Demo content is only triggered when that exact URL is entered.
 
+## Repository Map
+
+- `lib/main.dart`: app startup and image cache tuning
+- `lib/app.dart`: dependency wiring, theme setup, repository injection
+- `lib/src/app_shell.dart`: top-level flow between bootstrap, onboarding, profile picker, and home
+- `lib/src/core`: shared models, repositories, networking, services, and logging
+- `lib/src/features`: feature-specific UI, Cubits, and data implementations
+- `lib/src/shared`: shared presentation tokens, focus helpers, and reusable widgets
+- `lib/src/platform`: platform-aware persistence and media adapters
+- `test/`: widget and focused unit coverage
+- `docs/DEVELOPMENT_CHECKLIST.md`: roadmap and current execution slices
+
 ## Screens and Branding
 
 The repository includes packaged brand assets under `assets/png/`.
@@ -106,15 +131,13 @@ The repository includes packaged brand assets under `assets/png/`.
 - `playstore.png`
 - `appstore.png`
 
-These are used both in the app UI and in this repository presentation.
-
 ## Roadmap
 
-- More robust large-library timeline querying
-- Better TV-specific focus choreography
-- More viewer and slideshow polish
-- Platform packaging and store-ready metadata
-- Expanded testing around remote navigation flows
+- Measure and tune scroll smoothness on real TV hardware
+- Improve retry and degraded-network behavior
+- Expand remote-navigation and integration test coverage
+- Finish Android TV packaging and broader platform validation
+- Continue polishing releases, metadata, and store presentation
 
 ## Contributing
 
@@ -126,9 +149,8 @@ If you want to contribute:
 2. Create a feature branch
 3. Make your changes
 4. Run `flutter analyze`
-5. Open a pull request
-
-For larger ideas or architectural changes, opening an issue first is helpful.
+5. Run `flutter test`
+6. Open a pull request
 
 ## Disclaimer
 
