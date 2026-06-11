@@ -1,0 +1,27 @@
+changelog:
+  exclude:
+    labels:
+      - skip-release-notes
+  categories:
+    - title: Added
+      labels:
+        - feature
+        - enhancement
+        - new
+    - title: Improved
+      labels:
+        - improvement
+        - ui
+        - ux
+        - performance
+    - title: Fixed
+      labels:
+        - bug
+        - fix
+        - regression
+    - title: Internal
+      labels:
+        - chore
+        - ci
+        - infra
+        - dependencies
