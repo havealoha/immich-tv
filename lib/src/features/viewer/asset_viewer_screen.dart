@@ -7,6 +7,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:video_player/video_player.dart';
 
 import '../../core/models/asset_summary.dart';
+import '../../core/models/immich_auth_method.dart';
 import '../../core/network/immich_headers.dart';
 import '../../platform/auth/browser_session_bridge.dart';
 import '../../core/repositories/asset_image_repository.dart';
@@ -28,17 +29,20 @@ class AssetViewerScreen extends StatelessWidget {
     required this.assets,
     required this.initialIndex,
     required this.accessToken,
+    this.authMethod = ImmichAuthMethod.password,
   });
 
   final List<AssetSummary> assets;
   final int initialIndex;
   final String accessToken;
+  final ImmichAuthMethod authMethod;
 
   static Future<void> show(
     BuildContext context, {
     required List<AssetSummary> assets,
     required int initialIndex,
     required String accessToken,
+    ImmichAuthMethod authMethod = ImmichAuthMethod.password,
   }) {
     return Navigator.of(context).push(
       PageRouteBuilder<void>(
@@ -48,6 +52,7 @@ class AssetViewerScreen extends StatelessWidget {
               assets: assets,
               initialIndex: initialIndex,
               accessToken: accessToken,
+              authMethod: authMethod,
             ),
         transitionsBuilder: (context, animation, secondaryAnimation, child) {
           final curvedAnimation = CurvedAnimation(
@@ -73,15 +78,16 @@ class AssetViewerScreen extends StatelessWidget {
     return BlocProvider(
       create: (_) =>
           AssetViewerCubit(assets: assets, initialIndex: initialIndex),
-      child: _AssetViewerView(accessToken: accessToken),
+      child: _AssetViewerView(accessToken: accessToken, authMethod: authMethod),
     );
   }
 }
 
 class _AssetViewerView extends StatefulWidget {
-  const _AssetViewerView({required this.accessToken});
+  const _AssetViewerView({required this.accessToken, required this.authMethod});
 
   final String accessToken;
+  final ImmichAuthMethod authMethod;
 
   @override
   State<_AssetViewerView> createState() => _AssetViewerViewState();
@@ -268,6 +274,7 @@ class _AssetViewerViewState extends State<_AssetViewerView> {
                           return _ViewerPage(
                             asset: asset,
                             accessToken: widget.accessToken,
+                            authMethod: widget.authMethod,
                             fitMode: state.imageFitMode,
                             onRegisterVideoScrubberHandle:
                                 index == state.currentIndex
@@ -496,6 +503,7 @@ class _AssetViewerViewState extends State<_AssetViewerView> {
       context,
       assets: slideshowAssets,
       accessToken: widget.accessToken,
+      authMethod: widget.authMethod,
       initialDurationSeconds: durationSeconds,
       initialIndex: initialSlideshowIndex >= 0 ? initialSlideshowIndex : 0,
     );
@@ -716,6 +724,7 @@ class _AssetViewerViewState extends State<_AssetViewerView> {
     context.read<AssetImageRepository>().prefetchImages(
       urls: nearby,
       accessToken: widget.accessToken,
+      authMethod: widget.authMethod,
     );
   }
 

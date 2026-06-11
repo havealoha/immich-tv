@@ -6,6 +6,7 @@ import '../../../core/models/album_summary.dart';
 import '../../../core/models/authenticated_session.dart';
 import '../../../core/models/asset_summary.dart';
 import '../../../core/models/media_page.dart';
+import '../../../core/models/person_summary.dart';
 import '../../../core/network/immich_headers.dart';
 import '../../../core/repositories/media_repository.dart';
 import '../../mock/data/mock_media_repository.dart';
@@ -26,9 +27,7 @@ class ImmichMediaRepository implements MediaRepository {
 
     final response = await _dio.get<List<dynamic>>(
       session.serverConfig.apiEndpoint('albums').toString(),
-      options: Options(
-        headers: ImmichHeaders.sessionToken(session.accessToken),
-      ),
+      options: Options(headers: ImmichHeaders.sessionHeaders(session)),
     );
 
     final items = response.data ?? const [];
@@ -47,6 +46,34 @@ class ImmichMediaRepository implements MediaRepository {
         return a.name.toLowerCase().compareTo(b.name.toLowerCase());
       });
     return sortedAlbums;
+  }
+
+  @override
+  Future<List<PersonSummary>> fetchPeople(AuthenticatedSession session) async {
+    if (DemoMode.matchesServerUrl(session.serverConfig.serverUrl)) {
+      return _mockMediaRepository.fetchPeople(session);
+    }
+
+    final response = await _dio.get<dynamic>(
+      session.serverConfig.apiEndpoint('people').toString(),
+      options: Options(headers: ImmichHeaders.sessionHeaders(session)),
+    );
+
+    final items = _extractPeopleMaps(response.data);
+    final people = items
+        .map((item) => _mapPerson(item, session))
+        .whereType<PersonSummary>()
+        .toList(growable: false);
+    final sortedPeople = people.toList(growable: false)
+      ..sort((a, b) {
+        final assetCountCompare = b.assetCount.compareTo(a.assetCount);
+        if (assetCountCompare != 0) {
+          return assetCountCompare;
+        }
+
+        return a.name.toLowerCase().compareTo(b.name.toLowerCase());
+      });
+    return sortedPeople;
   }
 
   @override
@@ -76,7 +103,55 @@ class ImmichMediaRepository implements MediaRepository {
       },
       options: Options(
         headers: {
-          ...ImmichHeaders.sessionToken(session.accessToken),
+          ...ImmichHeaders.sessionHeaders(session),
+          'Content-Type': 'application/json',
+        },
+      ),
+    );
+
+    final items = _extractAssetMaps(response.data);
+    return MediaPage(
+      items: items
+          .map((item) => _mapAsset(item, session))
+          .whereType<AssetSummary>()
+          .toList(growable: false),
+      nextPage: _extractCountBasedNextPage(
+        response.data,
+        currentPage: pageNumber,
+        pageSize: pageSize,
+        currentItemCount: items.length,
+      ),
+    );
+  }
+
+  @override
+  Future<MediaPage<AssetSummary>> fetchPersonAssetsPage(
+    AuthenticatedSession session, {
+    required String personId,
+    String? page,
+    int pageSize = 120,
+  }) async {
+    if (DemoMode.matchesServerUrl(session.serverConfig.serverUrl)) {
+      return _mockMediaRepository.fetchPersonAssetsPage(
+        session,
+        personId: personId,
+        page: page,
+        pageSize: pageSize,
+      );
+    }
+
+    final pageNumber = int.tryParse(page ?? '1') ?? 1;
+    final response = await _dio.post<dynamic>(
+      session.serverConfig.apiEndpoint('search/metadata').toString(),
+      data: {
+        'personIds': [personId],
+        'page': pageNumber,
+        'size': pageSize,
+        'withArchived': false,
+      },
+      options: Options(
+        headers: {
+          ...ImmichHeaders.sessionHeaders(session),
           'Content-Type': 'application/json',
         },
       ),
@@ -126,7 +201,7 @@ class ImmichMediaRepository implements MediaRepository {
       data: requestBody,
       options: Options(
         headers: {
-          ...ImmichHeaders.sessionToken(session.accessToken),
+          ...ImmichHeaders.sessionHeaders(session),
           'Content-Type': 'application/json',
         },
       ),
@@ -175,13 +250,13 @@ class ImmichMediaRepository implements MediaRepository {
       return searchTimeline;
     }
 
-      logger.warning(
-        'Timeline search returned no assets, falling back to timeline bucket API',
-      );
-      if (year != null) {
-        return const MediaPage(items: []);
-      }
-      final headers = ImmichHeaders.sessionToken(session.accessToken);
+    logger.warning(
+      'Timeline search returned no assets, falling back to timeline bucket API',
+    );
+    if (year != null) {
+      return const MediaPage(items: []);
+    }
+    final headers = ImmichHeaders.sessionHeaders(session);
 
     final bucketCandidates = [
       {
@@ -274,7 +349,7 @@ class ImmichMediaRepository implements MediaRepository {
         data: requestBody,
         options: Options(
           headers: {
-            ...ImmichHeaders.sessionToken(session.accessToken),
+            ...ImmichHeaders.sessionHeaders(session),
             'Content-Type': 'application/json',
           },
         ),
@@ -392,6 +467,31 @@ class ImmichMediaRepository implements MediaRepository {
     return const [];
   }
 
+  List<Map<String, dynamic>> _extractPeopleMaps(dynamic payload) {
+    if (payload is List) {
+      return payload.whereType<Map<String, dynamic>>().toList(growable: false);
+    }
+
+    if (payload is Map<String, dynamic>) {
+      final candidates = <dynamic>[
+        payload['people'],
+        payload['items'],
+        payload['results'],
+        payload['data'],
+      ];
+
+      for (final nested in candidates) {
+        if (nested is List) {
+          return nested.whereType<Map<String, dynamic>>().toList(
+            growable: false,
+          );
+        }
+      }
+    }
+
+    return const [];
+  }
+
   AlbumSummary? _mapAlbum(Map<String, dynamic> item) {
     final id = item['id'] as String?;
     final name = (item['albumName'] ?? item['name'] ?? item['title'])
@@ -406,6 +506,38 @@ class ImmichMediaRepository implements MediaRepository {
         : int.tryParse(assetCountValue?.toString() ?? '') ?? 0;
 
     return AlbumSummary(id: id, name: name, assetCount: assetCount);
+  }
+
+  PersonSummary? _mapPerson(
+    Map<String, dynamic> item,
+    AuthenticatedSession session,
+  ) {
+    final id = item['id'] as String?;
+    final rawName = (item['name'] ?? item['personName'] ?? item['title'])
+        ?.toString()
+        .trim();
+    if (id == null || id.isEmpty) {
+      return null;
+    }
+
+    final assetCountValue =
+        item['assetCount'] ?? item['assetsCount'] ?? item['photoCount'];
+    final assetCount = assetCountValue is int
+        ? assetCountValue
+        : int.tryParse(assetCountValue?.toString() ?? '') ?? 0;
+
+    final name = (rawName == null || rawName.isEmpty)
+        ? 'Unnamed person'
+        : rawName;
+
+    return PersonSummary(
+      id: id,
+      name: name,
+      assetCount: assetCount,
+      thumbnailUrls: [
+        session.serverConfig.apiEndpoint('people/$id/thumbnail').toString(),
+      ],
+    );
   }
 
   AssetSummary? _mapAsset(

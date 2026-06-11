@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:immichtv/src/core/config/demo_mode.dart';
+import 'package:immichtv/src/core/models/immich_auth_method.dart';
 import 'package:immichtv/src/core/models/saved_profile.dart';
 import 'package:immichtv/src/core/models/saved_profile_secret.dart';
 import 'package:immichtv/src/core/models/server_config.dart';
@@ -10,43 +11,46 @@ import 'package:immichtv/src/platform/storage/profile_storage.dart';
 import 'package:immichtv/src/features/auth/data/immich_auth_repository.dart';
 
 void main() {
-  test('saved demo profiles unlock through mock auth without remote login', () async {
-    final profileStorage = _InMemoryProfileStorage(
-      profiles: [
-        SavedProfile(
-          id: 'demo-profile',
-          name: 'Demo User',
-          email: DemoMode.email,
-          serverConfig: ServerConfig(
-            rawInput: DemoMode.serverUrl,
-            serverUrl: Uri.parse(DemoMode.serverUrl),
-            apiUrl: Uri.parse('${DemoMode.serverUrl}/api'),
+  test(
+    'saved demo profiles unlock through mock auth without remote login',
+    () async {
+      final profileStorage = _InMemoryProfileStorage(
+        profiles: [
+          SavedProfile(
+            id: 'demo-profile',
+            name: 'Demo User',
+            email: DemoMode.email,
+            serverConfig: ServerConfig(
+              rawInput: DemoMode.serverUrl,
+              serverUrl: Uri.parse(DemoMode.serverUrl),
+              apiUrl: Uri.parse('${DemoMode.serverUrl}/api'),
+            ),
+            lastUsedAt: DateTime(2026),
           ),
-          lastUsedAt: DateTime(2026),
-        ),
-      ],
-      secrets: const {
-        'demo-profile': SavedProfileSecret(
-          password: DemoMode.password,
-          pin: '1234',
-        ),
-      },
-    );
-    final dio = Dio()..httpClientAdapter = _ThrowingHttpClientAdapter();
-    final repository = ImmichAuthRepository(
-      dio: dio,
-      profileStorage: profileStorage,
-    );
+        ],
+        secrets: const {
+          'demo-profile': SavedProfileSecret(
+            password: DemoMode.password,
+            pin: '1234',
+          ),
+        },
+      );
+      final dio = Dio()..httpClientAdapter = _ThrowingHttpClientAdapter();
+      final repository = ImmichAuthRepository(
+        dio: dio,
+        profileStorage: profileStorage,
+      );
 
-    final session = await repository.signInWithSavedProfile(
-      profileId: 'demo-profile',
-      pin: '1234',
-    );
+      final session = await repository.signInWithSavedProfile(
+        profileId: 'demo-profile',
+        pin: '1234',
+      );
 
-    expect(session.user.email, DemoMode.email);
-    expect(session.serverConfig.serverUrl.toString(), DemoMode.serverUrl);
-    expect(session.accessToken, startsWith('mock-token-'));
-  });
+      expect(session.user.email, DemoMode.email);
+      expect(session.serverConfig.serverUrl.toString(), DemoMode.serverUrl);
+      expect(session.accessToken, startsWith('mock-token-'));
+    },
+  );
 
   test('saved real profiles still use remote login', () async {
     final serverConfig = ServerConfig(
@@ -74,24 +78,26 @@ void main() {
     final dio = Dio()
       ..httpClientAdapter = _RecordingHttpClientAdapter(
         responses: {
-          'POST https://photos.example.com/api/auth/login': ResponseBody.fromString(
-            jsonEncode({'accessToken': 'remote-token'}),
-            200,
-            headers: {
-              Headers.contentTypeHeader: ['application/json'],
-            },
-          ),
-          'GET https://photos.example.com/api/users/me': ResponseBody.fromString(
-            jsonEncode({
-              'id': 'remote-user',
-              'email': 'family@example.com',
-              'name': 'Family Room',
-            }),
-            200,
-            headers: {
-              Headers.contentTypeHeader: ['application/json'],
-            },
-          ),
+          'POST https://photos.example.com/api/auth/login':
+              ResponseBody.fromString(
+                jsonEncode({'accessToken': 'remote-token'}),
+                200,
+                headers: {
+                  Headers.contentTypeHeader: ['application/json'],
+                },
+              ),
+          'GET https://photos.example.com/api/users/me':
+              ResponseBody.fromString(
+                jsonEncode({
+                  'id': 'remote-user',
+                  'email': 'family@example.com',
+                  'name': 'Family Room',
+                }),
+                200,
+                headers: {
+                  Headers.contentTypeHeader: ['application/json'],
+                },
+              ),
         },
       );
     final repository = ImmichAuthRepository(
@@ -114,6 +120,68 @@ void main() {
       ]),
     );
   });
+
+  test(
+    'saved API key profiles re-authenticate through users/me only',
+    () async {
+      final serverConfig = ServerConfig(
+        rawInput: 'https://photos.example.com',
+        serverUrl: Uri.parse('https://photos.example.com'),
+        apiUrl: Uri.parse('https://photos.example.com/api'),
+      );
+      final profileStorage = _InMemoryProfileStorage(
+        profiles: [
+          SavedProfile(
+            id: 'api-profile',
+            name: 'API Living Room',
+            email: 'apikey@example.com',
+            serverConfig: serverConfig,
+            lastUsedAt: DateTime(2026),
+            authMethod: ImmichAuthMethod.apiKey,
+          ),
+        ],
+        secrets: const {
+          'api-profile': SavedProfileSecret(
+            apiKey: 'personal-api-key',
+            pin: '1234',
+          ),
+        },
+      );
+      final dio = Dio()
+        ..httpClientAdapter = _RecordingHttpClientAdapter(
+          responses: {
+            'GET https://photos.example.com/api/users/me':
+                ResponseBody.fromString(
+                  jsonEncode({
+                    'id': 'api-user',
+                    'email': 'apikey@example.com',
+                    'name': 'API Living Room',
+                  }),
+                  200,
+                  headers: {
+                    Headers.contentTypeHeader: ['application/json'],
+                  },
+                ),
+          },
+        );
+      final repository = ImmichAuthRepository(
+        dio: dio,
+        profileStorage: profileStorage,
+      );
+
+      final session = await repository.signInWithSavedProfile(
+        profileId: 'api-profile',
+        pin: '1234',
+      );
+
+      expect(session.accessToken, 'personal-api-key');
+      expect(session.authMethod, ImmichAuthMethod.apiKey);
+      expect(
+        (dio.httpClientAdapter as _RecordingHttpClientAdapter).requests,
+        equals(<String>['GET https://photos.example.com/api/users/me']),
+      );
+    },
+  );
 }
 
 class _InMemoryProfileStorage implements ProfileStorage {
@@ -127,10 +195,12 @@ class _InMemoryProfileStorage implements ProfileStorage {
   final Map<String, SavedProfileSecret> _secrets;
 
   @override
-  Future<List<SavedProfile>> readProfiles() async => List<SavedProfile>.from(_profiles);
+  Future<List<SavedProfile>> readProfiles() async =>
+      List<SavedProfile>.from(_profiles);
 
   @override
-  Future<SavedProfileSecret?> readProfileSecret(String profileId) async => _secrets[profileId];
+  Future<SavedProfileSecret?> readProfileSecret(String profileId) async =>
+      _secrets[profileId];
 
   @override
   Future<void> saveProfile(SavedProfile profile) async {
@@ -161,7 +231,9 @@ class _ThrowingHttpClientAdapter implements HttpClientAdapter {
     Stream<List<int>>? requestStream,
     Future<void>? cancelFuture,
   ) {
-    throw StateError('Unexpected network request: ${options.method} ${options.uri}');
+    throw StateError(
+      'Unexpected network request: ${options.method} ${options.uri}',
+    );
   }
 }
 

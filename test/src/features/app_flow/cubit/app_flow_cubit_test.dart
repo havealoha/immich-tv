@@ -32,7 +32,9 @@ void main() {
       cubit.showOnboarding();
       repository.savedProfiles = [primaryProfile, addedProfile];
 
-      await cubit.completeSignIn(_session(email: addedProfile.email, name: addedProfile.name));
+      await cubit.completeSignIn(
+        _session(email: addedProfile.email, name: addedProfile.name),
+      );
 
       expect(cubit.state.stage, AppStage.home);
       expect(cubit.state.profiles, [primaryProfile, addedProfile]);
@@ -52,7 +54,8 @@ class _FakeAuthRepository implements AuthRepository {
   @override
   Future<void> saveProfile({
     required AuthenticatedSession session,
-    required String password,
+    String? password,
+    String? apiKey,
     required String pin,
   }) async {}
 
@@ -64,6 +67,12 @@ class _FakeAuthRepository implements AuthRepository {
   }) async => _session(email: email, name: email);
 
   @override
+  Future<AuthenticatedSession> signInWithApiKey({
+    required ServerConfig serverConfig,
+    required String apiKey,
+  }) async => _session(email: 'apikey@example.com', name: 'API Key');
+
+  @override
   Future<AuthenticatedSession> signInWithSavedProfile({
     required String profileId,
     required String pin,
@@ -73,10 +82,7 @@ class _FakeAuthRepository implements AuthRepository {
   Future<void> signOut() async {}
 }
 
-AuthenticatedSession _session({
-  required String email,
-  required String name,
-}) {
+AuthenticatedSession _session({required String email, required String name}) {
   final serverConfig = ServerConfig(
     rawInput: 'https://photos.example.com',
     serverUrl: Uri.parse('https://photos.example.com'),

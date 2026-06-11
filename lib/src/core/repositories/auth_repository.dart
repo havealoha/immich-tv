@@ -9,11 +9,17 @@ abstract class AuthRepository {
     required String password,
   });
 
+  Future<AuthenticatedSession> signInWithApiKey({
+    required ServerConfig serverConfig,
+    required String apiKey,
+  });
+
   Future<List<SavedProfile>> getSavedProfiles();
 
   Future<void> saveProfile({
     required AuthenticatedSession session,
-    required String password,
+    String? password,
+    String? apiKey,
     required String pin,
   });
 

@@ -8,6 +8,7 @@ import '../../core/errors/app_exception.dart';
 import '../../core/models/album_summary.dart';
 import '../../core/models/asset_summary.dart';
 import '../../core/models/authenticated_session.dart';
+import '../../core/models/person_summary.dart';
 import '../../core/repositories/asset_image_repository.dart';
 import '../../core/repositories/media_repository.dart';
 import '../../shared/presentation/app_breakpoints.dart';
@@ -27,6 +28,7 @@ import '../viewer/asset_viewer_screen.dart';
 
 part 'home_sections.part.dart';
 part 'home_albums.part.dart';
+part 'home_people.part.dart';
 part 'home_shared.part.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -43,6 +45,7 @@ class _HomeScreenState extends State<HomeScreen> {
   late final List<FocusNode> _drawerFocusNodes;
   late final FocusNode _timelineContentFocusNode;
   late final FocusNode _albumsContentFocusNode;
+  late final FocusNode _peopleContentFocusNode;
   late final FocusNode _favoritesContentFocusNode;
   bool _isSidebarOpen = false;
 
@@ -51,11 +54,12 @@ class _HomeScreenState extends State<HomeScreen> {
     super.initState();
     _menuToggleFocusNode = FocusNode(debugLabel: 'home-menu-toggle');
     _drawerFocusNodes = List<FocusNode>.generate(
-      5,
+      6,
       (index) => FocusNode(debugLabel: 'home-drawer-$index'),
     );
     _timelineContentFocusNode = FocusNode(debugLabel: 'home-timeline-content');
     _albumsContentFocusNode = FocusNode(debugLabel: 'home-albums-content');
+    _peopleContentFocusNode = FocusNode(debugLabel: 'home-people-content');
     _favoritesContentFocusNode = FocusNode(
       debugLabel: 'home-favorites-content',
     );
@@ -69,6 +73,7 @@ class _HomeScreenState extends State<HomeScreen> {
     }
     _timelineContentFocusNode.dispose();
     _albumsContentFocusNode.dispose();
+    _peopleContentFocusNode.dispose();
     _favoritesContentFocusNode.dispose();
     super.dispose();
   }
@@ -101,7 +106,8 @@ class _HomeScreenState extends State<HomeScreen> {
       focusIndex: switch (tab) {
         LibraryTab.timeline => 0,
         LibraryTab.albums => 1,
-        LibraryTab.favorites => 2,
+        LibraryTab.people => 2,
+        LibraryTab.favorites => 3,
       },
     );
   }
@@ -131,6 +137,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final focusNode = switch (tab) {
       LibraryTab.timeline => _timelineContentFocusNode,
       LibraryTab.albums => _albumsContentFocusNode,
+      LibraryTab.people => _peopleContentFocusNode,
       LibraryTab.favorites => _favoritesContentFocusNode,
     };
 
@@ -170,6 +177,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           menuToggleFocusNode: _menuToggleFocusNode,
                           timelineContentFocusNode: _timelineContentFocusNode,
                           albumsContentFocusNode: _albumsContentFocusNode,
+                          peopleContentFocusNode: _peopleContentFocusNode,
                           favoritesContentFocusNode: _favoritesContentFocusNode,
                           onToggleSidebar: _toggleSidebar,
                           onOpenSidebarForTab: _openSidebarForTab,
@@ -341,6 +349,25 @@ class _Sidebar extends StatelessWidget {
                         height: scale.space(AppSpacing.xs, min: 8, max: 8),
                       ),
                       _SidebarMenuButton(
+                        label: 'People',
+                        subtitle: 'Faces and memories',
+                        icon: Icons.people_outline_rounded,
+                        isSelected: state.selectedTab == LibraryTab.people,
+                        onPressed: () {
+                          context.read<LibraryCubit>().selectTab(
+                            LibraryTab.people,
+                          );
+                          onCloseSidebar(
+                            focusMenuToggle: false,
+                            focusContentTab: LibraryTab.people,
+                          );
+                        },
+                        focusNode: focusNodes[2],
+                      ),
+                      SizedBox(
+                        height: scale.space(AppSpacing.xs, min: 8, max: 8),
+                      ),
+                      _SidebarMenuButton(
                         label: 'Favorites',
                         subtitle: 'Saved highlights',
                         icon: Icons.favorite_border,
@@ -354,7 +381,7 @@ class _Sidebar extends StatelessWidget {
                             focusContentTab: LibraryTab.favorites,
                           );
                         },
-                        focusNode: focusNodes[2],
+                        focusNode: focusNodes[3],
                       ),
                     ],
                   ),
@@ -364,7 +391,7 @@ class _Sidebar extends StatelessWidget {
               _SidebarActionButton(
                 icon: Icons.switch_account_rounded,
                 label: 'Switch user',
-                focusNode: focusNodes[3],
+                focusNode: focusNodes[4],
                 onPressed: () =>
                     context.read<AppFlowCubit>().showProfilePicker(),
               ),
@@ -372,7 +399,7 @@ class _Sidebar extends StatelessWidget {
               _SidebarActionButton(
                 icon: Icons.logout_rounded,
                 label: 'Sign out',
-                focusNode: focusNodes[4],
+                focusNode: focusNodes[5],
                 onPressed: () => context.read<AppFlowCubit>().signOut(),
               ),
             ],
@@ -626,6 +653,7 @@ class _ContentPane extends StatelessWidget {
     required this.menuToggleFocusNode,
     required this.timelineContentFocusNode,
     required this.albumsContentFocusNode,
+    required this.peopleContentFocusNode,
     required this.favoritesContentFocusNode,
     required this.onToggleSidebar,
     required this.onOpenSidebarForTab,
@@ -637,6 +665,7 @@ class _ContentPane extends StatelessWidget {
   final FocusNode menuToggleFocusNode;
   final FocusNode timelineContentFocusNode;
   final FocusNode albumsContentFocusNode;
+  final FocusNode peopleContentFocusNode;
   final FocusNode favoritesContentFocusNode;
   final VoidCallback onToggleSidebar;
   final ValueChanged<LibraryTab> onOpenSidebarForTab;
@@ -669,6 +698,7 @@ class _ContentPane extends StatelessWidget {
             menuToggleFocusNode: menuToggleFocusNode,
             timelineContentFocusNode: timelineContentFocusNode,
             albumsContentFocusNode: albumsContentFocusNode,
+            peopleContentFocusNode: peopleContentFocusNode,
             favoritesContentFocusNode: favoritesContentFocusNode,
             onToggleSidebar: onToggleSidebar,
             onOpenSidebarForTab: onOpenSidebarForTab,
@@ -750,6 +780,7 @@ class _LibraryContent extends StatelessWidget {
     required this.menuToggleFocusNode,
     required this.timelineContentFocusNode,
     required this.albumsContentFocusNode,
+    required this.peopleContentFocusNode,
     required this.favoritesContentFocusNode,
     required this.onToggleSidebar,
     required this.onOpenSidebarForTab,
@@ -761,6 +792,7 @@ class _LibraryContent extends StatelessWidget {
   final FocusNode menuToggleFocusNode;
   final FocusNode timelineContentFocusNode;
   final FocusNode albumsContentFocusNode;
+  final FocusNode peopleContentFocusNode;
   final FocusNode favoritesContentFocusNode;
   final VoidCallback onToggleSidebar;
   final ValueChanged<LibraryTab> onOpenSidebarForTab;
@@ -794,6 +826,17 @@ class _LibraryContent extends StatelessWidget {
         primaryContentFocusNode: albumsContentFocusNode,
         onToggleSidebar: onToggleSidebar,
         onOpenSidebar: () => onOpenSidebarForTab(LibraryTab.albums),
+      ),
+      LibraryTab.people => _PeopleSectionView(
+        session: session,
+        status: state.status,
+        errorMessage: state.errorMessage,
+        people: state.people,
+        isSidebarOpen: isSidebarOpen,
+        menuToggleFocusNode: menuToggleFocusNode,
+        primaryContentFocusNode: peopleContentFocusNode,
+        onToggleSidebar: onToggleSidebar,
+        onOpenSidebar: () => onOpenSidebarForTab(LibraryTab.people),
       ),
       LibraryTab.favorites => _AssetSectionView(
         session: session,

@@ -3,6 +3,7 @@ import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
 
+import '../../core/models/immich_auth_method.dart';
 import '../../core/network/immich_dio_factory.dart';
 import '../../core/network/immich_headers.dart';
 import 'browser_blob_url.dart';
@@ -10,7 +11,8 @@ import 'browser_blob_url.dart';
 class WebAuthenticatedVideoCache {
   WebAuthenticatedVideoCache._();
 
-  static final WebAuthenticatedVideoCache instance = WebAuthenticatedVideoCache._();
+  static final WebAuthenticatedVideoCache instance =
+      WebAuthenticatedVideoCache._();
 
   static const int _maxEntries = 4;
 
@@ -21,9 +23,10 @@ class WebAuthenticatedVideoCache {
   Future<String> getObjectUrl({
     required String sourceUrl,
     required String accessToken,
+    required ImmichAuthMethod authMethod,
     void Function(int received, int total)? onReceiveProgress,
   }) {
-    final key = _cacheKey(sourceUrl, accessToken);
+    final key = _cacheKey(sourceUrl, accessToken, authMethod);
     final cached = _cache[key];
     if (cached != null) {
       cached.lastAccessedAt = DateTime.now();
@@ -39,6 +42,7 @@ class WebAuthenticatedVideoCache {
     final request = _downloadObjectUrl(
       sourceUrl: sourceUrl,
       accessToken: accessToken,
+      authMethod: authMethod,
       onReceiveProgress: onReceiveProgress,
     );
     _inFlight[key] = request;
@@ -57,12 +61,16 @@ class WebAuthenticatedVideoCache {
   Future<String> _downloadObjectUrl({
     required String sourceUrl,
     required String accessToken,
+    required ImmichAuthMethod authMethod,
     void Function(int received, int total)? onReceiveProgress,
   }) async {
     final response = await _dio.get<List<int>>(
       sourceUrl,
       options: Options(
-        headers: ImmichHeaders.mediaSessionToken(accessToken),
+        headers: ImmichHeaders.mediaHeaders(
+          token: accessToken,
+          authMethod: authMethod,
+        ),
         responseType: ResponseType.bytes,
       ),
       onReceiveProgress: onReceiveProgress,
@@ -73,9 +81,14 @@ class WebAuthenticatedVideoCache {
       throw const FormatException('No video bytes returned.');
     }
 
-    final mimeType = response.headers.value(Headers.contentTypeHeader) ?? inferVideoMimeType(sourceUrl);
-    final objectUrl = createBrowserBlobUrl(Uint8List.fromList(data), mimeType: mimeType);
-    _cache[_cacheKey(sourceUrl, accessToken)] = _CachedWebVideo(
+    final mimeType =
+        response.headers.value(Headers.contentTypeHeader) ??
+        inferVideoMimeType(sourceUrl);
+    final objectUrl = createBrowserBlobUrl(
+      Uint8List.fromList(data),
+      mimeType: mimeType,
+    );
+    _cache[_cacheKey(sourceUrl, accessToken, authMethod)] = _CachedWebVideo(
       objectUrl: objectUrl,
       byteLength: data.length,
       lastAccessedAt: DateTime.now(),
@@ -90,7 +103,10 @@ class WebAuthenticatedVideoCache {
     }
 
     final entries = _cache.entries.toList()
-      ..sort((left, right) => left.value.lastAccessedAt.compareTo(right.value.lastAccessedAt));
+      ..sort(
+        (left, right) =>
+            left.value.lastAccessedAt.compareTo(right.value.lastAccessedAt),
+      );
 
     while (_cache.length > _maxEntries && entries.isNotEmpty) {
       final oldest = entries.removeAt(0);
@@ -101,7 +117,11 @@ class WebAuthenticatedVideoCache {
     }
   }
 
-  String _cacheKey(String sourceUrl, String accessToken) => '$sourceUrl::$accessToken';
+  String _cacheKey(
+    String sourceUrl,
+    String accessToken,
+    ImmichAuthMethod authMethod,
+  ) => '$sourceUrl::$accessToken::${authMethod.storageValue}';
 }
 
 class _CachedWebVideo {

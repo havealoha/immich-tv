@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import '../../../core/errors/app_exception.dart';
 import '../../../core/models/authenticated_session.dart';
+import '../../../core/models/immich_auth_method.dart';
 import '../../../core/models/saved_profile.dart';
 import '../../../core/models/saved_profile_secret.dart';
 import '../../../core/models/server_config.dart';
@@ -39,6 +40,34 @@ class MockAuthRepository implements AuthRepository {
         email: trimmedEmail,
         name: _displayNameFromEmail(trimmedEmail),
       ),
+      authMethod: ImmichAuthMethod.password,
+    );
+  }
+
+  @override
+  Future<AuthenticatedSession> signInWithApiKey({
+    required ServerConfig serverConfig,
+    required String apiKey,
+  }) async {
+    await Future<void>.delayed(const Duration(milliseconds: 360));
+
+    final trimmedApiKey = apiKey.trim();
+    if (trimmedApiKey.isEmpty) {
+      throw const AppException(
+        'Enter an API key to continue in demo mode.',
+        code: 'mock_missing_api_key',
+      );
+    }
+
+    return AuthenticatedSession(
+      serverConfig: serverConfig,
+      accessToken: trimmedApiKey,
+      user: const UserProfile(
+        id: 'mock-api-user',
+        email: 'apikey@demo.immich',
+        name: 'API Key User',
+      ),
+      authMethod: ImmichAuthMethod.apiKey,
     );
   }
 
@@ -51,7 +80,8 @@ class MockAuthRepository implements AuthRepository {
   @override
   Future<void> saveProfile({
     required AuthenticatedSession session,
-    required String password,
+    String? password,
+    String? apiKey,
     required String pin,
   }) async {
     _validatePin(pin);
@@ -59,7 +89,7 @@ class MockAuthRepository implements AuthRepository {
     await _profileStorage.saveProfile(profile);
     await _profileStorage.saveProfileSecret(
       profileId: profile.id,
-      secret: SavedProfileSecret(password: password, pin: pin),
+      secret: SavedProfileSecret(password: password, apiKey: apiKey, pin: pin),
     );
   }
 
@@ -102,11 +132,17 @@ class MockAuthRepository implements AuthRepository {
       );
     }
 
-    final session = await signIn(
-      serverConfig: profile.serverConfig,
-      email: profile.email,
-      password: secret.password,
-    );
+    final session = switch (profile.authMethod) {
+      ImmichAuthMethod.password => await signIn(
+        serverConfig: profile.serverConfig,
+        email: profile.email,
+        password: secret.password ?? '',
+      ),
+      ImmichAuthMethod.apiKey => await signInWithApiKey(
+        serverConfig: profile.serverConfig,
+        apiKey: secret.apiKey ?? '',
+      ),
+    };
     await _profileStorage.saveProfile(_savedProfileFromSession(session));
     return session;
   }
@@ -138,6 +174,7 @@ class MockAuthRepository implements AuthRepository {
       email: session.user.email,
       serverConfig: session.serverConfig,
       lastUsedAt: DateTime.now(),
+      authMethod: session.authMethod,
     );
   }
 

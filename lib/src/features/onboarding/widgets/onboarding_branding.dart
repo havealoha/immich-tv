@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/models/immich_auth_method.dart';
 import '../../../shared/presentation/app_breakpoints.dart';
 import '../../../shared/presentation/app_colors.dart';
 import '../../../shared/presentation/app_scale.dart';
@@ -23,8 +24,14 @@ class OnboardingBranding extends StatelessWidget {
     final description = switch (state.step) {
       OnboardingStep.server =>
         'Enter your Immich Server URL to connect this TV and continue to sign in.',
-      OnboardingStep.credentials =>
-        'Your server is ready. Enter your Immich account email and password to continue.',
+      OnboardingStep.authMethod =>
+        'Choose whether this profile should sign in with your Immich account password or connect using a personal API key.',
+      OnboardingStep.credentials => switch (state.authMethod) {
+        ImmichAuthMethod.password =>
+          'Your server is ready. Enter your Immich account email and password to continue.',
+        ImmichAuthMethod.apiKey =>
+          'Your server is ready. Paste your personal Immich API key to continue.',
+      },
       OnboardingStep.pin =>
         'Set a 4-digit PIN so this profile can be reopened quickly on future launches.',
     };
@@ -34,11 +41,7 @@ class OnboardingBranding extends StatelessWidget {
       children: [
         Image.asset(
           'assets/png/tv-banner-icon.png',
-          width: scale.sizeOf(
-            isTvLayout ? 420 : 320,
-            min: 220,
-            max: 440,
-          ),
+          width: scale.sizeOf(isTvLayout ? 420 : 320, min: 220, max: 440),
           fit: BoxFit.contain,
         ),
         SizedBox(height: scale.space(12, min: 10, max: 16)),

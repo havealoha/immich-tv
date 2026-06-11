@@ -1,11 +1,11 @@
 part of 'home_screen.dart';
 
-class _AlbumSectionView extends StatelessWidget {
-  const _AlbumSectionView({
+class _PeopleSectionView extends StatelessWidget {
+  const _PeopleSectionView({
     required this.session,
     required this.status,
     required this.errorMessage,
-    required this.albums,
+    required this.people,
     required this.isSidebarOpen,
     required this.menuToggleFocusNode,
     required this.primaryContentFocusNode,
@@ -16,7 +16,7 @@ class _AlbumSectionView extends StatelessWidget {
   final AuthenticatedSession session;
   final LibraryLoadStatus status;
   final String? errorMessage;
-  final List<AlbumSummary> albums;
+  final List<PersonSummary> people;
   final bool isSidebarOpen;
   final FocusNode menuToggleFocusNode;
   final FocusNode primaryContentFocusNode;
@@ -26,15 +26,15 @@ class _AlbumSectionView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return _SectionFrame(
-      title: 'Albums',
+      title: 'People',
       isSidebarOpen: isSidebarOpen,
       menuToggleFocusNode: menuToggleFocusNode,
       onToggleSidebar: onToggleSidebar,
-      child: _AlbumBrowser(
+      child: _PeopleBrowser(
         session: session,
         status: status,
         errorMessage: errorMessage,
-        albums: albums,
+        people: people,
         primaryContentFocusNode: primaryContentFocusNode,
         onOpenSidebar: onOpenSidebar,
       ),
@@ -42,12 +42,12 @@ class _AlbumSectionView extends StatelessWidget {
   }
 }
 
-class _AlbumBrowser extends StatefulWidget {
-  const _AlbumBrowser({
+class _PeopleBrowser extends StatefulWidget {
+  const _PeopleBrowser({
     required this.session,
     required this.status,
     required this.errorMessage,
-    required this.albums,
+    required this.people,
     required this.primaryContentFocusNode,
     required this.onOpenSidebar,
   });
@@ -55,63 +55,66 @@ class _AlbumBrowser extends StatefulWidget {
   final AuthenticatedSession session;
   final LibraryLoadStatus status;
   final String? errorMessage;
-  final List<AlbumSummary> albums;
+  final List<PersonSummary> people;
   final FocusNode primaryContentFocusNode;
   final VoidCallback onOpenSidebar;
 
   @override
-  State<_AlbumBrowser> createState() => _AlbumBrowserState();
+  State<_PeopleBrowser> createState() => _PeopleBrowserState();
 }
 
-class _AlbumBrowserState extends State<_AlbumBrowser> {
-  static const _albumRefreshInterval = Duration(minutes: 1);
+class _PeopleBrowserState extends State<_PeopleBrowser> {
+  static const _personRefreshInterval = Duration(minutes: 1);
 
-  final FocusNode _selectedAlbumFocusNode = FocusNode(
-    debugLabel: 'albums.selected-album',
+  final FocusNode _selectedPersonFocusNode = FocusNode(
+    debugLabel: 'people.selected-person',
   );
-  AlbumSummary? _selectedAlbum;
-  List<AssetSummary> _albumAssets = const [];
-  String? _albumAssetsNextPage;
-  bool _isLoadingAlbumAssets = false;
-  String? _albumAssetsError;
-  Timer? _albumRefreshTimer;
+  PersonSummary? _selectedPerson;
+  List<AssetSummary> _personAssets = const [];
+  String? _personAssetsNextPage;
+  bool _isLoadingPersonAssets = false;
+  String? _personAssetsError;
+  Timer? _personRefreshTimer;
 
   @override
   void dispose() {
-    _albumRefreshTimer?.cancel();
-    _selectedAlbumFocusNode.dispose();
+    _personRefreshTimer?.cancel();
+    _selectedPersonFocusNode.dispose();
     super.dispose();
   }
 
   @override
-  void didUpdateWidget(covariant _AlbumBrowser oldWidget) {
+  void didUpdateWidget(covariant _PeopleBrowser oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.albums.isEmpty) {
-      _selectedAlbum = null;
-      _albumAssets = const [];
-      _albumAssetsNextPage = null;
-      _albumAssetsError = null;
-      _isLoadingAlbumAssets = false;
+    if (widget.people.isEmpty) {
+      _selectedPerson = null;
+      _personAssets = const [];
+      _personAssetsNextPage = null;
+      _personAssetsError = null;
+      _isLoadingPersonAssets = false;
       return;
     }
 
-    final selectedAlbumStillExists =
-        _selectedAlbum != null &&
-        widget.albums.any((album) => album.id == _selectedAlbum!.id);
-    if (!selectedAlbumStillExists) {
-      _selectAlbum(widget.albums.first);
+    final selectedPersonStillExists =
+        _selectedPerson != null &&
+        widget.people.any((person) => person.id == _selectedPerson!.id);
+    if (!selectedPersonStillExists) {
+      _selectPerson(widget.people.first);
       return;
     }
 
-    if (_selectedAlbum != null) {
-      final refreshedSelectedAlbum = widget.albums.firstWhere(
-        (album) => album.id == _selectedAlbum!.id,
+    if (_selectedPerson != null) {
+      final refreshedSelectedPerson = widget.people.firstWhere(
+        (person) => person.id == _selectedPerson!.id,
       );
-      if (refreshedSelectedAlbum != _selectedAlbum) {
-        _selectedAlbum = refreshedSelectedAlbum;
+      if (refreshedSelectedPerson != _selectedPerson) {
+        _selectedPerson = refreshedSelectedPerson;
       }
     }
   }
+
+  @override
+  Widget build(BuildContext context) => _buildBody(context);
 
   Widget _buildBody(BuildContext context) {
     if (widget.status == LibraryLoadStatus.loading) {
@@ -120,26 +123,26 @@ class _AlbumBrowserState extends State<_AlbumBrowser> {
 
     if (widget.status == LibraryLoadStatus.failure) {
       return _InfoPanel(
-        title: 'Albums are unavailable right now',
+        title: 'People are unavailable right now',
         body: widget.errorMessage ?? 'Try again in a moment.',
         accent: AppColors.error,
       );
     }
 
-    if (widget.albums.isEmpty) {
+    if (widget.people.isEmpty) {
       return const _InfoPanel(
-        title: 'No albums yet',
-        body: 'Album collections will appear here.',
+        title: 'No people yet',
+        body: 'Recognized faces will appear here.',
         accent: AppColors.textMuted,
       );
     }
 
-    final selectedAlbum = _selectedAlbum ?? widget.albums.first;
+    final selectedPerson = _selectedPerson ?? widget.people.first;
 
-    if (_selectedAlbum == null) {
+    if (_selectedPerson == null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
-          _selectAlbum(widget.albums.first);
+          _selectPerson(widget.people.first);
         }
       });
     }
@@ -147,151 +150,152 @@ class _AlbumBrowserState extends State<_AlbumBrowser> {
     return LayoutBuilder(
       builder: (context, constraints) {
         final scale = AppScale.of(context);
-        final albumRail = _AlbumRail(
-          albums: widget.albums,
-          selectedAlbum: selectedAlbum,
-          onAlbumSelected: _selectAlbum,
-          horizontal: false,
+        final peopleRail = _PeopleRail(
+          session: widget.session,
+          people: widget.people,
+          selectedPerson: selectedPerson,
+          onPersonSelected: _selectPerson,
           primaryContentFocusNode: widget.primaryContentFocusNode,
-          selectedAlbumFocusNode: _selectedAlbumFocusNode,
+          selectedPersonFocusNode: _selectedPersonFocusNode,
           onOpenDrawer: widget.onOpenSidebar,
         );
-        final albumContent = _buildAlbumContent(selectedAlbum);
 
         return Row(
           children: [
             SizedBox(
               width: _responsiveAlbumRailWidth(constraints.maxWidth, scale),
-              child: albumRail,
+              child: peopleRail,
             ),
             SizedBox(width: scale.space(AppSpacing.xl, min: 24, max: 32)),
-            Expanded(child: albumContent),
+            Expanded(child: _buildPersonContent(selectedPerson)),
           ],
         );
       },
     );
   }
 
-  @override
-  Widget build(BuildContext context) => _buildBody(context);
-
-  void _selectAlbum(AlbumSummary album) {
-    _ensureAlbumRefreshPolling();
+  void _selectPerson(PersonSummary person) {
+    _ensurePersonRefreshPolling();
     setState(() {
-      _selectedAlbum = album;
-      _albumAssets = const [];
-      _albumAssetsNextPage = null;
-      _albumAssetsError = null;
-      _isLoadingAlbumAssets = false;
+      _selectedPerson = person;
+      _personAssets = const [];
+      _personAssetsNextPage = null;
+      _personAssetsError = null;
+      _isLoadingPersonAssets = false;
     });
-    _loadAlbumAssets(album: album, page: null, replace: true);
+    _loadPersonAssets(person: person, page: null, replace: true);
   }
 
-  Widget _buildAlbumContent(AlbumSummary selectedAlbum) {
-    if (_isLoadingAlbumAssets && _albumAssets.isEmpty) {
+  Widget _buildPersonContent(PersonSummary selectedPerson) {
+    if (_isLoadingPersonAssets && _personAssets.isEmpty) {
       return const _AssetGridLoadingSkeleton(
         leadingHeight: 20,
         leadingWidth: 220,
       );
     }
 
-    if (_albumAssetsError != null && _albumAssets.isEmpty) {
+    if (_personAssetsError != null && _personAssets.isEmpty) {
       return _InfoPanel(
-        title: 'This album could not load',
-        body: _albumAssetsError!,
+        title: 'This person could not load',
+        body: _personAssetsError!,
         accent: AppColors.error,
       );
     }
 
-    if (_albumAssets.isEmpty) {
+    if (_personAssets.isEmpty) {
       return _InfoPanel(
-        title: 'No assets in ${selectedAlbum.name}',
+        title: 'No assets for ${selectedPerson.name}',
         body:
-            'This album does not contain any assets that can be displayed yet.',
+            'This person does not have any recognized assets that can be displayed yet.',
         accent: AppColors.textMuted,
       );
     }
 
-    return _AlbumAssetGrid(
+    return _PersonAssetGrid(
       session: widget.session,
-      album: selectedAlbum,
-      assets: _albumAssets,
-      hasMore: _albumAssetsNextPage != null && _albumAssetsNextPage!.isNotEmpty,
-      isLoadingMore: _isLoadingAlbumAssets && _albumAssets.isNotEmpty,
-      onLoadMore: _loadMoreAlbumAssets,
+      person: selectedPerson,
+      assets: _personAssets,
+      hasMore:
+          _personAssetsNextPage != null && _personAssetsNextPage!.isNotEmpty,
+      isLoadingMore: _isLoadingPersonAssets && _personAssets.isNotEmpty,
+      onLoadMore: _loadMorePersonAssets,
       onOpenSidebar: widget.onOpenSidebar,
-      onMoveLeftFromGrid: () => _selectedAlbumFocusNode.requestFocus(),
+      onMoveLeftFromGrid: () => _selectedPersonFocusNode.requestFocus(),
     );
   }
 
-  Future<void> _loadMoreAlbumAssets() async {
-    final selectedAlbum = _selectedAlbum;
-    final nextPage = _albumAssetsNextPage;
-    if (selectedAlbum == null || nextPage == null || _isLoadingAlbumAssets) {
+  Future<void> _loadMorePersonAssets() async {
+    final selectedPerson = _selectedPerson;
+    final nextPage = _personAssetsNextPage;
+    if (selectedPerson == null || nextPage == null || _isLoadingPersonAssets) {
       return;
     }
 
-    await _loadAlbumAssets(
-      album: selectedAlbum,
+    await _loadPersonAssets(
+      person: selectedPerson,
       page: nextPage,
       replace: false,
     );
   }
 
-  Future<void> _loadAlbumAssets({
-    required AlbumSummary album,
+  Future<void> _loadPersonAssets({
+    required PersonSummary person,
     required String? page,
     required bool replace,
     bool background = false,
   }) async {
-    if (_isLoadingAlbumAssets) {
+    if (_isLoadingPersonAssets) {
       return;
     }
 
     if (background) {
-      _ensureAlbumRefreshPolling();
+      _ensurePersonRefreshPolling();
     } else {
       setState(() {
-        _isLoadingAlbumAssets = true;
-        _albumAssetsError = null;
+        _isLoadingPersonAssets = true;
+        _personAssetsError = null;
       });
     }
 
     try {
       final response = await context
           .read<MediaRepository>()
-          .fetchAlbumAssetsPage(widget.session, albumId: album.id, page: page);
-      if (!mounted || _selectedAlbum?.id != album.id) {
+          .fetchPersonAssetsPage(
+            widget.session,
+            personId: person.id,
+            page: page,
+          );
+      if (!mounted || _selectedPerson?.id != person.id) {
         return;
       }
 
       final nextAssets = replace
-          ? _mergeRefreshedAlbumAssets(
-              existing: _albumAssets,
+          ? _mergeRefreshedPeopleAssets(
+              existing: _personAssets,
               refreshedFirstPage: response.items,
             )
           : [
-              ..._albumAssets,
-              ..._dedupeAlbumAssets(_albumAssets, response.items),
+              ..._personAssets,
+              ..._dedupePeopleAssets(_personAssets, response.items),
             ];
       final hasChanges =
-          !_listEquals(_albumAssets, nextAssets) ||
-          _albumAssetsNextPage != response.nextPage ||
-          _isLoadingAlbumAssets;
+          !_listEquals(_personAssets, nextAssets) ||
+          _personAssetsNextPage != response.nextPage ||
+          _isLoadingPersonAssets;
       if (!hasChanges && background) {
         return;
       }
 
       setState(() {
-        _albumAssets = nextAssets;
-        _albumAssetsNextPage = response.nextPage;
-        _isLoadingAlbumAssets = false;
+        _personAssets = nextAssets;
+        _personAssetsNextPage = response.nextPage;
+        _isLoadingPersonAssets = false;
         if (!background) {
-          _albumAssetsError = null;
+          _personAssetsError = null;
         }
       });
     } catch (error) {
-      if (!mounted || _selectedAlbum?.id != album.id) {
+      if (!mounted || _selectedPerson?.id != person.id) {
         return;
       }
 
@@ -300,15 +304,15 @@ class _AlbumBrowserState extends State<_AlbumBrowser> {
       }
 
       setState(() {
-        _isLoadingAlbumAssets = false;
-        _albumAssetsError = error is AppException
+        _isLoadingPersonAssets = false;
+        _personAssetsError = error is AppException
             ? error.message
-            : 'We could not load this album right now.';
+            : 'We could not load this person right now.';
       });
     }
   }
 
-  List<AssetSummary> _dedupeAlbumAssets(
+  List<AssetSummary> _dedupePeopleAssets(
     List<AssetSummary> existing,
     List<AssetSummary> incoming,
   ) {
@@ -318,7 +322,7 @@ class _AlbumBrowserState extends State<_AlbumBrowser> {
         .toList(growable: false);
   }
 
-  List<AssetSummary> _mergeRefreshedAlbumAssets({
+  List<AssetSummary> _mergeRefreshedPeopleAssets({
     required List<AssetSummary> existing,
     required List<AssetSummary> refreshedFirstPage,
   }) {
@@ -352,17 +356,17 @@ class _AlbumBrowserState extends State<_AlbumBrowser> {
     return true;
   }
 
-  void _ensureAlbumRefreshPolling() {
-    _albumRefreshTimer ??= Timer.periodic(_albumRefreshInterval, (_) {
-      final selectedAlbum = _selectedAlbum;
+  void _ensurePersonRefreshPolling() {
+    _personRefreshTimer ??= Timer.periodic(_personRefreshInterval, (_) {
+      final selectedPerson = _selectedPerson;
       if (!mounted ||
-          selectedAlbum == null ||
+          selectedPerson == null ||
           widget.status != LibraryLoadStatus.success) {
         return;
       }
       unawaited(
-        _loadAlbumAssets(
-          album: selectedAlbum,
+        _loadPersonAssets(
+          person: selectedPerson,
           page: null,
           replace: true,
           background: true,
@@ -372,80 +376,72 @@ class _AlbumBrowserState extends State<_AlbumBrowser> {
   }
 }
 
-class _AlbumRail extends StatelessWidget {
-  const _AlbumRail({
-    required this.albums,
-    required this.selectedAlbum,
-    required this.onAlbumSelected,
-    required this.horizontal,
+class _PeopleRail extends StatelessWidget {
+  const _PeopleRail({
+    required this.session,
+    required this.people,
+    required this.selectedPerson,
+    required this.onPersonSelected,
     required this.primaryContentFocusNode,
-    required this.selectedAlbumFocusNode,
+    required this.selectedPersonFocusNode,
     required this.onOpenDrawer,
   });
 
-  final List<AlbumSummary> albums;
-  final AlbumSummary selectedAlbum;
-  final ValueChanged<AlbumSummary> onAlbumSelected;
-  final bool horizontal;
+  final AuthenticatedSession session;
+  final List<PersonSummary> people;
+  final PersonSummary selectedPerson;
+  final ValueChanged<PersonSummary> onPersonSelected;
   final FocusNode primaryContentFocusNode;
-  final FocusNode selectedAlbumFocusNode;
+  final FocusNode selectedPersonFocusNode;
   final VoidCallback onOpenDrawer;
 
   @override
   Widget build(BuildContext context) {
     final scale = AppScale.of(context);
     return ListView.separated(
-      key: PageStorageKey<String>(
-        horizontal ? 'album-rail-horizontal' : 'album-rail-vertical',
-      ),
-      scrollDirection: horizontal ? Axis.horizontal : Axis.vertical,
-      itemCount: albums.length,
-      separatorBuilder: (_, _) => SizedBox(
-        width: horizontal ? scale.space(AppSpacing.sm, min: 10, max: 12) : 0,
-        height: horizontal ? 0 : scale.space(AppSpacing.sm, min: 10, max: 12),
-      ),
+      key: const PageStorageKey<String>('people-rail-vertical'),
+      itemCount: people.length,
+      separatorBuilder: (_, _) =>
+          SizedBox(height: scale.space(AppSpacing.sm, min: 10, max: 12)),
       itemBuilder: (context, index) {
-        final album = albums[index];
-        return SizedBox(
-          width: horizontal ? scale.sizeOf(196, min: 176, max: 204) : null,
-          child: _AlbumSummaryTile(
-            album: album,
-            isSelected: album.id == selectedAlbum.id,
-            compact: horizontal,
-            focusNode: album.id == selectedAlbum.id
-                ? selectedAlbumFocusNode
-                : (index == 0 ? primaryContentFocusNode : null),
-            onOpenDrawer: !horizontal ? onOpenDrawer : null,
-            onPressed: () => onAlbumSelected(album),
-          ),
+        final person = people[index];
+        return _PersonSummaryTile(
+          session: session,
+          person: person,
+          isSelected: person.id == selectedPerson.id,
+          focusNode: person.id == selectedPerson.id
+              ? selectedPersonFocusNode
+              : (index == 0 ? primaryContentFocusNode : null),
+          onOpenDrawer: onOpenDrawer,
+          onPressed: () => onPersonSelected(person),
         );
       },
     );
   }
 }
 
-class _AlbumSummaryTile extends StatefulWidget {
-  const _AlbumSummaryTile({
-    required this.album,
+class _PersonSummaryTile extends StatefulWidget {
+  const _PersonSummaryTile({
+    required this.session,
+    required this.person,
     required this.isSelected,
-    this.compact = false,
     this.focusNode,
     this.onOpenDrawer,
     required this.onPressed,
   });
 
-  final AlbumSummary album;
+  final AuthenticatedSession session;
+  final PersonSummary person;
   final bool isSelected;
-  final bool compact;
   final FocusNode? focusNode;
   final VoidCallback? onOpenDrawer;
   final VoidCallback onPressed;
 
   @override
-  State<_AlbumSummaryTile> createState() => _AlbumSummaryTileState();
+  State<_PersonSummaryTile> createState() => _PersonSummaryTileState();
 }
 
-class _AlbumSummaryTileState extends State<_AlbumSummaryTile> {
+class _PersonSummaryTileState extends State<_PersonSummaryTile> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -459,13 +455,7 @@ class _AlbumSummaryTileState extends State<_AlbumSummaryTile> {
 
         return AnimatedContainer(
           duration: AppDurations.normal,
-          padding: EdgeInsets.all(
-            scale.space(
-              widget.compact ? AppSpacing.md : AppSpacing.lg,
-              min: widget.compact ? 14 : 20,
-              max: widget.compact ? 18 : 24,
-            ),
-          ),
+          padding: EdgeInsets.all(scale.space(AppSpacing.lg, min: 20, max: 24)),
           decoration: AppFocusDecoration.surface(
             isFocused: isFocused,
             isActive: isActive,
@@ -473,45 +463,29 @@ class _AlbumSummaryTileState extends State<_AlbumSummaryTile> {
             backgroundColor: const Color(0xFF0D1A21),
             activeBackgroundColor: const Color(0xFF13212A),
             borderRadius: BorderRadius.circular(
-              scale.radius(
-                AppRadii.lg,
-                min: widget.compact ? 18 : 20,
-                max: widget.compact ? 20 : 24,
-              ),
+              scale.radius(AppRadii.lg, min: 20, max: 24),
             ),
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          child: Row(
             children: [
-              Text(
-                widget.album.name,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: theme.textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.w800,
-                  fontSize: scale.text(
-                    widget.compact ? 18 : 22,
-                    min: widget.compact ? 16 : 18,
-                    max: widget.compact ? 18 : 22,
-                  ),
-                ),
-              ),
-              SizedBox(
-                height: scale.space(
-                  AppSpacing.xs,
-                  min: widget.compact ? 6 : 8,
-                  max: widget.compact ? 6 : 8,
-                ),
-              ),
-              Text(
-                '${widget.album.assetCount} assets',
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: AppColors.textSecondary,
-                  fontSize: scale.text(
-                    widget.compact ? 12 : 14,
-                    min: 11,
-                    max: widget.compact ? 12 : 14,
-                  ),
+              _PersonAvatar(session: widget.session, person: widget.person),
+              SizedBox(width: scale.space(AppSpacing.md, min: 14, max: 16)),
+              Expanded(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      widget.person.name,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.w800,
+                        fontSize: scale.text(18, min: 15, max: 18),
+                        height: 1.2,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
@@ -543,10 +517,63 @@ class _AlbumSummaryTileState extends State<_AlbumSummaryTile> {
   }
 }
 
-class _AlbumAssetGrid extends StatelessWidget {
-  const _AlbumAssetGrid({
+class _PersonAvatar extends StatelessWidget {
+  const _PersonAvatar({required this.session, required this.person});
+
+  final AuthenticatedSession session;
+  final PersonSummary person;
+
+  @override
+  Widget build(BuildContext context) {
+    final scale = AppScale.of(context);
+    final size = scale.sizeOf(68, min: 58, max: 72);
+    final primaryUrl = person.thumbnailUrls.isNotEmpty
+        ? person.thumbnailUrls.first
+        : null;
+
+    if (primaryUrl != null && primaryUrl.startsWith('mock://')) {
+      return Container(
+        width: size,
+        height: size,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: AppColors.surfaceMuted,
+          border: Border.all(color: AppColors.borderStrong),
+        ),
+        child: Center(
+          child: Text(
+            person.name.characters.first.toUpperCase(),
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+              fontWeight: FontWeight.w800,
+              color: AppColors.textPrimary,
+              fontSize: scale.text(24, min: 20, max: 26),
+            ),
+          ),
+        ),
+      );
+    }
+
+    return ClipOval(
+      child: SizedBox(
+        width: size,
+        height: size,
+        child: AuthenticatedAssetImage(
+          imageUrls: person.thumbnailUrls,
+          accessToken: session.accessToken,
+          authMethod: session.authMethod,
+          requiresAuth: true,
+          fit: BoxFit.cover,
+          placeholderIcon: Icons.person_outline_rounded,
+        ),
+      ),
+    );
+  }
+}
+
+class _PersonAssetGrid extends StatelessWidget {
+  const _PersonAssetGrid({
     required this.session,
-    required this.album,
+    required this.person,
     required this.assets,
     required this.hasMore,
     required this.isLoadingMore,
@@ -556,7 +583,7 @@ class _AlbumAssetGrid extends StatelessWidget {
   });
 
   final AuthenticatedSession session;
-  final AlbumSummary album;
+  final PersonSummary person;
   final List<AssetSummary> assets;
   final bool hasMore;
   final bool isLoadingMore;
@@ -572,7 +599,7 @@ class _AlbumAssetGrid extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          album.name,
+          person.name,
           style: theme.textTheme.headlineSmall?.copyWith(
             fontWeight: FontWeight.w800,
             fontSize: scale.text(28, min: 22, max: 28),
@@ -606,7 +633,7 @@ class _AlbumAssetGrid extends StatelessWidget {
                 final screenSize = MediaQuery.sizeOf(context);
                 final crossAxisCount = _resolveGridCrossAxisCount(screenSize);
                 return GridView.builder(
-                  key: PageStorageKey<String>('album-grid-${album.id}'),
+                  key: PageStorageKey<String>('person-grid-${person.id}'),
                   cacheExtent: 240,
                   gridDelegate: _buildAssetGridDelegate(
                     constraints.maxWidth,

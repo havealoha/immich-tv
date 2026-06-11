@@ -2,13 +2,23 @@ import '../models/album_summary.dart';
 import '../models/authenticated_session.dart';
 import '../models/asset_summary.dart';
 import '../models/media_page.dart';
+import '../models/person_summary.dart';
 
 abstract class MediaRepository {
   Future<List<AlbumSummary>> fetchAlbums(AuthenticatedSession session);
 
+  Future<List<PersonSummary>> fetchPeople(AuthenticatedSession session);
+
   Future<MediaPage<AssetSummary>> fetchAlbumAssetsPage(
     AuthenticatedSession session, {
     required String albumId,
+    String? page,
+    int pageSize = 120,
+  });
+
+  Future<MediaPage<AssetSummary>> fetchPersonAssetsPage(
+    AuthenticatedSession session, {
+    required String personId,
     String? page,
     int pageSize = 120,
   });
