@@ -3,6 +3,8 @@ import 'package:immichtv/src/core/models/album_summary.dart';
 import 'package:immichtv/src/core/models/asset_summary.dart';
 import 'package:immichtv/src/core/models/authenticated_session.dart';
 import 'package:immichtv/src/core/models/media_page.dart';
+import 'package:immichtv/src/core/errors/app_exception.dart';
+import 'package:immichtv/src/core/models/person_summary.dart';
 import 'package:immichtv/src/core/models/server_config.dart';
 import 'package:immichtv/src/core/models/user_profile.dart';
 import 'package:immichtv/src/core/repositories/media_repository.dart';
@@ -64,6 +66,28 @@ void main() {
       expect(cubit.state.timelineNextPage, '2');
     },
   );
+
+  test(
+    'loadInitial still succeeds when supporting tabs fail but timeline loads',
+    () async {
+      final repository = _FakeMediaRepository()
+        ..throwAlbums = true
+        ..throwFavorites = true
+        ..throwPeople = true;
+      final cubit = LibraryCubit(repository, _session());
+      addTearDown(cubit.close);
+
+      await cubit.loadInitial();
+      await Future<void>.delayed(Duration.zero);
+
+      expect(cubit.state.status, LibraryLoadStatus.success);
+      expect(cubit.state.hasLoadedTimeline, isTrue);
+      expect(cubit.state.timeline, isNotEmpty);
+      expect(cubit.state.hasLoadedAlbums, isFalse);
+      expect(cubit.state.hasLoadedFavorites, isFalse);
+      expect(cubit.state.hasLoadedPeople, isFalse);
+    },
+  );
 }
 
 class _FakeMediaRepository implements MediaRepository {
@@ -83,9 +107,35 @@ class _FakeMediaRepository implements MediaRepository {
     AlbumSummary(id: 'album-1', name: 'Summer Trip', assetCount: 42),
   ];
 
+  List<PersonSummary> people = const [
+    PersonSummary(
+      id: 'person-1',
+      name: 'Avery',
+      assetCount: 3,
+      thumbnailUrls: [
+        'https://photos.example.com/api/people/person-1/thumbnail',
+      ],
+    ),
+  ];
+  bool throwAlbums = false;
+  bool throwFavorites = false;
+  bool throwPeople = false;
+
   @override
-  Future<List<AlbumSummary>> fetchAlbums(AuthenticatedSession session) async =>
-      albums;
+  Future<List<AlbumSummary>> fetchAlbums(AuthenticatedSession session) async {
+    if (throwAlbums) {
+      throw const AppException('albums failed');
+    }
+    return albums;
+  }
+
+  @override
+  Future<List<PersonSummary>> fetchPeople(AuthenticatedSession session) async {
+    if (throwPeople) {
+      throw const AppException('people failed');
+    }
+    return people;
+  }
 
   @override
   Future<MediaPage<AssetSummary>> fetchAlbumAssetsPage(
@@ -100,7 +150,20 @@ class _FakeMediaRepository implements MediaRepository {
     AuthenticatedSession session, {
     String? page,
     int pageSize = 60,
-  }) async => favoritePages[page] ?? const MediaPage(items: []);
+  }) async {
+    if (throwFavorites) {
+      throw const AppException('favorites failed');
+    }
+    return favoritePages[page] ?? const MediaPage(items: []);
+  }
+
+  @override
+  Future<MediaPage<AssetSummary>> fetchPersonAssetsPage(
+    AuthenticatedSession session, {
+    required String personId,
+    String? page,
+    int pageSize = 120,
+  }) async => MediaPage(items: [_asset('person-$personId-1')]);
 
   @override
   Future<MediaPage<AssetSummary>> fetchTimelinePage(

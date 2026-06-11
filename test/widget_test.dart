@@ -7,6 +7,7 @@ import 'package:immichtv/src/core/models/authenticated_session.dart';
 import 'package:immichtv/src/core/models/asset_summary.dart';
 import 'package:immichtv/src/core/models/immich_auth_method.dart';
 import 'package:immichtv/src/core/models/media_page.dart';
+import 'package:immichtv/src/core/models/person_summary.dart';
 import 'package:immichtv/src/core/models/saved_profile.dart';
 import 'package:immichtv/src/core/models/server_config.dart';
 import 'package:immichtv/src/core/models/server_validation_result.dart';
@@ -301,9 +302,35 @@ void main() {
     await tester.pumpAndSettle();
     await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
     await tester.pumpAndSettle();
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+    await tester.pumpAndSettle();
     await tester.sendKeyEvent(LogicalKeyboardKey.enter);
     await tester.pumpAndSettle();
     expect(_findAssetThumbnail('favorite-1'), findsOneWidget);
+  });
+
+  testWidgets('switches to the people tab and shows person assets', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1100, 720);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+
+    await _pumpSignedInApp(tester, mediaRepository: FakeMediaRepository());
+
+    await tester.tap(find.byTooltip('Show menu'));
+    await tester.pumpAndSettle();
+    await tester.pumpAndSettle();
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+    await tester.pumpAndSettle();
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+    await tester.pumpAndSettle();
+    await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Avery'), findsWidgets);
+    expect(find.text('3 assets'), findsWidgets);
+    expect(_findAssetThumbnail('person-asset-1'), findsOneWidget);
   });
 
   testWidgets('loads the next timeline page as the grid scrolls', (
@@ -596,6 +623,17 @@ class FakeMediaRepository implements MediaRepository {
       [const AlbumSummary(id: 'album-1', name: 'Summer Trip', assetCount: 42)];
 
   @override
+  Future<List<PersonSummary>> fetchPeople(AuthenticatedSession session) async =>
+      const [
+        PersonSummary(
+          id: 'person-1',
+          name: 'Avery',
+          assetCount: 3,
+          thumbnailUrls: ['mock://person-1?palette=dusk&variant=thumbnail'],
+        ),
+      ];
+
+  @override
   Future<MediaPage<AssetSummary>> fetchAlbumAssetsPage(
     AuthenticatedSession session, {
     required String albumId,
@@ -619,6 +657,53 @@ class FakeMediaRepository implements MediaRepository {
         displayUrls: const ['mock://favorite-1?palette=ember&variant=display'],
         type: 'IMAGE',
         createdAt: DateTime(2024, 10, 2),
+      ),
+    ],
+  );
+
+  @override
+  Future<MediaPage<AssetSummary>> fetchPersonAssetsPage(
+    AuthenticatedSession session, {
+    required String personId,
+    String? page,
+    int pageSize = 120,
+  }) async => MediaPage(
+    items: [
+      AssetSummary(
+        id: 'person-asset-1',
+        thumbnailUrls: const [
+          'mock://person-asset-1?palette=forest&variant=thumbnail',
+          'mock://person-asset-1?palette=forest&variant=thumbnail',
+        ],
+        displayUrls: const [
+          'mock://person-asset-1?palette=forest&variant=display',
+        ],
+        type: 'IMAGE',
+        createdAt: DateTime(2026, 10, 1),
+      ),
+      AssetSummary(
+        id: 'person-asset-2',
+        thumbnailUrls: const [
+          'mock://person-asset-2?palette=sea-glass&variant=thumbnail',
+          'mock://person-asset-2?palette=sea-glass&variant=thumbnail',
+        ],
+        displayUrls: const [
+          'mock://person-asset-2?palette=sea-glass&variant=display',
+        ],
+        type: 'IMAGE',
+        createdAt: DateTime(2026, 10, 2),
+      ),
+      AssetSummary(
+        id: 'person-asset-3',
+        thumbnailUrls: const [
+          'mock://person-asset-3?palette=sunrise&variant=thumbnail',
+          'mock://person-asset-3?palette=sunrise&variant=thumbnail',
+        ],
+        displayUrls: const [
+          'mock://person-asset-3?palette=sunrise&variant=display',
+        ],
+        type: 'IMAGE',
+        createdAt: DateTime(2026, 10, 3),
       ),
     ],
   );

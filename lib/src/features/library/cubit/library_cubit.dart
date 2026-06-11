@@ -4,9 +4,11 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../core/errors/app_exception.dart';
+import '../../../core/models/album_summary.dart';
 import '../../../core/models/asset_summary.dart';
 import '../../../core/models/authenticated_session.dart';
 import '../../../core/models/media_page.dart';
+import '../../../core/models/person_summary.dart';
 import '../../../core/repositories/media_repository.dart';
 import 'library_state.dart';
 
@@ -28,16 +30,10 @@ class LibraryCubit extends Cubit<LibraryState> {
     emit(state.copyWith(status: LibraryLoadStatus.loading, clearError: true));
 
     try {
-      final timelineFuture = _mediaRepository.fetchTimelinePage(
+      final timeline = await _mediaRepository.fetchTimelinePage(
         _session,
         year: state.selectedTimelineYear,
       );
-      final favoritesFuture = _mediaRepository.fetchFavoritesPage(_session);
-      final albumsFuture = _mediaRepository.fetchAlbums(_session);
-
-      final timeline = await timelineFuture;
-      final favorites = await favoritesFuture;
-      final albums = await albumsFuture;
 
       emit(
         state.copyWith(
@@ -45,18 +41,13 @@ class LibraryCubit extends Cubit<LibraryState> {
           timeline: timeline.items,
           timelineNextPage: timeline.nextPage,
           clearTimelineNextPage: timeline.nextPage == null,
-          favorites: favorites.items,
-          favoritesNextPage: favorites.nextPage,
-          clearFavoritesNextPage: favorites.nextPage == null,
-          albums: albums,
           hasLoadedTimeline: true,
-          hasLoadedFavorites: true,
-          hasLoadedAlbums: true,
           isLoadingMore: false,
           clearError: true,
         ),
       );
       _ensureRefreshPolling();
+      unawaited(_preloadInitialSupportingSections());
     } catch (error) {
       emit(
         state.copyWith(
@@ -66,6 +57,32 @@ class LibraryCubit extends Cubit<LibraryState> {
               : 'We could not load your library right now.',
         ),
       );
+    }
+  }
+
+  Future<void> _preloadInitialSupportingSections() async {
+    final nextAlbums = await _safeFetchAlbums();
+    final nextFavorites = await _safeFetchFavorites();
+    final nextPeople = await _safeFetchPeople();
+
+    if (isClosed) {
+      return;
+    }
+
+    final nextState = state.copyWith(
+      albums: nextAlbums ?? state.albums,
+      hasLoadedAlbums: nextAlbums != null || state.hasLoadedAlbums,
+      favorites: nextFavorites?.items ?? state.favorites,
+      favoritesNextPage: nextFavorites?.nextPage,
+      clearFavoritesNextPage:
+          nextFavorites != null && nextFavorites.nextPage == null,
+      hasLoadedFavorites: nextFavorites != null || state.hasLoadedFavorites,
+      people: nextPeople ?? state.people,
+      hasLoadedPeople: nextPeople != null || state.hasLoadedPeople,
+    );
+
+    if (nextState != state) {
+      emit(nextState);
     }
   }
 
@@ -122,6 +139,19 @@ class LibraryCubit extends Cubit<LibraryState> {
             ),
           );
           _ensureRefreshPolling();
+        case LibraryTab.people:
+          final people = await _mediaRepository.fetchPeople(_session);
+          emit(
+            state.copyWith(
+              selectedTab: tab,
+              people: people,
+              hasLoadedPeople: true,
+              status: LibraryLoadStatus.success,
+              isLoadingMore: false,
+              clearError: true,
+            ),
+          );
+          _ensureRefreshPolling();
         case LibraryTab.favorites:
           final favorites = await _mediaRepository.fetchFavoritesPage(_session);
           emit(
@@ -167,6 +197,8 @@ class LibraryCubit extends Cubit<LibraryState> {
           return;
         }
         await _appendFavoritesPage(state.favoritesNextPage!);
+      case LibraryTab.people:
+        return;
       case LibraryTab.albums:
         return;
     }
@@ -300,6 +332,7 @@ class LibraryCubit extends Cubit<LibraryState> {
     return switch (tab) {
       LibraryTab.timeline => state.hasLoadedTimeline,
       LibraryTab.albums => state.hasLoadedAlbums,
+      LibraryTab.people => state.hasLoadedPeople,
       LibraryTab.favorites => state.hasLoadedFavorites,
     };
   }
@@ -308,6 +341,30 @@ class LibraryCubit extends Cubit<LibraryState> {
     _refreshTimer ??= Timer.periodic(_refreshInterval, (_) {
       unawaited(refreshContent());
     });
+  }
+
+  Future<List<AlbumSummary>?> _safeFetchAlbums() async {
+    try {
+      return await _mediaRepository.fetchAlbums(_session);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<MediaPage<AssetSummary>?> _safeFetchFavorites() async {
+    try {
+      return await _mediaRepository.fetchFavoritesPage(_session);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<List<PersonSummary>?> _safeFetchPeople() async {
+    try {
+      return await _mediaRepository.fetchPeople(_session);
+    } catch (_) {
+      return null;
+    }
   }
 
   Future<void> refreshContent() async {
@@ -325,7 +382,6 @@ class LibraryCubit extends Cubit<LibraryState> {
       );
       final favoritesFuture = _mediaRepository.fetchFavoritesPage(_session);
       final albumsFuture = _mediaRepository.fetchAlbums(_session);
-
       final timeline = await timelineFuture;
       final favorites = await favoritesFuture;
       final albums = await albumsFuture;

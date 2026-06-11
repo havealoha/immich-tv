@@ -2,17 +2,20 @@ import '../../../core/models/album_summary.dart';
 import '../../../core/models/authenticated_session.dart';
 import '../../../core/models/asset_summary.dart';
 import '../../../core/models/media_page.dart';
+import '../../../core/models/person_summary.dart';
 import '../../../core/repositories/media_repository.dart';
 
 class MockMediaRepository implements MediaRepository {
   MockMediaRepository()
     : _timeline = _buildTimeline(),
       _favorites = _buildFavorites(),
-      _albums = _buildAlbums();
+      _albums = _buildAlbums(),
+      _people = _buildPeople();
 
   final List<AssetSummary> _timeline;
   final List<AssetSummary> _favorites;
   final List<AlbumSummary> _albums;
+  final List<PersonSummary> _people;
 
   static const _pageSizeDefault = 60;
 
@@ -20,6 +23,12 @@ class MockMediaRepository implements MediaRepository {
   Future<List<AlbumSummary>> fetchAlbums(AuthenticatedSession session) async {
     await Future<void>.delayed(const Duration(milliseconds: 320));
     return _albums;
+  }
+
+  @override
+  Future<List<PersonSummary>> fetchPeople(AuthenticatedSession session) async {
+    await Future<void>.delayed(const Duration(milliseconds: 320));
+    return _people;
   }
 
   @override
@@ -48,6 +57,21 @@ class MockMediaRepository implements MediaRepository {
   }
 
   @override
+  Future<MediaPage<AssetSummary>> fetchPersonAssetsPage(
+    AuthenticatedSession session, {
+    required String personId,
+    String? page,
+    int pageSize = _pageSizeDefault,
+  }) async {
+    await Future<void>.delayed(const Duration(milliseconds: 280));
+    return _pageAssets(
+      _buildPersonAssets(personId),
+      page: page,
+      pageSize: pageSize,
+    );
+  }
+
+  @override
   Future<MediaPage<AssetSummary>> fetchTimelinePage(
     AuthenticatedSession session, {
     String? page,
@@ -58,8 +82,8 @@ class MockMediaRepository implements MediaRepository {
     final filteredTimeline = year == null
         ? _timeline
         : _timeline
-            .where((asset) => asset.createdAt.year == year)
-            .toList(growable: false);
+              .where((asset) => asset.createdAt.year == year)
+              .toList(growable: false);
     return _pageAssets(filteredTimeline, page: page, pageSize: pageSize);
   }
 
@@ -154,6 +178,51 @@ List<AlbumSummary> _buildAlbums() {
   ];
 }
 
+List<PersonSummary> _buildPeople() {
+  return [
+    PersonSummary(
+      id: 'person-1',
+      name: 'Avery',
+      assetCount: 64,
+      thumbnailUrls: const [
+        'mock://person-avery?palette=dusk&variant=thumbnail',
+      ],
+    ),
+    PersonSummary(
+      id: 'person-2',
+      name: 'Jordan',
+      assetCount: 48,
+      thumbnailUrls: const [
+        'mock://person-jordan?palette=forest&variant=thumbnail',
+      ],
+    ),
+    PersonSummary(
+      id: 'person-3',
+      name: 'Mila',
+      assetCount: 31,
+      thumbnailUrls: const [
+        'mock://person-mila?palette=ember&variant=thumbnail',
+      ],
+    ),
+    PersonSummary(
+      id: 'person-4',
+      name: 'Noah',
+      assetCount: 27,
+      thumbnailUrls: const [
+        'mock://person-noah?palette=sunrise&variant=thumbnail',
+      ],
+    ),
+    PersonSummary(
+      id: 'person-5',
+      name: 'Sofia',
+      assetCount: 19,
+      thumbnailUrls: const [
+        'mock://person-sofia?palette=sea-glass&variant=thumbnail',
+      ],
+    ),
+  ];
+}
+
 List<AssetSummary> _buildAlbumAssets(String albumId) {
   final timeline = _buildTimeline();
 
@@ -168,6 +237,26 @@ List<AssetSummary> _buildAlbumAssets(String albumId) {
 
   final start = albumOffsets[albumId] ?? 0;
   final end = (start + 18).clamp(0, timeline.length);
+  if (start >= end) {
+    return const [];
+  }
+
+  return timeline.sublist(start, end);
+}
+
+List<AssetSummary> _buildPersonAssets(String personId) {
+  final timeline = _buildTimeline();
+
+  final personOffsets = <String, int>{
+    'person-1': 4,
+    'person-2': 22,
+    'person-3': 40,
+    'person-4': 58,
+    'person-5': 76,
+  };
+
+  final start = personOffsets[personId] ?? 0;
+  final end = (start + 16).clamp(0, timeline.length);
   if (start >= end) {
     return const [];
   }

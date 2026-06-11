@@ -2,8 +2,9 @@ import 'package:equatable/equatable.dart';
 
 import '../../../core/models/album_summary.dart';
 import '../../../core/models/asset_summary.dart';
+import '../../../core/models/person_summary.dart';
 
-enum LibraryTab { timeline, albums, favorites }
+enum LibraryTab { timeline, albums, people, favorites }
 
 enum LibraryLoadStatus { idle, loading, success, failure }
 
@@ -14,9 +15,11 @@ class LibraryState extends Equatable {
     this.status = LibraryLoadStatus.idle,
     this.timeline = const [],
     this.albums = const [],
+    this.people = const [],
     this.favorites = const [],
     this.hasLoadedTimeline = false,
     this.hasLoadedAlbums = false,
+    this.hasLoadedPeople = false,
     this.hasLoadedFavorites = false,
     this.timelineNextPage,
     this.favoritesNextPage,
@@ -29,9 +32,11 @@ class LibraryState extends Equatable {
   final LibraryLoadStatus status;
   final List<AssetSummary> timeline;
   final List<AlbumSummary> albums;
+  final List<PersonSummary> people;
   final List<AssetSummary> favorites;
   final bool hasLoadedTimeline;
   final bool hasLoadedAlbums;
+  final bool hasLoadedPeople;
   final bool hasLoadedFavorites;
   final String? timelineNextPage;
   final String? favoritesNextPage;
@@ -49,6 +54,7 @@ class LibraryState extends Equatable {
   bool get hasMoreForSelectedTab {
     return switch (selectedTab) {
       LibraryTab.timeline => hasMoreTimeline,
+      LibraryTab.people => false,
       LibraryTab.favorites => hasMoreFavorites,
       LibraryTab.albums => false,
     };
@@ -58,6 +64,7 @@ class LibraryState extends Equatable {
     return switch (selectedTab) {
       LibraryTab.timeline => timeline,
       LibraryTab.albums => albums,
+      LibraryTab.people => people,
       LibraryTab.favorites => favorites,
     };
   }
@@ -68,9 +75,11 @@ class LibraryState extends Equatable {
     LibraryLoadStatus? status,
     List<AssetSummary>? timeline,
     List<AlbumSummary>? albums,
+    List<PersonSummary>? people,
     List<AssetSummary>? favorites,
     bool? hasLoadedTimeline,
     bool? hasLoadedAlbums,
+    bool? hasLoadedPeople,
     bool? hasLoadedFavorites,
     String? timelineNextPage,
     String? favoritesNextPage,
@@ -86,9 +95,11 @@ class LibraryState extends Equatable {
       status: status ?? this.status,
       timeline: timeline ?? this.timeline,
       albums: albums ?? this.albums,
+      people: people ?? this.people,
       favorites: favorites ?? this.favorites,
       hasLoadedTimeline: hasLoadedTimeline ?? this.hasLoadedTimeline,
       hasLoadedAlbums: hasLoadedAlbums ?? this.hasLoadedAlbums,
+      hasLoadedPeople: hasLoadedPeople ?? this.hasLoadedPeople,
       hasLoadedFavorites: hasLoadedFavorites ?? this.hasLoadedFavorites,
       timelineNextPage: clearTimelineNextPage
           ? null
@@ -108,9 +119,11 @@ class LibraryState extends Equatable {
     status,
     timeline,
     albums,
+    people,
     favorites,
     hasLoadedTimeline,
     hasLoadedAlbums,
+    hasLoadedPeople,
     hasLoadedFavorites,
     timelineNextPage,
     favoritesNextPage,
