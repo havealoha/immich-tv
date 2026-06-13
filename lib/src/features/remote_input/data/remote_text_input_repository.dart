@@ -213,19 +213,22 @@ class RemoteTextInputRepository {
 }
 
 String remoteTextInputUrl(String sessionId) {
+  const fallbackBaseUrl = 'https://immichtvapp.web.app';
   const configuredBaseUrl = String.fromEnvironment('REMOTE_INPUT_BASE_URL');
   if (configuredBaseUrl.isNotEmpty) {
     return _joinBaseAndPath(configuredBaseUrl, 'input/$sessionId');
   }
 
   final base = Uri.base;
-  if (base.hasScheme && (base.scheme == 'http' || base.scheme == 'https')) {
+  if (base.hasScheme &&
+      (base.scheme == 'http' || base.scheme == 'https') &&
+      !_isLocalDevelopmentHost(base.host)) {
     return base
         .replace(path: '/input/$sessionId', query: null, fragment: null)
         .toString();
   }
 
-  return 'https://immichtvapp.web.app/input/$sessionId';
+  return '$fallbackBaseUrl/input/$sessionId';
 }
 
 String _joinBaseAndPath(String baseUrl, String path) {
@@ -234,6 +237,14 @@ String _joinBaseAndPath(String baseUrl, String path) {
       : baseUrl;
   final normalizedPath = path.startsWith('/') ? path.substring(1) : path;
   return '$normalizedBase/$normalizedPath';
+}
+
+bool _isLocalDevelopmentHost(String host) {
+  final normalizedHost = host.toLowerCase();
+  return normalizedHost == 'localhost' ||
+      normalizedHost == '127.0.0.1' ||
+      normalizedHost == '0.0.0.0' ||
+      normalizedHost == '::1';
 }
 
 String _sanitizeText(
