@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "825777531738",
+    "project_id": "immichtvapp",
+    "storage_bucket": "immichtvapp.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:825777531738:android:5e1b5577c6f331ba06a163",
+        "android_client_info": {
+          "package_name": "com.workwithafridi.immichtv"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyArhnYjbuFyP87Np0n0pWSD_RKko4MDcfs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
