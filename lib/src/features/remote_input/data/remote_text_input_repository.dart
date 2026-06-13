@@ -91,54 +91,36 @@ class RemoteTextInputRepository {
       maxLength: maxLength,
     );
 
-    unawaited(
-      _sessions
-          .doc(id)
-          .set({
-            'text': _sanitizeText(
-              initialText,
-              numericOnly: numericOnly,
-              maxLength: maxLength,
-            ),
-            'label': label,
-            'obscureText': obscureText,
-            'numericOnly': numericOnly,
-            'maxLength': maxLength,
-            'enabled': true,
-            'actionLabel': actionLabel,
-            'actionId': null,
-            'ownerId': ownerId,
-            'createdAt': FieldValue.serverTimestamp(),
-            'updatedAt': FieldValue.serverTimestamp(),
-            'expiresAt': Timestamp.fromDate(
-              DateTime.now().toUtc().add(const Duration(minutes: 20)),
-            ),
-          })
-          .catchError((_) {
-            return;
-          }),
-    );
+    await _sessions.doc(id).set({
+      'text': _sanitizeText(
+        initialText,
+        numericOnly: numericOnly,
+        maxLength: maxLength,
+      ),
+      'label': label,
+      'obscureText': obscureText,
+      'numericOnly': numericOnly,
+      'maxLength': maxLength,
+      'enabled': true,
+      'actionLabel': actionLabel,
+      'actionId': null,
+      'ownerId': ownerId,
+      'createdAt': FieldValue.serverTimestamp(),
+      'updatedAt': FieldValue.serverTimestamp(),
+      'expiresAt': Timestamp.fromDate(
+        DateTime.now().toUtc().add(const Duration(minutes: 20)),
+      ),
+    });
 
     return session;
   }
 
   Stream<RemoteTextInputSnapshot> watchSession(String id) {
-    return _sessions.doc(id).snapshots().map((document) {
-      final data = document.data();
-      return RemoteTextInputSnapshot(
-        id: id,
-        text: data?['text'] as String? ?? '',
-        label: data?['label'] as String? ?? 'TV input',
-        obscureText: data?['obscureText'] as bool? ?? false,
-        numericOnly: data?['numericOnly'] as bool? ?? false,
-        maxLength: data?['maxLength'] as int?,
-        enabled: data?['enabled'] as bool? ?? false,
-        actionLabel: data?['actionLabel'] as String?,
-        actionId: data?['actionId'] as String?,
-        ownerId: data?['ownerId'] as String?,
-        exists: document.exists,
-      );
-    });
+    return _sessions.doc(id).snapshots().map(_snapshotFromDocument);
+  }
+
+  Future<RemoteTextInputSnapshot> getSession(String id) async {
+    return _snapshotFromDocument(await _sessions.doc(id).get());
   }
 
   Future<void> updateActiveField({
@@ -213,6 +195,25 @@ class RemoteTextInputRepository {
 
   Future<void> deleteSession(String id) async {
     await _sessions.doc(id).delete();
+  }
+
+  RemoteTextInputSnapshot _snapshotFromDocument(
+    DocumentSnapshot<Map<String, dynamic>> document,
+  ) {
+    final data = document.data();
+    return RemoteTextInputSnapshot(
+      id: document.id,
+      text: data?['text'] as String? ?? '',
+      label: data?['label'] as String? ?? 'TV input',
+      obscureText: data?['obscureText'] as bool? ?? false,
+      numericOnly: data?['numericOnly'] as bool? ?? false,
+      maxLength: data?['maxLength'] as int?,
+      enabled: data?['enabled'] as bool? ?? false,
+      actionLabel: data?['actionLabel'] as String?,
+      actionId: data?['actionId'] as String?,
+      ownerId: data?['ownerId'] as String?,
+      exists: document.exists,
+    );
   }
 }
 

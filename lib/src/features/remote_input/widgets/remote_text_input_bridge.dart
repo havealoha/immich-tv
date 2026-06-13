@@ -98,8 +98,19 @@ class _RemoteTextInputBridgeState extends State<RemoteTextInputBridge>
       return;
     }
 
-    if (state == AppLifecycleState.resumed && _session == null && mounted) {
-      _startSession();
+    if (state == AppLifecycleState.paused) {
+      _disableActiveField();
+      return;
+    }
+
+    if (state == AppLifecycleState.resumed && mounted) {
+      final session = _session;
+      final repository = _repository;
+      if (session == null || repository == null) {
+        _startSession();
+      } else {
+        unawaited(_publishActiveField(repository, session));
+      }
     }
   }
 
@@ -333,7 +344,6 @@ class _RemoteTextInputBridgeState extends State<RemoteTextInputBridge>
 
   bool _shouldDeleteForLifecycle(AppLifecycleState? state) {
     return state == AppLifecycleState.hidden ||
-        state == AppLifecycleState.paused ||
         state == AppLifecycleState.detached;
   }
 

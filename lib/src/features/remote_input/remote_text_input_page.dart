@@ -51,6 +51,7 @@ class _RemoteTextInputPageState extends State<RemoteTextInputPage> {
             }
           },
         );
+    unawaited(_loadInitialSession(repository));
   }
 
   @override
@@ -253,6 +254,28 @@ class _RemoteTextInputPageState extends State<RemoteTextInputPage> {
     _applyingRemoteText = false;
 
     _ensureTextFieldFocus(snapshot);
+  }
+
+  Future<void> _loadInitialSession(RemoteTextInputRepository repository) async {
+    try {
+      final snapshot = await repository
+          .getSession(widget.sessionId)
+          .timeout(const Duration(seconds: 8));
+      if (mounted && _snapshot == null) {
+        _handleSnapshot(snapshot);
+      }
+    } on TimeoutException {
+      if (mounted && _snapshot == null) {
+        setState(
+          () => _errorMessage =
+              'Could not connect to the TV input session. Keep the QR code visible on the TV and try scanning again.',
+        );
+      }
+    } catch (error) {
+      if (mounted && _snapshot == null) {
+        setState(() => _errorMessage = error.toString());
+      }
+    }
   }
 
   void _handleLocalTextChanged() {
