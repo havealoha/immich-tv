@@ -19,12 +19,16 @@ class RemoteTextInputPage extends StatefulWidget {
 
 class _RemoteTextInputPageState extends State<RemoteTextInputPage> {
   final TextEditingController _controller = TextEditingController();
+  final FocusNode _textFieldFocusNode = FocusNode(
+    debugLabel: 'remoteTextInput',
+  );
   RemoteTextInputRepository? _repository;
   StreamSubscription<RemoteTextInputSnapshot>? _subscription;
   RemoteTextInputSnapshot? _snapshot;
   Timer? _writeDebounce;
   bool _applyingRemoteText = false;
   bool _isSubmittingAction = false;
+  String? _pendingLocalText;
   String? _errorMessage;
 
   @override
@@ -53,6 +57,7 @@ class _RemoteTextInputPageState extends State<RemoteTextInputPage> {
   void dispose() {
     _controller.removeListener(_handleLocalTextChanged);
     _controller.dispose();
+    _textFieldFocusNode.dispose();
     _writeDebounce?.cancel();
     _subscription?.cancel();
     super.dispose();
@@ -142,30 +147,46 @@ class _RemoteTextInputPageState extends State<RemoteTextInputPage> {
                         ),
                       ),
                       const SizedBox(height: AppSpacing.md),
-                      TextField(
-                        controller: _controller,
-                        autofocus: true,
-                        enabled: snapshot.enabled,
-                        obscureText: snapshot.obscureText,
-                        keyboardType: snapshot.numericOnly
-                            ? TextInputType.number
-                            : TextInputType.text,
-                        inputFormatters: [
-                          if (snapshot.numericOnly)
-                            FilteringTextInputFormatter.digitsOnly,
-                          if (snapshot.maxLength != null)
-                            LengthLimitingTextInputFormatter(
-                              snapshot.maxLength,
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            child: TextField(
+                              controller: _controller,
+                              focusNode: _textFieldFocusNode,
+                              autofocus: true,
+                              enabled: snapshot.enabled,
+                              obscureText: snapshot.obscureText,
+                              keyboardType: snapshot.numericOnly
+                                  ? TextInputType.number
+                                  : TextInputType.text,
+                              inputFormatters: [
+                                if (snapshot.numericOnly)
+                                  FilteringTextInputFormatter.digitsOnly,
+                                if (snapshot.maxLength != null)
+                                  LengthLimitingTextInputFormatter(
+                                    snapshot.maxLength,
+                                  ),
+                              ],
+                              minLines: 1,
+                              maxLines: snapshot.obscureText ? 1 : 4,
+                              decoration: InputDecoration(
+                                labelText: snapshot.label,
+                                hintText: snapshot.numericOnly
+                                    ? 'Enter numbers'
+                                    : 'Type the value',
+                              ),
                             ),
+                          ),
+                          const SizedBox(width: AppSpacing.sm),
+                          IconButton.filledTonal(
+                            onPressed: snapshot.enabled
+                                ? _pasteFromClipboard
+                                : null,
+                            tooltip: 'Paste',
+                            icon: const Icon(Icons.content_paste_rounded),
+                          ),
                         ],
-                        minLines: 1,
-                        maxLines: snapshot.obscureText ? 1 : 4,
-                        decoration: InputDecoration(
-                          labelText: snapshot.label,
-                          hintText: snapshot.numericOnly
-                              ? 'Enter numbers'
-                              : 'Type the value',
-                        ),
                       ),
                       const SizedBox(height: AppSpacing.md),
                       FilledButton.icon(
@@ -208,7 +229,19 @@ class _RemoteTextInputPageState extends State<RemoteTextInputPage> {
       _errorMessage = null;
     });
 
-    if (!snapshot.exists || snapshot.text == _controller.text) {
+    if (!snapshot.exists) {
+      return;
+    }
+
+    if (_shouldHoldLocalText(snapshot)) {
+      return;
+    }
+
+    if (snapshot.text == _controller.text) {
+      if (_pendingLocalText == snapshot.text) {
+        _pendingLocalText = null;
+      }
+      _ensureTextFieldFocus(snapshot);
       return;
     }
 
@@ -218,6 +251,8 @@ class _RemoteTextInputPageState extends State<RemoteTextInputPage> {
       selection: TextSelection.collapsed(offset: snapshot.text.length),
     );
     _applyingRemoteText = false;
+
+    _ensureTextFieldFocus(snapshot);
   }
 
   void _handleLocalTextChanged() {
@@ -233,6 +268,7 @@ class _RemoteTextInputPageState extends State<RemoteTextInputPage> {
       return;
     }
 
+    _pendingLocalText = _controller.text;
     _writeDebounce?.cancel();
     _writeDebounce = Timer(const Duration(milliseconds: 120), () {
       unawaited(
@@ -244,6 +280,53 @@ class _RemoteTextInputPageState extends State<RemoteTextInputPage> {
         ),
       );
     });
+  }
+
+  Future<void> _pasteFromClipboard() async {
+    final snapshot = _snapshot;
+    if (snapshot == null || !snapshot.enabled) {
+      return;
+    }
+
+    final data = await Clipboard.getData(Clipboard.kTextPlain);
+    final text = data?.text;
+    if (text == null || text.isEmpty) {
+      return;
+    }
+
+    final pastedText = snapshot.numericOnly
+        ? text.replaceAll(RegExp(r'[^0-9]'), '')
+        : text;
+    final truncatedText = snapshot.maxLength == null
+        ? pastedText
+        : pastedText.characters.take(snapshot.maxLength!).toString();
+
+    _controller.value = TextEditingValue(
+      text: truncatedText,
+      selection: TextSelection.collapsed(offset: truncatedText.length),
+    );
+    _pendingLocalText = truncatedText;
+    _ensureTextFieldFocus(snapshot);
+  }
+
+  void _ensureTextFieldFocus(RemoteTextInputSnapshot snapshot) {
+    if (!snapshot.enabled || _textFieldFocusNode.hasFocus) {
+      return;
+    }
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && snapshot == _snapshot && snapshot.enabled) {
+        _textFieldFocusNode.requestFocus();
+      }
+    });
+  }
+
+  bool _shouldHoldLocalText(RemoteTextInputSnapshot snapshot) {
+    final pendingLocalText = _pendingLocalText;
+    if (pendingLocalText == null || !_textFieldFocusNode.hasFocus) {
+      return false;
+    }
+    return snapshot.text != pendingLocalText;
   }
 
   Future<void> _submitAction(String actionLabel) async {
@@ -259,6 +342,7 @@ class _RemoteTextInputPageState extends State<RemoteTextInputPage> {
     setState(() => _isSubmittingAction = true);
     try {
       _writeDebounce?.cancel();
+      _pendingLocalText = _controller.text;
       await repository.updateText(
         sessionId: widget.sessionId,
         text: _controller.text,

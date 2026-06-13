@@ -168,7 +168,7 @@ class _RemoteTextInputBridgeState extends State<RemoteTextInputBridge> {
                 ),
                 const SizedBox(height: AppSpacing.xxs),
                 Text(
-                  'Scan once per app launch. Keep the phone page open; it follows the focused TV field.',
+                  'Scan this code to open typing on your phone. You can enter text there instead of using the TV remote. Scan once, then keep the page open as you move between fields.',
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: AppColors.textSecondary,
                     height: 1.35,
