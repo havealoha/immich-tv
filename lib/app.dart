@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -14,10 +15,12 @@ import 'src/features/app_flow/cubit/app_flow_cubit.dart';
 import 'src/features/auth/data/immich_auth_repository.dart';
 import 'src/features/library/data/immich_asset_image_repository.dart';
 import 'src/features/library/data/immich_media_repository.dart';
+import 'src/features/marketing/marketing_landing_screen.dart';
 import 'src/features/mock/data/mock_auth_repository.dart';
 import 'src/features/mock/data/mock_media_repository.dart';
 import 'src/features/mock/data/mock_server_repository.dart';
 import 'src/features/onboarding/data/immich_server_repository.dart';
+import 'src/platform/browser_navigation.dart';
 import 'src/platform/storage/platform_profile_storage.dart';
 import 'src/shared/presentation/app_colors.dart';
 import 'src/shared/presentation/app_radii.dart';
@@ -39,14 +42,25 @@ class ImmichTvApp extends StatelessWidget {
            authRepository ??
            ((useMockServices ?? false)
                ? MockAuthRepository(profileStorage: PlatformProfileStorage())
-               : ImmichAuthRepository(dio: ImmichDioFactory.create(), profileStorage: PlatformProfileStorage())),
+               : ImmichAuthRepository(
+                   dio: ImmichDioFactory.create(),
+                   profileStorage: PlatformProfileStorage(),
+                 )),
        _serverRepository =
            serverRepository ??
            ((useMockServices ?? false)
                ? MockServerRepository(normalizer: const ServerUrlNormalizer())
-               : ImmichServerRepository(dio: ImmichDioFactory.create(), normalizer: const ServerUrlNormalizer())),
-       _assetImageRepository = assetImageRepository ?? ImmichAssetImageRepository(),
-       _mediaRepository = mediaRepository ?? ((useMockServices ?? false) ? MockMediaRepository() : ImmichMediaRepository(dio: ImmichDioFactory.create()));
+               : ImmichServerRepository(
+                   dio: ImmichDioFactory.create(),
+                   normalizer: const ServerUrlNormalizer(),
+                 )),
+       _assetImageRepository =
+           assetImageRepository ?? ImmichAssetImageRepository(),
+       _mediaRepository =
+           mediaRepository ??
+           ((useMockServices ?? false)
+               ? MockMediaRepository()
+               : ImmichMediaRepository(dio: ImmichDioFactory.create()));
 
   final AppEnvironment _environment;
   late final AuthRepository _authRepository;
@@ -56,22 +70,103 @@ class ImmichTvApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (_shouldShowMarketingLanding) {
+      return _MarketingSiteApp(
+        appHome: _AdaptiveAppEntry(authRepository: _authRepository),
+      );
+    }
+
     final baseTextTheme = GoogleFonts.interTextTheme().copyWith(
-      displayLarge: GoogleFonts.inter(fontSize: 57, fontWeight: FontWeight.w700, letterSpacing: -1.2, height: 1.0),
-      displayMedium: GoogleFonts.inter(fontSize: 45, fontWeight: FontWeight.w700, letterSpacing: -0.9, height: 1.02),
-      displaySmall: GoogleFonts.inter(fontSize: 36, fontWeight: FontWeight.w700, letterSpacing: -0.6, height: 1.05),
-      headlineLarge: GoogleFonts.inter(fontSize: 32, fontWeight: FontWeight.w700, letterSpacing: -0.45, height: 1.08),
-      headlineMedium: GoogleFonts.inter(fontSize: 28, fontWeight: FontWeight.w700, letterSpacing: -0.35, height: 1.08),
-      headlineSmall: GoogleFonts.inter(fontSize: 24, fontWeight: FontWeight.w700, letterSpacing: -0.25, height: 1.1),
-      titleLarge: GoogleFonts.inter(fontSize: 22, fontWeight: FontWeight.w700, letterSpacing: -0.2, height: 1.12),
-      titleMedium: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w700, letterSpacing: -0.1, height: 1.18),
-      titleSmall: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w700, letterSpacing: -0.05, height: 1.2),
-      bodyLarge: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w500, letterSpacing: 0, height: 1.45),
-      bodyMedium: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w500, letterSpacing: 0, height: 1.45),
-      bodySmall: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w500, letterSpacing: 0.05, height: 1.4),
-      labelLarge: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w700, letterSpacing: 0.1, height: 1.2),
-      labelMedium: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w700, letterSpacing: 0.1, height: 1.2),
-      labelSmall: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w700, letterSpacing: 0.15, height: 1.2),
+      displayLarge: GoogleFonts.inter(
+        fontSize: 57,
+        fontWeight: FontWeight.w700,
+        letterSpacing: -1.2,
+        height: 1.0,
+      ),
+      displayMedium: GoogleFonts.inter(
+        fontSize: 45,
+        fontWeight: FontWeight.w700,
+        letterSpacing: -0.9,
+        height: 1.02,
+      ),
+      displaySmall: GoogleFonts.inter(
+        fontSize: 36,
+        fontWeight: FontWeight.w700,
+        letterSpacing: -0.6,
+        height: 1.05,
+      ),
+      headlineLarge: GoogleFonts.inter(
+        fontSize: 32,
+        fontWeight: FontWeight.w700,
+        letterSpacing: -0.45,
+        height: 1.08,
+      ),
+      headlineMedium: GoogleFonts.inter(
+        fontSize: 28,
+        fontWeight: FontWeight.w700,
+        letterSpacing: -0.35,
+        height: 1.08,
+      ),
+      headlineSmall: GoogleFonts.inter(
+        fontSize: 24,
+        fontWeight: FontWeight.w700,
+        letterSpacing: -0.25,
+        height: 1.1,
+      ),
+      titleLarge: GoogleFonts.inter(
+        fontSize: 22,
+        fontWeight: FontWeight.w700,
+        letterSpacing: -0.2,
+        height: 1.12,
+      ),
+      titleMedium: GoogleFonts.inter(
+        fontSize: 16,
+        fontWeight: FontWeight.w700,
+        letterSpacing: -0.1,
+        height: 1.18,
+      ),
+      titleSmall: GoogleFonts.inter(
+        fontSize: 14,
+        fontWeight: FontWeight.w700,
+        letterSpacing: -0.05,
+        height: 1.2,
+      ),
+      bodyLarge: GoogleFonts.inter(
+        fontSize: 16,
+        fontWeight: FontWeight.w500,
+        letterSpacing: 0,
+        height: 1.45,
+      ),
+      bodyMedium: GoogleFonts.inter(
+        fontSize: 14,
+        fontWeight: FontWeight.w500,
+        letterSpacing: 0,
+        height: 1.45,
+      ),
+      bodySmall: GoogleFonts.inter(
+        fontSize: 12,
+        fontWeight: FontWeight.w500,
+        letterSpacing: 0.05,
+        height: 1.4,
+      ),
+      labelLarge: GoogleFonts.inter(
+        fontSize: 14,
+        fontWeight: FontWeight.w700,
+        letterSpacing: 0.1,
+        height: 1.2,
+      ),
+      labelMedium: GoogleFonts.inter(
+        fontSize: 12,
+        fontWeight: FontWeight.w700,
+        letterSpacing: 0.1,
+        height: 1.2,
+      ),
+      labelSmall: GoogleFonts.inter(
+        fontSize: 11,
+        fontWeight: FontWeight.w700,
+        letterSpacing: 0.15,
+        height: 1.2,
+      ),
     );
 
     final baseTheme = ThemeData(
@@ -98,7 +193,9 @@ class ImmichTvApp extends StatelessWidget {
       providers: [
         RepositoryProvider<AppEnvironment>.value(value: _environment),
         RepositoryProvider<AuthRepository>.value(value: _authRepository),
-        RepositoryProvider<AssetImageRepository>.value(value: _assetImageRepository),
+        RepositoryProvider<AssetImageRepository>.value(
+          value: _assetImageRepository,
+        ),
         RepositoryProvider<ServerRepository>.value(value: _serverRepository),
         RepositoryProvider<MediaRepository>.value(value: _mediaRepository),
       ],
@@ -106,7 +203,10 @@ class ImmichTvApp extends StatelessWidget {
         title: 'Immich TV',
         debugShowCheckedModeBanner: false,
         theme: baseTheme.copyWith(
-          textTheme: baseTheme.textTheme.apply(bodyColor: AppColors.textPrimary, displayColor: AppColors.textPrimary),
+          textTheme: baseTheme.textTheme.apply(
+            bodyColor: AppColors.textPrimary,
+            displayColor: AppColors.textPrimary,
+          ),
           cardTheme: baseTheme.cardTheme.copyWith(
             color: AppColors.surface,
             elevation: 0,
@@ -138,7 +238,9 @@ class ImmichTvApp extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
               foregroundColor: AppColors.textPrimary,
               side: const BorderSide(color: AppColors.borderStrong),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadii.md)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(AppRadii.md),
+              ),
             ),
           ),
           filledButtonTheme: FilledButtonThemeData(
@@ -146,15 +248,33 @@ class ImmichTvApp extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 18),
               backgroundColor: AppColors.immichBlue,
               foregroundColor: AppColors.actionForeground,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadii.md)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(AppRadii.md),
+              ),
             ),
           ),
-          progressIndicatorTheme: const ProgressIndicatorThemeData(color: AppColors.immichBlue, linearTrackColor: AppColors.darkSurfaceSoft),
-          textButtonTheme: TextButtonThemeData(style: TextButton.styleFrom(foregroundColor: AppColors.textPrimary)),
+          progressIndicatorTheme: const ProgressIndicatorThemeData(
+            color: AppColors.immichBlue,
+            linearTrackColor: AppColors.darkSurfaceSoft,
+          ),
+          textButtonTheme: TextButtonThemeData(
+            style: TextButton.styleFrom(foregroundColor: AppColors.textPrimary),
+          ),
         ),
         home: _AdaptiveAppEntry(authRepository: _authRepository),
       ),
     );
+  }
+
+  bool get _shouldShowMarketingLanding {
+    if (!kIsWeb) {
+      return false;
+    }
+
+    final normalizedPath = Uri.base.path.toLowerCase();
+    return normalizedPath.isEmpty ||
+        normalizedPath == '/' ||
+        normalizedPath == '/index.html';
   }
 }
 
@@ -181,6 +301,51 @@ class _AdaptiveViewportGate extends StatefulWidget {
 class _AdaptiveViewportGateState extends State<_AdaptiveViewportGate> {
   @override
   Widget build(BuildContext context) {
-    return BlocProvider(create: (_) => AppFlowCubit(widget.authRepository)..initialize(), child: const AppShell());
+    return BlocProvider(
+      create: (_) => AppFlowCubit(widget.authRepository)..initialize(),
+      child: const AppShell(),
+    );
+  }
+}
+
+class _MarketingSiteApp extends StatelessWidget {
+  const _MarketingSiteApp({required this.appHome});
+
+  final Widget appHome;
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'Immich TV',
+      debugShowCheckedModeBanner: false,
+      home: _MarketingSiteGate(appHome: appHome),
+    );
+  }
+}
+
+class _MarketingSiteGate extends StatefulWidget {
+  const _MarketingSiteGate({required this.appHome});
+
+  final Widget appHome;
+
+  @override
+  State<_MarketingSiteGate> createState() => _MarketingSiteGateState();
+}
+
+class _MarketingSiteGateState extends State<_MarketingSiteGate> {
+  bool _showWebApp = false;
+
+  @override
+  Widget build(BuildContext context) {
+    if (_showWebApp) {
+      return widget.appHome;
+    }
+
+    return MarketingLandingScreen(
+      onOpenWebApp: () {
+        pushBrowserPath('/app');
+        setState(() => _showWebApp = true);
+      },
+    );
   }
 }
