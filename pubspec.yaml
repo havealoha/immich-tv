@@ -45,6 +45,8 @@ dependencies:
   web: ^1.1.1
   wakelock_plus: ^1.5.2
   package_info_plus: ^9.0.1
+  cloud_firestore: ^6.5.0
+  qr_flutter: ^4.1.0
 
 dev_dependencies:
   flutter_test:

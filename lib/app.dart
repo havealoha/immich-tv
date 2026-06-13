@@ -20,6 +20,7 @@ import 'src/features/mock/data/mock_auth_repository.dart';
 import 'src/features/mock/data/mock_media_repository.dart';
 import 'src/features/mock/data/mock_server_repository.dart';
 import 'src/features/onboarding/data/immich_server_repository.dart';
+import 'src/features/remote_input/remote_text_input_page.dart';
 import 'src/platform/browser_navigation.dart';
 import 'src/platform/storage/platform_profile_storage.dart';
 import 'src/shared/presentation/app_colors.dart';
@@ -70,6 +71,14 @@ class ImmichTvApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final remoteInputSessionId = _remoteInputSessionId;
+    if (remoteInputSessionId != null) {
+      return _MarketingSiteApp(
+        appHome: _AdaptiveAppEntry(authRepository: _authRepository),
+        homeOverride: RemoteTextInputPage(sessionId: remoteInputSessionId),
+      );
+    }
+
     if (_shouldShowMarketingLanding) {
       return _MarketingSiteApp(
         appHome: _AdaptiveAppEntry(authRepository: _authRepository),
@@ -276,6 +285,18 @@ class ImmichTvApp extends StatelessWidget {
         normalizedPath == '/' ||
         normalizedPath == '/index.html';
   }
+
+  String? get _remoteInputSessionId {
+    if (!kIsWeb) {
+      return null;
+    }
+
+    final segments = Uri.base.pathSegments;
+    if (segments.length == 2 && segments.first.toLowerCase() == 'input') {
+      return segments.last;
+    }
+    return null;
+  }
 }
 
 class _AdaptiveAppEntry extends StatelessWidget {
@@ -309,16 +330,27 @@ class _AdaptiveViewportGateState extends State<_AdaptiveViewportGate> {
 }
 
 class _MarketingSiteApp extends StatelessWidget {
-  const _MarketingSiteApp({required this.appHome});
+  const _MarketingSiteApp({required this.appHome, this.homeOverride});
 
   final Widget appHome;
+  final Widget? homeOverride;
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Immich TV',
       debugShowCheckedModeBanner: false,
-      home: _MarketingSiteGate(appHome: appHome),
+      theme: ThemeData(
+        useMaterial3: true,
+        brightness: Brightness.dark,
+        colorScheme: const ColorScheme.dark(
+          primary: AppColors.immichBlue,
+          surface: AppColors.surface,
+          onSurface: AppColors.textPrimary,
+        ),
+        scaffoldBackgroundColor: AppColors.background,
+      ),
+      home: homeOverride ?? _MarketingSiteGate(appHome: appHome),
     );
   }
 }

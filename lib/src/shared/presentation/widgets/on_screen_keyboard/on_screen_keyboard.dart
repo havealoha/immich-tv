@@ -32,9 +32,9 @@ class OnScreenKeyboard extends StatefulWidget {
     this.enabled = true,
     this.keepSystemKeyboardHidden = true,
     this.includeSafeAreaBottomPadding = true,
-    this.padding = const EdgeInsets.fromLTRB(8, 8, 8, 10),
-    this.keySpacing = 6,
-    this.keyBorderRadius = 10,
+    this.padding = const EdgeInsets.fromLTRB(6, 6, 6, 8),
+    this.keySpacing = 5,
+    this.keyBorderRadius = 9,
   });
 
   final TextEditingController controller;
@@ -163,7 +163,9 @@ class _OnScreenKeyboardState extends State<OnScreenKeyboard> {
       });
     }
 
-    if (widget.type == OnScreenKeyboardType.alphabetic && _alphabeticCase == _AlphabeticCase.shifted && RegExp(r'^[A-Za-z]$').hasMatch(text)) {
+    if (widget.type == OnScreenKeyboardType.alphabetic &&
+        _alphabeticCase == _AlphabeticCase.shifted &&
+        RegExp(r'^[A-Za-z]$').hasMatch(text)) {
       setState(() {
         _alphabeticCase = _AlphabeticCase.lower;
       });
@@ -211,7 +213,9 @@ class _OnScreenKeyboardState extends State<OnScreenKeyboard> {
     if (!widget.enabled) return;
 
     final now = DateTime.now();
-    final bool doubleTap = _lastShiftTapAt != null && now.difference(_lastShiftTapAt!) <= const Duration(milliseconds: 320);
+    final bool doubleTap =
+        _lastShiftTapAt != null &&
+        now.difference(_lastShiftTapAt!) <= const Duration(milliseconds: 320);
 
     setState(() {
       if (doubleTap && _alphabeticCase == _AlphabeticCase.shifted) {
@@ -243,7 +247,9 @@ class _OnScreenKeyboardState extends State<OnScreenKeyboard> {
   void _toggleSymbolPage() {
     if (!widget.enabled) return;
     setState(() {
-      _symbolPage = _symbolPage == _SymbolPage.first ? _SymbolPage.second : _SymbolPage.first;
+      _symbolPage = _symbolPage == _SymbolPage.first
+          ? _SymbolPage.second
+          : _SymbolPage.first;
     });
   }
 
@@ -275,18 +281,26 @@ class _OnScreenKeyboardState extends State<OnScreenKeyboard> {
         final shortestSide = mediaQuery.size.shortestSide;
         final isTablet = shortestSide >= 600 || constraints.maxWidth >= 700;
         final spacing = widget.keySpacing;
-        final keyHeight = isTablet ? 60.0 : 42.0;
-        final iconSize = isTablet ? 22.0 : 20.0;
+        final keyHeight = isTablet ? 50.0 : 38.0;
+        final iconSize = isTablet ? 20.0 : 18.0;
         final resolvedPadding = widget.includeSafeAreaBottomPadding
-            ? widget.padding.add(EdgeInsets.only(bottom: math.max(mediaQuery.padding.bottom, isTablet ? 6 : 10)))
+            ? widget.padding.add(
+                EdgeInsets.only(
+                  bottom: math.max(mediaQuery.padding.bottom, isTablet ? 4 : 8),
+                ),
+              )
             : widget.padding;
         final keyLabelStyle = theme.textTheme.titleMedium?.copyWith(
           color: palette.text,
           fontWeight: FontWeight.w500,
-          fontSize: isTablet ? 19 : 17,
+          fontSize: isTablet ? 17 : 15,
           letterSpacing: -0.1,
         );
-        final specialLabelStyle = theme.textTheme.bodyMedium?.copyWith(color: palette.mutedText, fontWeight: FontWeight.w600, fontSize: isTablet ? 14 : 13);
+        final specialLabelStyle = theme.textTheme.bodyMedium?.copyWith(
+          color: palette.mutedText,
+          fontWeight: FontWeight.w600,
+          fontSize: isTablet ? 12.5 : 12,
+        );
 
         return Container(
           color: palette.background,
@@ -384,7 +398,12 @@ class _OnScreenKeyboardState extends State<OnScreenKeyboard> {
     return [
       _buildKeyRow(
         keys: rows[0]
-            .map((key) => _KeyboardKeySpec.character(label: _showSymbols ? key : _displayLetter(key), value: _showSymbols ? key : _displayLetter(key)))
+            .map(
+              (key) => _KeyboardKeySpec.character(
+                label: _showSymbols ? key : _displayLetter(key),
+                value: _showSymbols ? key : _displayLetter(key),
+              ),
+            )
             .toList(),
         entryFocusNode: widget.firstKeyFocusNode,
         entryKeyIndex: 0,
@@ -398,7 +417,12 @@ class _OnScreenKeyboardState extends State<OnScreenKeyboard> {
       SizedBox(height: spacing),
       _buildKeyRow(
         keys: rows[1]
-            .map((key) => _KeyboardKeySpec.character(label: _showSymbols ? key : _displayLetter(key), value: _showSymbols ? key : _displayLetter(key)))
+            .map(
+              (key) => _KeyboardKeySpec.character(
+                label: _showSymbols ? key : _displayLetter(key),
+                value: _showSymbols ? key : _displayLetter(key),
+              ),
+            )
             .toList(),
         keyHeight: keyHeight,
         spacing: spacing,
@@ -412,15 +436,30 @@ class _OnScreenKeyboardState extends State<OnScreenKeyboard> {
       _buildKeyRow(
         keys: [
           _showSymbols
-              ? _KeyboardKeySpec.action(label: _symbolPage == _SymbolPage.first ? '#+=' : '123', onTap: _toggleSymbolPage, flex: 18)
+              ? _KeyboardKeySpec.action(
+                  label: _symbolPage == _SymbolPage.first ? '#+=' : '123',
+                  onTap: _toggleSymbolPage,
+                  flex: 18,
+                )
               : _KeyboardKeySpec.iconAction(
-                  icon: _alphabeticCase == _AlphabeticCase.capsLock ? Icons.keyboard_capslock_rounded : Icons.arrow_upward_rounded,
+                  icon: _alphabeticCase == _AlphabeticCase.capsLock
+                      ? Icons.keyboard_capslock_rounded
+                      : Icons.arrow_upward_rounded,
                   onTap: _handleShiftPressed,
                   flex: 18,
                   isActive: _alphabeticCase != _AlphabeticCase.lower,
                 ),
-          ...rows[2].map((key) => _KeyboardKeySpec.character(label: _showSymbols ? key : _displayLetter(key), value: _showSymbols ? key : _displayLetter(key))),
-          _KeyboardKeySpec.iconAction(icon: Icons.backspace_outlined, onTap: _backspace, flex: 18),
+          ...rows[2].map(
+            (key) => _KeyboardKeySpec.character(
+              label: _showSymbols ? key : _displayLetter(key),
+              value: _showSymbols ? key : _displayLetter(key),
+            ),
+          ),
+          _KeyboardKeySpec.iconAction(
+            icon: Icons.backspace_outlined,
+            onTap: _backspace,
+            flex: 18,
+          ),
         ],
         keyHeight: keyHeight,
         spacing: spacing,
@@ -433,16 +472,36 @@ class _OnScreenKeyboardState extends State<OnScreenKeyboard> {
       _buildKeyRow(
         keys: widget.showDoneButton
             ? [
-                _KeyboardKeySpec.action(label: _showSymbols ? 'ABC' : '?123', onTap: _toggleSymbolMode, flex: 19),
+                _KeyboardKeySpec.action(
+                  label: _showSymbols ? 'ABC' : '?123',
+                  onTap: _toggleSymbolMode,
+                  flex: 19,
+                ),
                 _KeyboardKeySpec.character(label: ',', value: ',', flex: 10),
-                _KeyboardKeySpec.action(label: 'space', onTap: () => _insertText(' '), flex: 48),
+                _KeyboardKeySpec.action(
+                  label: 'space',
+                  onTap: () => _insertText(' '),
+                  flex: 48,
+                ),
                 _KeyboardKeySpec.character(label: '.', value: '.', flex: 10),
-                _KeyboardKeySpec.action(label: widget.doneLabel, onTap: _handleDone, flex: 19),
+                _KeyboardKeySpec.action(
+                  label: widget.doneLabel,
+                  onTap: _handleDone,
+                  flex: 19,
+                ),
               ]
             : [
-                _KeyboardKeySpec.action(label: _showSymbols ? 'ABC' : '?123', onTap: _toggleSymbolMode, flex: 19),
+                _KeyboardKeySpec.action(
+                  label: _showSymbols ? 'ABC' : '?123',
+                  onTap: _toggleSymbolMode,
+                  flex: 19,
+                ),
                 _KeyboardKeySpec.character(label: ',', value: ',', flex: 12),
-                _KeyboardKeySpec.action(label: 'space', onTap: () => _insertText(' '), flex: 58),
+                _KeyboardKeySpec.action(
+                  label: 'space',
+                  onTap: () => _insertText(' '),
+                  flex: 58,
+                ),
                 _KeyboardKeySpec.character(label: '.', value: '.', flex: 12),
               ],
         keyHeight: keyHeight,
@@ -463,7 +522,8 @@ class _OnScreenKeyboardState extends State<OnScreenKeyboard> {
     required TextStyle? keyLabelStyle,
     required TextStyle? specialLabelStyle,
   }) {
-    final shouldShowDecimalButton = widget.allowDecimal && widget.showDecimalButton;
+    final shouldShowDecimalButton =
+        widget.allowDecimal && widget.showDecimalButton;
 
     final bottomRow = <_KeyboardKeySpec>[
       if (widget.allowNegative)
@@ -473,7 +533,10 @@ class _OnScreenKeyboardState extends State<OnScreenKeyboard> {
       else
         _KeyboardKeySpec.disabled(),
       _KeyboardKeySpec.character(label: '0', value: '0'),
-      _KeyboardKeySpec.iconAction(icon: Icons.backspace_outlined, onTap: _backspace),
+      _KeyboardKeySpec.iconAction(
+        icon: Icons.backspace_outlined,
+        onTap: _backspace,
+      ),
     ];
 
     return [
@@ -534,7 +597,13 @@ class _OnScreenKeyboardState extends State<OnScreenKeyboard> {
       if (widget.showDoneButton) ...[
         SizedBox(height: spacing),
         _buildKeyRow(
-          keys: [_KeyboardKeySpec.action(label: widget.doneLabel, onTap: _handleDone, flex: 1)],
+          keys: [
+            _KeyboardKeySpec.action(
+              label: widget.doneLabel,
+              onTap: _handleDone,
+              flex: 1,
+            ),
+          ],
           keyHeight: keyHeight + 2,
           spacing: spacing,
           iconSize: iconSize,
@@ -618,8 +687,12 @@ class _KeyboardKeyButton extends StatelessWidget {
     }
 
     final isSpecial = spec.kind != _KeyboardKeyKind.character;
-    final backgroundColor = spec.isActive ? palette.activeKey : (isSpecial ? palette.specialKey : palette.key);
-    final foregroundColor = spec.isActive ? palette.activeText : (isSpecial ? palette.mutedText : palette.text);
+    final backgroundColor = spec.isActive
+        ? palette.activeKey
+        : (isSpecial ? palette.specialKey : palette.key);
+    final foregroundColor = spec.isActive
+        ? palette.activeText
+        : (isSpecial ? palette.mutedText : palette.text);
     final focusedBackgroundColor = Color.alphaBlend(
       palette.activeKey.withValues(alpha: spec.isActive ? 0.2 : 0.12),
       backgroundColor,
@@ -652,7 +725,10 @@ class _KeyboardKeyButton extends StatelessWidget {
           onTap: onTap,
           focusNode: focusNode,
           enabled: enabled,
-          enableRepeat: spec.kind == _KeyboardKeyKind.iconAction && spec.icon == Icons.backspace_outlined && enabled,
+          enableRepeat:
+              spec.kind == _KeyboardKeyKind.iconAction &&
+              spec.icon == Icons.backspace_outlined &&
+              enabled,
           child: Center(
             child: spec.icon != null
                 ? Icon(spec.icon, size: iconSize, color: foregroundColor)
@@ -664,7 +740,8 @@ class _KeyboardKeyButton extends StatelessWidget {
                         spec.label,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: (isSpecial ? specialLabelStyle : keyLabelStyle)?.copyWith(color: foregroundColor),
+                        style: (isSpecial ? specialLabelStyle : keyLabelStyle)
+                            ?.copyWith(color: foregroundColor),
                       ),
                       const SizedBox(height: 1),
                       Text(
@@ -683,7 +760,8 @@ class _KeyboardKeyButton extends StatelessWidget {
                     spec.label,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: (isSpecial ? specialLabelStyle : keyLabelStyle)?.copyWith(color: foregroundColor),
+                    style: (isSpecial ? specialLabelStyle : keyLabelStyle)
+                        ?.copyWith(color: foregroundColor),
                   ),
           ),
         ),
@@ -768,9 +846,7 @@ class _RepeatableKeySurfaceState extends State<_RepeatableKeySurface> {
                   : widget.backgroundColor,
               borderRadius: BorderRadius.circular(widget.borderRadius),
               border: Border.all(
-                color: isFocused
-                    ? AppColors.focus
-                    : Colors.transparent,
+                color: isFocused ? AppColors.focus : Colors.transparent,
                 width: isFocused ? 2 : 0,
               ),
               boxShadow: isFocused
@@ -824,7 +900,16 @@ class _ResolvedKeyboardPalette {
 enum _KeyboardKeyKind { character, action, iconAction, disabled }
 
 class _KeyboardKeySpec {
-  const _KeyboardKeySpec._({required this.kind, required this.label, this.value, this.subtitle, this.onTap, this.icon, this.flex = 10, this.isActive = false});
+  const _KeyboardKeySpec._({
+    required this.kind,
+    required this.label,
+    this.value,
+    this.subtitle,
+    this.onTap,
+    this.icon,
+    this.flex = 10,
+    this.isActive = false,
+  });
 
   final _KeyboardKeyKind kind;
   final String label;
@@ -835,14 +920,44 @@ class _KeyboardKeySpec {
   final int flex;
   final bool isActive;
 
-  const _KeyboardKeySpec.character({required String label, required String value, String? subtitle, int flex = 10})
-    : this._(kind: _KeyboardKeyKind.character, label: label, value: value, subtitle: subtitle, flex: flex);
+  const _KeyboardKeySpec.character({
+    required String label,
+    required String value,
+    String? subtitle,
+    int flex = 10,
+  }) : this._(
+         kind: _KeyboardKeyKind.character,
+         label: label,
+         value: value,
+         subtitle: subtitle,
+         flex: flex,
+       );
 
-  const _KeyboardKeySpec.action({required String label, required VoidCallback onTap, int flex = 10})
-    : this._(kind: _KeyboardKeyKind.action, label: label, onTap: onTap, flex: flex);
+  const _KeyboardKeySpec.action({
+    required String label,
+    required VoidCallback onTap,
+    int flex = 10,
+  }) : this._(
+         kind: _KeyboardKeyKind.action,
+         label: label,
+         onTap: onTap,
+         flex: flex,
+       );
 
-  const _KeyboardKeySpec.iconAction({required IconData icon, required VoidCallback onTap, int flex = 10, bool isActive = false})
-    : this._(kind: _KeyboardKeyKind.iconAction, label: '', icon: icon, onTap: onTap, flex: flex, isActive: isActive);
+  const _KeyboardKeySpec.iconAction({
+    required IconData icon,
+    required VoidCallback onTap,
+    int flex = 10,
+    bool isActive = false,
+  }) : this._(
+         kind: _KeyboardKeyKind.iconAction,
+         label: '',
+         icon: icon,
+         onTap: onTap,
+         flex: flex,
+         isActive: isActive,
+       );
 
-  const _KeyboardKeySpec.disabled({int flex = 10}) : this._(kind: _KeyboardKeyKind.disabled, label: '', flex: flex);
+  const _KeyboardKeySpec.disabled({int flex = 10})
+    : this._(kind: _KeyboardKeyKind.disabled, label: '', flex: flex);
 }

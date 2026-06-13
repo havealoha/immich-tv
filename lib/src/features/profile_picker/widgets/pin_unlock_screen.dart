@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -30,6 +32,7 @@ class _PinUnlockScreenState extends State<PinUnlockScreen> {
   @override
   void initState() {
     super.initState();
+    _pinController.addListener(_handlePinTextChanged);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         _pinFieldFocusNode.requestFocus();
@@ -39,6 +42,7 @@ class _PinUnlockScreenState extends State<PinUnlockScreen> {
 
   @override
   void dispose() {
+    _pinController.removeListener(_handlePinTextChanged);
     _pinController.dispose();
     _pinFieldFocusNode.dispose();
     _pinKeyboardFocusNode.dispose();
@@ -49,7 +53,7 @@ class _PinUnlockScreenState extends State<PinUnlockScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scale = AppScale.of(context);
-    final fieldSpacing = scale.space(18, min: 14, max: 22);
+    final fieldSpacing = scale.space(14, min: 10, max: 18);
     final profileColor = profileAvatarColor(widget.profile);
 
     return Scaffold(
@@ -61,7 +65,7 @@ class _PinUnlockScreenState extends State<PinUnlockScreen> {
             child: Padding(
               padding: const EdgeInsets.all(24),
               child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 640),
+                constraints: const BoxConstraints(maxWidth: 560),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.center,
@@ -73,8 +77,8 @@ class _PinUnlockScreenState extends State<PinUnlockScreen> {
                       child: Text(
                         widget.profile.initials,
                         style:
-                            (theme.textTheme.headlineSmall
-                                    ?? theme.textTheme.titleLarge)
+                            (theme.textTheme.headlineSmall ??
+                                    theme.textTheme.titleLarge)
                                 ?.copyWith(fontWeight: FontWeight.w800),
                       ),
                     ),
@@ -83,8 +87,8 @@ class _PinUnlockScreenState extends State<PinUnlockScreen> {
                       widget.profile.name,
                       textAlign: TextAlign.center,
                       style:
-                          (theme.textTheme.headlineMedium
-                                  ?? theme.textTheme.headlineSmall)
+                          (theme.textTheme.headlineMedium ??
+                                  theme.textTheme.headlineSmall)
                               ?.copyWith(fontWeight: FontWeight.w800),
                     ),
                     const SizedBox(height: AppSpacing.sm),
@@ -122,8 +126,8 @@ class _PinUnlockScreenState extends State<PinUnlockScreen> {
                           LengthLimitingTextInputFormatter(4),
                         ],
                         style:
-                            (theme.textTheme.titleMedium
-                                    ?? theme.textTheme.bodyLarge)
+                            (theme.textTheme.titleMedium ??
+                                    theme.textTheme.bodyLarge)
                                 ?.copyWith(
                                   fontWeight: FontWeight.w700,
                                   fontSize: scale.text(22, min: 18, max: 26),
@@ -170,6 +174,15 @@ class _PinUnlockScreenState extends State<PinUnlockScreen> {
         ),
       ),
     );
+  }
+
+  void _handlePinTextChanged() {
+    if (_errorMessage != null) {
+      setState(() => _errorMessage = null);
+    }
+    if (_pinController.text.length == 4 && !_isSubmitting) {
+      unawaited(_submit());
+    }
   }
 
   void _handleDigitChanged() {

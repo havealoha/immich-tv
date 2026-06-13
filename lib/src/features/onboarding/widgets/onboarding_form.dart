@@ -9,6 +9,8 @@ import '../../../shared/presentation/app_scale.dart';
 import '../../../shared/presentation/app_spacing.dart';
 import '../../../shared/presentation/widgets/tv_focusable.dart';
 import '../../../shared/presentation/widgets/on_screen_keyboard/on_screen_keyboard.dart';
+import '../../remote_input/widgets/remote_input_method_switch.dart';
+import '../../remote_input/widgets/remote_text_input_bridge.dart';
 import '../cubit/onboarding_state.dart';
 import 'onboarding_status_banner.dart';
 
@@ -47,6 +49,10 @@ class OnboardingForm extends StatelessWidget {
     required this.apiKeyPasteFocusNode,
     required this.pinFieldFocusNode,
     required this.confirmPinFieldFocusNode,
+    required this.serverInputMethodFocusNode,
+    required this.emailInputMethodFocusNode,
+    required this.passwordInputMethodFocusNode,
+    required this.apiKeyInputMethodFocusNode,
     required this.serverKeyboardFocusNode,
     required this.emailKeyboardFocusNode,
     required this.passwordKeyboardFocusNode,
@@ -55,7 +61,10 @@ class OnboardingForm extends StatelessWidget {
     required this.confirmPinKeyboardFocusNode,
     required this.isConfirmingPin,
     required this.activeKeyboardField,
+    required this.inputMethod,
+    required this.onInputMethodChanged,
     required this.onAuthMethodChanged,
+    required this.onEmailRemoteNext,
     required this.onPrimaryAction,
   });
 
@@ -82,6 +91,10 @@ class OnboardingForm extends StatelessWidget {
   final FocusNode apiKeyPasteFocusNode;
   final FocusNode pinFieldFocusNode;
   final FocusNode confirmPinFieldFocusNode;
+  final FocusNode serverInputMethodFocusNode;
+  final FocusNode emailInputMethodFocusNode;
+  final FocusNode passwordInputMethodFocusNode;
+  final FocusNode apiKeyInputMethodFocusNode;
   final FocusNode serverKeyboardFocusNode;
   final FocusNode emailKeyboardFocusNode;
   final FocusNode passwordKeyboardFocusNode;
@@ -90,7 +103,11 @@ class OnboardingForm extends StatelessWidget {
   final FocusNode confirmPinKeyboardFocusNode;
   final bool isConfirmingPin;
   final OnboardingKeyboardField? activeKeyboardField;
+  final RemoteInputMethod inputMethod;
+  final void Function(OnboardingKeyboardField field, RemoteInputMethod method)
+  onInputMethodChanged;
   final ValueChanged<ImmichAuthMethod> onAuthMethodChanged;
+  final VoidCallback onEmailRemoteNext;
   final VoidCallback onPrimaryAction;
 
   @override
@@ -120,13 +137,13 @@ class OnboardingForm extends StatelessWidget {
       fontSize: scale.text(15, min: 13, max: 17),
       height: 1.45,
     );
-    final fieldSpacing = scale.space(18, min: 14, max: 22);
+    final fieldSpacing = scale.space(14, min: 10, max: 18);
     final statusPadding = scale.space(16, min: 14, max: 20);
     final fieldWidthFactor = isTvLayout
-        ? 0.92
+        ? 0.82
         : isCompactWidth
-        ? 1.0
-        : 0.94;
+        ? 0.94
+        : 0.86;
     return Theme(
       data: theme.copyWith(
         inputDecorationTheme: theme.inputDecorationTheme.copyWith(
@@ -191,6 +208,7 @@ class OnboardingForm extends StatelessWidget {
                   style: fieldTextStyle,
                   readOnly: isTvKeyboardEntry,
                   keyboardFocusNode: serverKeyboardFocusNode,
+                  inputMethodFocusNode: serverInputMethodFocusNode,
                   lockDirectionalFocusToKeyboard: isSystemKeyboardVisible,
                   onSubmitted: !isSubmitting ? (_) => onPrimaryAction() : null,
                   decoration: const InputDecoration(
@@ -199,20 +217,49 @@ class OnboardingForm extends StatelessWidget {
                   ),
                 ),
               ),
+              SizedBox(height: fieldSpacing),
+              _ScaledFieldWidth(
+                widthFactor: fieldWidthFactor,
+                child: RemoteInputMethodSwitch(
+                  value: inputMethod,
+                  enabled: !isSubmitting,
+                  firstFocusNode: serverInputMethodFocusNode,
+                  onMoveDown: inputMethod == RemoteInputMethod.tvKeyboard
+                      ? () => serverKeyboardFocusNode.requestFocus()
+                      : null,
+                  onChanged: (method) => onInputMethodChanged(
+                    OnboardingKeyboardField.server,
+                    method,
+                  ),
+                ),
+              ),
               if (isTvKeyboardEntry &&
                   activeKeyboardField == OnboardingKeyboardField.server) ...[
                 SizedBox(height: fieldSpacing),
-                _ScaledFieldWidth(
-                  widthFactor: fieldWidthFactor,
-                  child: OnScreenKeyboard(
-                    controller: serverController,
-                    focusNode: serverFieldFocusNode,
-                    firstKeyFocusNode: serverKeyboardFocusNode,
-                    enabled: !isSubmitting,
-                    doneLabel: 'Next',
-                    onDone: onPrimaryAction,
+                if (inputMethod == RemoteInputMethod.phoneQr)
+                  _ScaledFieldWidth(
+                    widthFactor: fieldWidthFactor,
+                    child: RemoteTextInputBridge(
+                      scopeId: 'app-session',
+                      controller: serverController,
+                      label: 'Immich server URL',
+                      enabled: !isSubmitting,
+                      actionLabel: 'Next',
+                      onRemoteAction: onPrimaryAction,
+                    ),
+                  )
+                else
+                  _ScaledFieldWidth(
+                    widthFactor: fieldWidthFactor,
+                    child: OnScreenKeyboard(
+                      controller: serverController,
+                      focusNode: serverFieldFocusNode,
+                      firstKeyFocusNode: serverKeyboardFocusNode,
+                      enabled: !isSubmitting,
+                      doneLabel: 'Next',
+                      onDone: onPrimaryAction,
+                    ),
                   ),
-                ),
               ],
             ] else if (isAuthMethodStep) ...[
               _ScaledFieldWidth(
@@ -243,18 +290,6 @@ class OnboardingForm extends StatelessWidget {
                 ),
               ),
             ] else if (isCredentialsStep) ...[
-              _ScaledFieldWidth(
-                widthFactor: fieldWidthFactor,
-                child: _CredentialModeBanner(
-                  title: isPasswordMode
-                      ? 'Login with email and password'
-                      : 'Connect with API key',
-                  subtitle: isPasswordMode
-                      ? 'Sign in with the same account you use in Immich.'
-                      : 'Generate a personal API key in Immich web: Account Settings > API Keys, then paste it here.',
-                ),
-              ),
-              SizedBox(height: fieldSpacing),
               if (isPasswordMode) ...[
                 _ScaledFieldWidth(
                   widthFactor: fieldWidthFactor,
@@ -268,25 +303,55 @@ class OnboardingForm extends StatelessWidget {
                     style: fieldTextStyle,
                     readOnly: isTvKeyboardEntry,
                     keyboardFocusNode: emailKeyboardFocusNode,
+                    inputMethodFocusNode: emailInputMethodFocusNode,
                     lockDirectionalFocusToKeyboard: isSystemKeyboardVisible,
                     onSubmitted: (_) => passwordFieldFocusNode.requestFocus(),
                     decoration: const InputDecoration(labelText: 'Email'),
                   ),
                 ),
+                SizedBox(height: fieldSpacing),
+                _ScaledFieldWidth(
+                  widthFactor: fieldWidthFactor,
+                  child: RemoteInputMethodSwitch(
+                    value: inputMethod,
+                    enabled: !isSubmitting,
+                    firstFocusNode: emailInputMethodFocusNode,
+                    onMoveDown: inputMethod == RemoteInputMethod.tvKeyboard
+                        ? () => emailKeyboardFocusNode.requestFocus()
+                        : null,
+                    onChanged: (method) => onInputMethodChanged(
+                      OnboardingKeyboardField.email,
+                      method,
+                    ),
+                  ),
+                ),
                 if (isTvKeyboardEntry &&
                     activeKeyboardField == OnboardingKeyboardField.email) ...[
                   SizedBox(height: fieldSpacing),
-                  _ScaledFieldWidth(
-                    widthFactor: fieldWidthFactor,
-                    child: OnScreenKeyboard(
-                      controller: emailController,
-                      focusNode: emailFieldFocusNode,
-                      firstKeyFocusNode: emailKeyboardFocusNode,
-                      enabled: !isSubmitting,
-                      doneLabel: 'Next',
-                      onDone: () => passwordFieldFocusNode.requestFocus(),
+                  if (inputMethod == RemoteInputMethod.phoneQr)
+                    _ScaledFieldWidth(
+                      widthFactor: fieldWidthFactor,
+                      child: RemoteTextInputBridge(
+                        scopeId: 'app-session',
+                        controller: emailController,
+                        label: 'Email',
+                        enabled: !isSubmitting,
+                        actionLabel: 'Next',
+                        onRemoteAction: onEmailRemoteNext,
+                      ),
+                    )
+                  else
+                    _ScaledFieldWidth(
+                      widthFactor: fieldWidthFactor,
+                      child: OnScreenKeyboard(
+                        controller: emailController,
+                        focusNode: emailFieldFocusNode,
+                        firstKeyFocusNode: emailKeyboardFocusNode,
+                        enabled: !isSubmitting,
+                        doneLabel: 'Next',
+                        onDone: () => passwordFieldFocusNode.requestFocus(),
+                      ),
                     ),
-                  ),
                 ],
                 SizedBox(height: fieldSpacing),
                 _ScaledFieldWidth(
@@ -301,6 +366,7 @@ class OnboardingForm extends StatelessWidget {
                     textInputAction: TextInputAction.next,
                     readOnly: isTvKeyboardEntry,
                     keyboardFocusNode: passwordKeyboardFocusNode,
+                    inputMethodFocusNode: passwordInputMethodFocusNode,
                     lockDirectionalFocusToKeyboard: isSystemKeyboardVisible,
                     onSubmitted: !isSubmitting
                         ? (_) => onPrimaryAction()
@@ -308,21 +374,51 @@ class OnboardingForm extends StatelessWidget {
                     decoration: const InputDecoration(labelText: 'Password'),
                   ),
                 ),
+                SizedBox(height: fieldSpacing),
+                _ScaledFieldWidth(
+                  widthFactor: fieldWidthFactor,
+                  child: RemoteInputMethodSwitch(
+                    value: inputMethod,
+                    enabled: !isSubmitting,
+                    firstFocusNode: passwordInputMethodFocusNode,
+                    onMoveDown: inputMethod == RemoteInputMethod.tvKeyboard
+                        ? () => passwordKeyboardFocusNode.requestFocus()
+                        : null,
+                    onChanged: (method) => onInputMethodChanged(
+                      OnboardingKeyboardField.password,
+                      method,
+                    ),
+                  ),
+                ),
                 if (isTvKeyboardEntry &&
                     activeKeyboardField ==
                         OnboardingKeyboardField.password) ...[
                   SizedBox(height: fieldSpacing),
-                  _ScaledFieldWidth(
-                    widthFactor: fieldWidthFactor,
-                    child: OnScreenKeyboard(
-                      controller: passwordController,
-                      focusNode: passwordFieldFocusNode,
-                      firstKeyFocusNode: passwordKeyboardFocusNode,
-                      enabled: !isSubmitting,
-                      doneLabel: 'Continue',
-                      onDone: onPrimaryAction,
+                  if (inputMethod == RemoteInputMethod.phoneQr)
+                    _ScaledFieldWidth(
+                      widthFactor: fieldWidthFactor,
+                      child: RemoteTextInputBridge(
+                        scopeId: 'app-session',
+                        controller: passwordController,
+                        label: 'Password',
+                        obscureText: true,
+                        enabled: !isSubmitting,
+                        actionLabel: 'Continue',
+                        onRemoteAction: onPrimaryAction,
+                      ),
+                    )
+                  else
+                    _ScaledFieldWidth(
+                      widthFactor: fieldWidthFactor,
+                      child: OnScreenKeyboard(
+                        controller: passwordController,
+                        focusNode: passwordFieldFocusNode,
+                        firstKeyFocusNode: passwordKeyboardFocusNode,
+                        enabled: !isSubmitting,
+                        doneLabel: 'Continue',
+                        onDone: onPrimaryAction,
+                      ),
                     ),
-                  ),
                 ],
               ] else ...[
                 _ScaledFieldWidth(
@@ -341,6 +437,7 @@ class OnboardingForm extends StatelessWidget {
                           style: fieldTextStyle,
                           readOnly: isTvKeyboardEntry,
                           keyboardFocusNode: apiKeyKeyboardFocusNode,
+                          inputMethodFocusNode: apiKeyInputMethodFocusNode,
                           lockDirectionalFocusToKeyboard:
                               isSystemKeyboardVisible,
                           onSubmitted: !isSubmitting
@@ -371,82 +468,119 @@ class OnboardingForm extends StatelessWidget {
                         },
                         onMoveLeft: () => apiKeyFieldFocusNode.requestFocus(),
                         onMoveDown: () =>
-                            apiKeyKeyboardFocusNode.requestFocus(),
+                            apiKeyInputMethodFocusNode.requestFocus(),
                       ),
                     ],
+                  ),
+                ),
+                SizedBox(height: fieldSpacing),
+                _ScaledFieldWidth(
+                  widthFactor: fieldWidthFactor,
+                  child: RemoteInputMethodSwitch(
+                    value: inputMethod,
+                    enabled: !isSubmitting,
+                    firstFocusNode: apiKeyInputMethodFocusNode,
+                    onMoveDown: inputMethod == RemoteInputMethod.tvKeyboard
+                        ? () => apiKeyKeyboardFocusNode.requestFocus()
+                        : null,
+                    onChanged: (method) => onInputMethodChanged(
+                      OnboardingKeyboardField.apiKey,
+                      method,
+                    ),
                   ),
                 ),
                 if (isTvKeyboardEntry &&
                     activeKeyboardField == OnboardingKeyboardField.apiKey) ...[
                   SizedBox(height: fieldSpacing),
-                  _ScaledFieldWidth(
-                    widthFactor: fieldWidthFactor,
-                    child: OnScreenKeyboard(
-                      controller: apiKeyController,
-                      focusNode: apiKeyFieldFocusNode,
-                      firstKeyFocusNode: apiKeyKeyboardFocusNode,
-                      enabled: !isSubmitting,
-                      doneLabel: 'Continue',
-                      onDone: onPrimaryAction,
+                  if (inputMethod == RemoteInputMethod.phoneQr)
+                    _ScaledFieldWidth(
+                      widthFactor: fieldWidthFactor,
+                      child: RemoteTextInputBridge(
+                        scopeId: 'app-session',
+                        controller: apiKeyController,
+                        label: 'API key',
+                        obscureText: true,
+                        enabled: !isSubmitting,
+                        actionLabel: 'Continue',
+                        onRemoteAction: onPrimaryAction,
+                      ),
+                    )
+                  else
+                    _ScaledFieldWidth(
+                      widthFactor: fieldWidthFactor,
+                      child: OnScreenKeyboard(
+                        controller: apiKeyController,
+                        focusNode: apiKeyFieldFocusNode,
+                        firstKeyFocusNode: apiKeyKeyboardFocusNode,
+                        enabled: !isSubmitting,
+                        doneLabel: 'Continue',
+                        onDone: onPrimaryAction,
+                      ),
                     ),
-                  ),
                 ],
               ],
             ] else ...[
-              _ScaledFieldWidth(
-                widthFactor: fieldWidthFactor,
-                child: _TvPinStep(
-                  title: isConfirmingPin
-                      ? 'Confirm your 4-digit PIN'
-                      : 'Create a 4-digit PIN',
-                  caption: isConfirmingPin
-                      ? 'Enter the same four digits again.'
-                      : 'Use the PIN you want to unlock this profile on TV.',
-                  titleStyle: pinPromptStyle,
-                  captionStyle: pinCaptionStyle,
-                  controller: isConfirmingPin
-                      ? confirmPinController
-                      : pinController,
-                  focusNode: isConfirmingPin
-                      ? confirmPinFieldFocusNode
-                      : pinFieldFocusNode,
-                  keyboardFocusNode: isConfirmingPin
-                      ? confirmPinKeyboardFocusNode
-                      : pinKeyboardFocusNode,
-                  fieldTextStyle: fieldTextStyle,
-                  enabled: !isSubmitting,
-                ),
-              ),
-              if (isTvKeyboardEntry &&
-                  activeKeyboardField ==
-                      (isConfirmingPin
-                          ? OnboardingKeyboardField.confirmPin
-                          : OnboardingKeyboardField.pin)) ...[
-                SizedBox(height: fieldSpacing),
-                _ScaledFieldWidth(
-                  widthFactor: fieldWidthFactor,
-                  child: OnScreenKeyboard(
-                    controller: isConfirmingPin
-                        ? confirmPinController
-                        : pinController,
-                    focusNode: isConfirmingPin
-                        ? confirmPinFieldFocusNode
-                        : pinFieldFocusNode,
-                    firstKeyFocusNode: isConfirmingPin
-                        ? confirmPinKeyboardFocusNode
-                        : pinKeyboardFocusNode,
-                    type: OnScreenKeyboardType.numeric,
-                    enabled: !isSubmitting,
-                    allowDecimal: false,
-                    showDecimalButton: false,
-                    showDoneButton: false,
-                    maxLength: 4,
-                    onMaxLengthReached: !isSubmitting ? onPrimaryAction : null,
-                    doneLabel: isConfirmingPin ? 'Save' : 'Next',
-                    onDone: onPrimaryAction,
+              Column(
+                children: [
+                  _ScaledFieldWidth(
+                    widthFactor: fieldWidthFactor,
+                    child: _TvPinStep(
+                      title: isConfirmingPin
+                          ? 'Confirm your 4-digit PIN'
+                          : 'Create a 4-digit PIN',
+                      caption: isConfirmingPin
+                          ? 'Enter the same four digits again.'
+                          : 'Use the PIN you want to unlock this profile on TV.',
+                      titleStyle: pinPromptStyle,
+                      captionStyle: pinCaptionStyle,
+                      controller: isConfirmingPin
+                          ? confirmPinController
+                          : pinController,
+                      focusNode: isConfirmingPin
+                          ? confirmPinFieldFocusNode
+                          : pinFieldFocusNode,
+                      keyboardFocusNode: isConfirmingPin
+                          ? confirmPinKeyboardFocusNode
+                          : pinKeyboardFocusNode,
+                      fieldTextStyle: fieldTextStyle,
+                      enabled: !isSubmitting,
+                    ),
                   ),
-                ),
-              ],
+                  SizedBox(height: fieldSpacing),
+                  if (isTvKeyboardEntry &&
+                      activeKeyboardField ==
+                          (isConfirmingPin
+                              ? OnboardingKeyboardField.confirmPin
+                              : OnboardingKeyboardField.pin)) ...[
+                    SizedBox(height: fieldSpacing),
+                    _ScaledFieldWidth(
+                      widthFactor: fieldWidthFactor,
+                      child: OnScreenKeyboard(
+                        controller: isConfirmingPin
+                            ? confirmPinController
+                            : pinController,
+                        focusNode: isConfirmingPin
+                            ? confirmPinFieldFocusNode
+                            : pinFieldFocusNode,
+                        firstKeyFocusNode: isConfirmingPin
+                            ? confirmPinKeyboardFocusNode
+                            : pinKeyboardFocusNode,
+                        type: OnScreenKeyboardType.numeric,
+                        enabled: !isSubmitting,
+                        allowDecimal: false,
+                        showDecimalButton: false,
+                        showDoneButton: false,
+                        maxLength: 4,
+                        onMaxLengthReached: !isSubmitting
+                            ? onPrimaryAction
+                            : null,
+                        doneLabel: isConfirmingPin ? 'Save' : 'Next',
+                        onDone: onPrimaryAction,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
             ],
           ],
         ),
@@ -470,6 +604,7 @@ class _OnboardingTextField extends StatelessWidget {
     this.obscureText = false,
     this.readOnly = false,
     this.keyboardFocusNode,
+    this.inputMethodFocusNode,
   });
 
   final TextEditingController controller;
@@ -485,6 +620,7 @@ class _OnboardingTextField extends StatelessWidget {
   final bool obscureText;
   final bool readOnly;
   final FocusNode? keyboardFocusNode;
+  final FocusNode? inputMethodFocusNode;
 
   @override
   Widget build(BuildContext context) {
@@ -496,7 +632,8 @@ class _OnboardingTextField extends StatelessWidget {
           }
           final targetFocusNode = switch (event.logicalKey) {
             LogicalKeyboardKey.arrowUp => previousFocusNode,
-            LogicalKeyboardKey.arrowDown => keyboardFocusNode,
+            LogicalKeyboardKey.arrowDown =>
+              inputMethodFocusNode ?? keyboardFocusNode,
             LogicalKeyboardKey.arrowRight => nextFocusNode,
             _ => null,
           };
@@ -718,52 +855,6 @@ class _AuthMethodSelector extends StatelessWidget {
             focusNode: apiKeyFocusNode,
             enabled: enabled,
             onPressed: () => onSelected(ImmichAuthMethod.apiKey),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _CredentialModeBanner extends StatelessWidget {
-  const _CredentialModeBanner({required this.title, required this.subtitle});
-
-  final String title;
-  final String subtitle;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final scale = AppScale.of(context);
-
-    return Container(
-      padding: EdgeInsets.symmetric(
-        horizontal: scale.space(18, min: 16, max: 22),
-        vertical: scale.space(16, min: 14, max: 18),
-      ),
-      decoration: BoxDecoration(
-        color: AppColors.backgroundElevated,
-        borderRadius: BorderRadius.circular(
-          scale.radius(AppRadii.md, min: 14, max: 16),
-        ),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            title,
-            style: theme.textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          const SizedBox(height: AppSpacing.xxs),
-          Text(
-            subtitle,
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: AppColors.textSecondary,
-              height: 1.4,
-            ),
           ),
         ],
       ),

@@ -10,6 +10,7 @@ import '../../core/repositories/auth_repository.dart';
 import '../../core/repositories/server_repository.dart';
 import '../../shared/presentation/app_breakpoints.dart';
 import '../app_flow/cubit/app_flow_cubit.dart';
+import '../remote_input/widgets/remote_input_method_switch.dart';
 import 'cubit/onboarding_cubit.dart';
 import 'cubit/onboarding_state.dart';
 import 'widgets/onboarding_form.dart';
@@ -38,6 +39,16 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
   final _passwordFieldFocusNode = FocusNode(debugLabel: 'passwordField');
   final _apiKeyFieldFocusNode = FocusNode(debugLabel: 'apiKeyField');
   final _apiKeyPasteFocusNode = FocusNode(debugLabel: 'apiKeyPaste');
+  final _serverInputMethodFocusNode = FocusNode(
+    debugLabel: 'serverInputMethod',
+  );
+  final _emailInputMethodFocusNode = FocusNode(debugLabel: 'emailInputMethod');
+  final _passwordInputMethodFocusNode = FocusNode(
+    debugLabel: 'passwordInputMethod',
+  );
+  final _apiKeyInputMethodFocusNode = FocusNode(
+    debugLabel: 'apiKeyInputMethod',
+  );
   final _serverKeyboardFocusNode = FocusNode(debugLabel: 'serverKeyboard');
   final _emailKeyboardFocusNode = FocusNode(debugLabel: 'emailKeyboard');
   final _passwordKeyboardFocusNode = FocusNode(debugLabel: 'passwordKeyboard');
@@ -53,6 +64,7 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
   bool _isConfirmingPin = false;
   OnboardingKeyboardField? _activeKeyboardField =
       OnboardingKeyboardField.server;
+  RemoteInputMethod _inputMethod = RemoteInputMethod.tvKeyboard;
 
   FocusNode get _pinFieldFocusNode => _pinDigitFocusNodes.first;
   FocusNode get _confirmPinFieldFocusNode => _confirmPinDigitFocusNodes.first;
@@ -83,6 +95,10 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
     _emailFieldFocusNode.addListener(_handleKeyboardFocusChange);
     _passwordFieldFocusNode.addListener(_handleKeyboardFocusChange);
     _apiKeyFieldFocusNode.addListener(_handleKeyboardFocusChange);
+    _serverInputMethodFocusNode.addListener(_handleKeyboardFocusChange);
+    _emailInputMethodFocusNode.addListener(_handleKeyboardFocusChange);
+    _passwordInputMethodFocusNode.addListener(_handleKeyboardFocusChange);
+    _apiKeyInputMethodFocusNode.addListener(_handleKeyboardFocusChange);
     _pinFieldFocusNode.addListener(_handleKeyboardFocusChange);
     _confirmPinFieldFocusNode.addListener(_handleKeyboardFocusChange);
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -95,6 +111,16 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
 
   @override
   void dispose() {
+    _serverFieldFocusNode.removeListener(_handleKeyboardFocusChange);
+    _emailFieldFocusNode.removeListener(_handleKeyboardFocusChange);
+    _passwordFieldFocusNode.removeListener(_handleKeyboardFocusChange);
+    _apiKeyFieldFocusNode.removeListener(_handleKeyboardFocusChange);
+    _serverInputMethodFocusNode.removeListener(_handleKeyboardFocusChange);
+    _emailInputMethodFocusNode.removeListener(_handleKeyboardFocusChange);
+    _passwordInputMethodFocusNode.removeListener(_handleKeyboardFocusChange);
+    _apiKeyInputMethodFocusNode.removeListener(_handleKeyboardFocusChange);
+    _pinFieldFocusNode.removeListener(_handleKeyboardFocusChange);
+    _confirmPinFieldFocusNode.removeListener(_handleKeyboardFocusChange);
     _serverController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
@@ -114,6 +140,10 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
     _passwordFieldFocusNode.dispose();
     _apiKeyFieldFocusNode.dispose();
     _apiKeyPasteFocusNode.dispose();
+    _serverInputMethodFocusNode.dispose();
+    _emailInputMethodFocusNode.dispose();
+    _passwordInputMethodFocusNode.dispose();
+    _apiKeyInputMethodFocusNode.dispose();
     _serverKeyboardFocusNode.dispose();
     _emailKeyboardFocusNode.dispose();
     _passwordKeyboardFocusNode.dispose();
@@ -126,12 +156,6 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
     for (final focusNode in _confirmPinDigitFocusNodes) {
       focusNode.dispose();
     }
-    _serverFieldFocusNode.removeListener(_handleKeyboardFocusChange);
-    _emailFieldFocusNode.removeListener(_handleKeyboardFocusChange);
-    _passwordFieldFocusNode.removeListener(_handleKeyboardFocusChange);
-    _apiKeyFieldFocusNode.removeListener(_handleKeyboardFocusChange);
-    _pinFieldFocusNode.removeListener(_handleKeyboardFocusChange);
-    _confirmPinFieldFocusNode.removeListener(_handleKeyboardFocusChange);
     super.dispose();
   }
 
@@ -196,6 +220,10 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
                 apiKeyPasteFocusNode: _apiKeyPasteFocusNode,
                 pinFieldFocusNode: _pinFieldFocusNode,
                 confirmPinFieldFocusNode: _confirmPinFieldFocusNode,
+                serverInputMethodFocusNode: _serverInputMethodFocusNode,
+                emailInputMethodFocusNode: _emailInputMethodFocusNode,
+                passwordInputMethodFocusNode: _passwordInputMethodFocusNode,
+                apiKeyInputMethodFocusNode: _apiKeyInputMethodFocusNode,
                 serverKeyboardFocusNode: _serverKeyboardFocusNode,
                 emailKeyboardFocusNode: _emailKeyboardFocusNode,
                 passwordKeyboardFocusNode: _passwordKeyboardFocusNode,
@@ -204,8 +232,11 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
                 confirmPinKeyboardFocusNode: _confirmPinKeyboardFocusNode,
                 isConfirmingPin: _isConfirmingPin,
                 activeKeyboardField: _activeKeyboardField,
+                inputMethod: _inputMethod,
+                onInputMethodChanged: _handleInputMethodChanged,
                 onAuthMethodChanged: (authMethod) =>
                     _handleAuthMethodChanged(context, authMethod),
+                onEmailRemoteNext: _focusPasswordField,
                 onPrimaryAction: () => _handlePrimaryAction(context, state),
               ),
             );
@@ -388,17 +419,39 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
     });
   }
 
+  void _handleInputMethodChanged(
+    OnboardingKeyboardField field,
+    RemoteInputMethod method,
+  ) {
+    setState(() {
+      _activeKeyboardField = field;
+      _inputMethod = method;
+    });
+  }
+
   OnboardingKeyboardField? get _focusedKeyboardField {
     if (_serverFieldFocusNode.hasFocus) {
+      return OnboardingKeyboardField.server;
+    }
+    if (_serverInputMethodFocusNode.hasFocus) {
       return OnboardingKeyboardField.server;
     }
     if (_apiKeyFieldFocusNode.hasFocus) {
       return OnboardingKeyboardField.apiKey;
     }
+    if (_apiKeyInputMethodFocusNode.hasFocus) {
+      return OnboardingKeyboardField.apiKey;
+    }
     if (_emailFieldFocusNode.hasFocus) {
       return OnboardingKeyboardField.email;
     }
+    if (_emailInputMethodFocusNode.hasFocus) {
+      return OnboardingKeyboardField.email;
+    }
     if (_passwordFieldFocusNode.hasFocus) {
+      return OnboardingKeyboardField.password;
+    }
+    if (_passwordInputMethodFocusNode.hasFocus) {
       return OnboardingKeyboardField.password;
     }
     if (_confirmPinFieldFocusNode.hasFocus) {
@@ -417,6 +470,17 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
     context.read<OnboardingCubit>().selectAuthMethod(authMethod);
     setState(() {
       _activeKeyboardField = null;
+    });
+  }
+
+  void _focusPasswordField() {
+    setState(() {
+      _activeKeyboardField = OnboardingKeyboardField.password;
+    });
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _passwordFieldFocusNode.requestFocus();
+      }
     });
   }
 }
