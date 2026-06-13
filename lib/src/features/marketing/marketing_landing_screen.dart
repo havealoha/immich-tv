@@ -10,88 +10,113 @@ const _playStoreUrl =
     'https://play.google.com/store/apps/details?id=com.workwithafridi.immichtv';
 
 const _proofPoints = <_ProofPoint>[
-  _ProofPoint(value: 'TV-first', label: 'Built for Android TV and Google TV'),
+  _ProofPoint(value: '500+', label: 'Public installs on Google Play'),
+  _ProofPoint(value: '1.2.0', label: 'Current app release line'),
   _ProofPoint(
-    value: 'Scan once',
-    label: 'Type on your phone across auth flows',
-  ),
-  _ProofPoint(
-    value: 'Open source',
-    label: 'Inspect, install, and contribute freely',
+    value: 'TV-first',
+    label: 'Built around Android TV and Google TV remotes',
   ),
 ];
 
 const _features = <_MarketingFeature>[
   _MarketingFeature(
     icon: Icons.tv_rounded,
-    title: 'Built for the couch',
+    title: 'Remote-first by default',
     body:
-        'Large targets, predictable focus movement, and readable spacing keep remote navigation comfortable from across the room.',
+        'Directional navigation, large focus states, keyboard support, and pointer interaction are treated as primary inputs, not afterthoughts.',
   ),
   _MarketingFeature(
     icon: Icons.photo_library_outlined,
-    title: 'Your self-hosted library',
+    title: 'A living-room Immich library',
     body:
-        'Connect to your existing self-hosted server and browse timeline photos, albums, favorites, people, videos, and slideshows.',
+        'Connect to the Immich server you already host and browse timeline photos, albums, people, favorites, videos, and slideshows.',
   ),
   _MarketingFeature(
     icon: Icons.lock_outline_rounded,
-    title: 'Safe on a shared screen',
+    title: 'Read-only shared-screen access',
     body:
-        'The app is focused on viewing and playback, so a shared living-room device can stay simple and low-risk.',
+        'Immich TV focuses on browsing and playback so household TVs stay simple, predictable, and low-risk.',
   ),
   _MarketingFeature(
     icon: Icons.smartphone_rounded,
-    title: 'Phone typing when you need it',
+    title: 'Phone-assisted text entry',
     body:
-        'Scan once on the TV, open a simple web page on your phone, and type into focused text fields without wrestling with a remote keyboard.',
+        'Scan a QR code during setup and use your phone for server URLs, email addresses, passwords, and API keys.',
   ),
 ];
 
 const _experienceItems = <_ExperienceItem>[
   _ExperienceItem(
     icon: Icons.calendar_month_rounded,
-    title: 'Timeline that stays readable',
+    title: 'Timeline with year jumps',
     body:
-        'Browse large libraries with roomy rows, fast year jumps, and clear focus.',
+        'Browse large libraries with paginated thumbnails, roomy rows, and a horizontal year rail for faster movement.',
   ),
   _ExperienceItem(
     icon: Icons.play_circle_outline_rounded,
     title: 'Fullscreen photo and video playback',
     body:
-        'Open assets with remote, keyboard, and pointer support that feels natural on TV.',
+        'Open photos and videos with screen-safe metadata overlays and transport controls tuned for TV viewing.',
   ),
   _ExperienceItem(
     icon: Icons.slideshow_rounded,
-    title: 'Ambient slideshow mode',
-    body: 'Turn the screen into a calm photo frame directly from the viewer.',
+    title: 'Slideshow playback',
+    body:
+        'Start a slideshow from the viewer, adjust duration, and pause or resume without leaving the remote-friendly flow.',
   ),
   _ExperienceItem(
     icon: Icons.account_circle_outlined,
-    title: 'Saved profiles and quick switching',
+    title: 'Saved profiles and PIN unlock',
     body:
-        'Keep household libraries handy with saved profiles, user switching, and PIN unlock where needed.',
+        'Keep multiple household profiles available locally while secrets stay in platform secure storage where available.',
   ),
 ];
 
 const _flowSteps = <_FlowStep>[
   _FlowStep(
     step: '01',
-    title: 'Open on TV',
+    title: 'Connect your server',
     body:
-        'Launch the app, enter your server, and stay in a layout built for distance viewing.',
+        'Enter your Immich server URL with reverse-proxy subpaths preserved and compatibility checked before sign-in.',
   ),
   _FlowStep(
     step: '02',
-    title: 'Scan once on your phone',
+    title: 'Choose your sign-in method',
     body:
-        'When typing is easier on mobile, scan the QR code and keep that page open for the session.',
+        'Use your Immich email and password or a personal API key, then save the profile for quick re-entry.',
   ),
   _FlowStep(
     step: '03',
-    title: 'Type where focus moves',
+    title: 'Browse from the couch',
     body:
-        'As you move between fields on TV, the phone page follows along and shows exactly where text is going.',
+        'Move between Timeline, Albums, People, Favorites, fullscreen viewing, and slideshow playback with a remote.',
+  ),
+];
+
+const _platformItems = <_ExperienceItem>[
+  _ExperienceItem(
+    icon: Icons.android_rounded,
+    title: 'Android TV and Google TV first',
+    body:
+        'The public Play Store build is the main installation path, with launcher and store polish still moving forward.',
+  ),
+  _ExperienceItem(
+    icon: Icons.public_rounded,
+    title: 'Web entry included',
+    body:
+        'The same Flutter project hosts the marketing site at / and the app entry at /app for browser-based previews.',
+  ),
+  _ExperienceItem(
+    icon: Icons.speed_rounded,
+    title: 'Performance remains a priority',
+    body:
+        'Thumbnail caching and prefetching have been tuned, with real-TV smoothness and degraded-network behavior next on the roadmap.',
+  ),
+  _ExperienceItem(
+    icon: Icons.devices_rounded,
+    title: 'Broader Flutter targets',
+    body:
+        'Android, web, Windows, macOS, and Linux builds remain supported for development and validation.',
   ),
 ];
 
@@ -99,17 +124,22 @@ const _faqItems = <_FaqItem>[
   _FaqItem(
     question: 'What is Immich TV?',
     answer:
-        'Immich TV is an open source television client for browsing a self-hosted Immich library on Android TV and Google TV.',
+        'Immich TV is an open source, TV-first Flutter client for browsing a self-hosted Immich photo and video library on Android TV and Google TV.',
   ),
   _FaqItem(
     question: 'Do I need my own Immich server?',
     answer:
-        'Yes for normal use. A demo path is available so people can preview the experience before connecting a private library.',
+        'Yes for normal use. A built-in demo path is available so you can preview the onboarding and browsing flow before connecting a private library.',
+  ),
+  _FaqItem(
+    question: 'Is Immich TV available on Google Play?',
+    answer:
+        'Yes. The Android TV app is published on Google Play, and APK releases are also available from GitHub for manual installation.',
   ),
   _FaqItem(
     question: 'Why does the site mention typing on my phone?',
     answer:
-        'Some TV text entry flows can be handled from your phone after one QR scan. It is there to make sign-in and setup easier, not to replace the TV experience.',
+        'Long text entry is painful with a TV remote. Immich TV can show a QR code so a phone can type into the currently focused TV field during setup.',
   ),
   _FaqItem(
     question: 'Is this an official Immich app?',
@@ -146,29 +176,39 @@ class MarketingLandingScreen extends StatelessWidget {
                 child: _PageSection(
                   eyebrow: 'Why Immich TV',
                   title:
-                      'A polished TV interface for the library you already host.',
+                      'A modern TV interface for the library you already host.',
                   body:
-                      'Immich TV is designed around focus, distance, and shared-screen comfort instead of shrinking a phone or desktop layout onto the television.',
+                      'Immich TV is designed around focus, distance, low-friction setup, and shared-screen comfort instead of shrinking a phone or desktop layout onto the television.',
                   child: _FeatureGrid(features: _features),
                 ),
               ),
               SliverToBoxAdapter(
                 child: _PageSection(
                   eyebrow: 'Core experience',
-                  title: 'The parts that matter most on a large screen.',
+                  title:
+                      'Everything you need to browse and play back memories.',
                   body:
-                      'From sign-in to playback, the app keeps navigation obvious and the content front and center.',
+                      'Timeline browsing, collections, people, favorites, media playback, and slideshows are kept direct and readable on large screens.',
                   child: _ExperienceGrid(items: _experienceItems),
                 ),
               ),
               SliverToBoxAdapter(
                 child: _PageSection(
-                  eyebrow: 'Typing made easier',
-                  title:
-                      'Use the remote when you want to. Use your phone when you do not.',
+                  eyebrow: 'How it works',
+                  title: 'Connect once, then keep the remote in your hand.',
                   body:
-                      'Authentication and onboarding support a companion web input flow, so entering server addresses, emails, and passwords does not have to feel like a TV chore.',
+                      'Immich TV validates your server, supports both account and API-key sign-in, and keeps saved profiles ready for the next viewing session.',
                   child: _FlowStepGrid(steps: _flowSteps),
+                ),
+              ),
+              SliverToBoxAdapter(
+                child: _PageSection(
+                  eyebrow: 'Status',
+                  title:
+                      'Available now, with the roadmap focused on TV polish.',
+                  body:
+                      'The app is already usable as a focused read-only Immich client, while active work continues on real-device performance, degraded-network resilience, and release readiness.',
+                  child: _ExperienceGrid(items: _platformItems),
                 ),
               ),
               SliverToBoxAdapter(
@@ -176,9 +216,10 @@ class MarketingLandingScreen extends StatelessWidget {
                   leading: _ActionPanel(
                     icon: Icons.android_rounded,
                     eyebrow: 'Install',
-                    title: 'Install the TV app and get watching quickly.',
+                    title:
+                        'Install from Google Play or follow GitHub releases.',
                     body:
-                        'Use Google Play for the simplest setup, or download APK builds and release notes from GitHub if you prefer manual installs.',
+                        'Google Play is the simplest path for Android TV and Google TV. GitHub releases remain available for manual installs, release notes, and source inspection.',
                     primaryLabel: 'Open Google Play',
                     onPrimaryPressed: () => openExternalUrl(_playStoreUrl),
                     secondaryLabel: 'GitHub releases',
@@ -187,9 +228,9 @@ class MarketingLandingScreen extends StatelessWidget {
                   trailing: _ActionPanel(
                     icon: Icons.science_outlined,
                     eyebrow: 'Preview',
-                    title: 'See the flow before you connect your own library.',
+                    title: 'Try the web app flow before connecting a server.',
                     body:
-                        'A demo path is included for walkthroughs and testing. Enter the exact server URL below during onboarding to unlock it.',
+                        'A demo mode is included for walkthroughs and testing. Enter the exact server URL below during onboarding to unlock the preview library.',
                     primaryLabel: 'Open web app',
                     onPrimaryPressed: onOpenWebApp,
                     content: const _DemoCredentials(),
@@ -227,24 +268,27 @@ class _Hero extends StatelessWidget {
   Widget build(BuildContext context) {
     final isCompact = MediaQuery.sizeOf(context).width < 720;
 
-    return SizedBox(
-      height: isCompact ? 760 : 820,
+    return ConstrainedBox(
+      constraints: BoxConstraints(minHeight: isCompact ? 920 : 820),
       child: Stack(
-        fit: StackFit.expand,
         children: [
-          Image.asset('assets/png/banner.png', fit: BoxFit.cover),
-          const DecoratedBox(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  Color(0xFF050C10),
-                  Color(0xF2071014),
-                  Color(0xD9071014),
-                  Color(0xFF071014),
-                ],
-                stops: [0, 0.24, 0.58, 1],
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
+          Positioned.fill(
+            child: Image.asset('assets/png/banner.png', fit: BoxFit.cover),
+          ),
+          const Positioned.fill(
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    Color(0xFF050C10),
+                    Color(0xF2071014),
+                    Color(0xD9071014),
+                    Color(0xFF071014),
+                  ],
+                  stops: [0, 0.24, 0.58, 1],
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                ),
               ),
             ),
           ),
@@ -263,14 +307,14 @@ class _Hero extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       _TopBar(onOpenWebApp: onOpenWebApp),
-                      const Spacer(),
+                      SizedBox(height: isCompact ? 82 : 160),
                       ConstrainedBox(
                         constraints: const BoxConstraints(maxWidth: 720),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             const _HeroTag(
-                              text: 'Open source TV client for Immich',
+                              text: 'Now on Google Play for Android TV',
                             ),
                             const SizedBox(height: 18),
                             Text(
@@ -284,7 +328,7 @@ class _Hero extends StatelessWidget {
                             ),
                             const SizedBox(height: 16),
                             Text(
-                              'Browse your self-hosted photo library on the biggest screen in the house, with remote-friendly navigation and optional phone-assisted typing when setup gets tedious.',
+                              'A TV-first client for browsing your self-hosted Immich photo and video library from the couch.',
                               style: GoogleFonts.manrope(
                                 color: const Color(0xFFE8F1EF),
                                 fontSize: isCompact ? 19 : 24,
@@ -428,20 +472,14 @@ class _ProofTile extends StatelessWidget {
     return SizedBox(
       width: width,
       child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: _SiteColors.surfaceRaised,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: _SiteColors.line),
-          boxShadow: const [
-            BoxShadow(
-              color: _SiteColors.shadow,
-              blurRadius: 26,
-              offset: Offset(0, 12),
-            ),
-          ],
+        decoration: const BoxDecoration(
+          border: Border(
+            top: BorderSide(color: _SiteColors.lineStrong),
+            bottom: BorderSide(color: _SiteColors.line),
+          ),
         ),
         child: Padding(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 22),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -486,7 +524,7 @@ class _PageSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ColoredBox(
-      color: _SiteColors.page,
+      color: _SiteColors.section,
       child: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 1160),
@@ -596,33 +634,15 @@ class _FeatureCard extends StatelessWidget {
     return SizedBox(
       width: width,
       child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: _SiteColors.surfaceRaised,
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: _SiteColors.line),
-          boxShadow: const [
-            BoxShadow(
-              color: _SiteColors.shadow,
-              blurRadius: 28,
-              offset: Offset(0, 12),
-            ),
-          ],
+        decoration: const BoxDecoration(
+          border: Border(top: BorderSide(color: _SiteColors.line)),
         ),
         child: Padding(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.fromLTRB(0, 22, 14, 8),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(
-                width: 54,
-                height: 54,
-                decoration: BoxDecoration(
-                  color: _SiteColors.accentSoft,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: _SiteColors.lineStrong),
-                ),
-                child: Icon(feature.icon, color: _SiteColors.accent, size: 28),
-              ),
+              Icon(feature.icon, color: _SiteColors.accent, size: 30),
               const SizedBox(height: 20),
               Text(
                 feature.title,
@@ -689,13 +709,11 @@ class _FlowStepCard extends StatelessWidget {
     return SizedBox(
       width: width,
       child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: _SiteColors.surface,
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: _SiteColors.line),
+        decoration: const BoxDecoration(
+          border: Border(top: BorderSide(color: _SiteColors.line)),
         ),
         child: Padding(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.fromLTRB(0, 24, 16, 4),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -778,16 +796,7 @@ class _ExperienceRow extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            width: 48,
-            height: 48,
-            decoration: BoxDecoration(
-              color: _SiteColors.accentSoft,
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: _SiteColors.lineStrong),
-            ),
-            child: Icon(item.icon, color: _SiteColors.accent, size: 22),
-          ),
+          Icon(item.icon, color: _SiteColors.accent, size: 28),
           const SizedBox(width: 14),
           Expanded(
             child: Column(
@@ -891,20 +900,14 @@ class _ActionPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return DecoratedBox(
-      decoration: BoxDecoration(
-        color: _SiteColors.surfaceRaised,
-        borderRadius: BorderRadius.circular(28),
-        border: Border.all(color: _SiteColors.line),
-        boxShadow: const [
-          BoxShadow(
-            color: _SiteColors.shadow,
-            blurRadius: 28,
-            offset: Offset(0, 12),
-          ),
-        ],
+      decoration: const BoxDecoration(
+        border: Border(
+          top: BorderSide(color: _SiteColors.lineStrong),
+          bottom: BorderSide(color: _SiteColors.line),
+        ),
       ),
       child: Padding(
-        padding: const EdgeInsets.all(28),
+        padding: const EdgeInsets.symmetric(vertical: 28),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -971,13 +974,14 @@ class _DemoCredentials extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return DecoratedBox(
-      decoration: BoxDecoration(
-        color: _SiteColors.surfaceSoft,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: _SiteColors.line),
+      decoration: const BoxDecoration(
+        border: Border(
+          top: BorderSide(color: _SiteColors.line),
+          bottom: BorderSide(color: _SiteColors.line),
+        ),
       ),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.symmetric(vertical: 16),
         child: Column(
           children: const [
             _CredentialLine(
@@ -1040,7 +1044,7 @@ class _RepositoryBand extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ColoredBox(
-      color: _SiteColors.ink,
+      color: _SiteColors.band,
       child: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 1160),
@@ -1070,9 +1074,9 @@ class _RepositoryBand extends StatelessWidget {
                           ),
                           const SizedBox(height: 10),
                           Text(
-                            'Track the roadmap, inspect the code, and help shape the app in public.',
+                            'Follow the roadmap, inspect the code, and help shape a focused TV client for Immich.',
                             style: GoogleFonts.manrope(
-                              color: _SiteColors.surface,
+                              color: _SiteColors.ink,
                               fontSize: 34,
                               height: 1.16,
                               fontWeight: FontWeight.w900,
@@ -1138,13 +1142,11 @@ class _FaqTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return DecoratedBox(
-      decoration: BoxDecoration(
-        color: _SiteColors.surfaceRaised,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: _SiteColors.line),
+      decoration: const BoxDecoration(
+        border: Border(top: BorderSide(color: _SiteColors.line)),
       ),
       child: Padding(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.fromLTRB(0, 18, 0, 8),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -1253,14 +1255,10 @@ class _SecondaryButton extends StatelessWidget {
       icon: Icon(icon, size: 19),
       label: Text(label),
       style: OutlinedButton.styleFrom(
-        foregroundColor: dark ? Colors.white : _SiteColors.ink,
-        backgroundColor: dark
-            ? Colors.white.withValues(alpha: 0.08)
-            : _SiteColors.surface,
+        foregroundColor: dark ? _SiteColors.ink : _SiteColors.ink,
+        backgroundColor: Colors.transparent,
         side: BorderSide(
-          color: dark
-              ? Colors.white.withValues(alpha: 0.34)
-              : _SiteColors.lineStrong,
+          color: dark ? _SiteColors.lineStrong : _SiteColors.lineStrong,
         ),
         minimumSize: const Size(0, 54),
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
@@ -1295,9 +1293,9 @@ class _NavButton extends StatelessWidget {
         icon: Icon(icon, size: 18),
         label: compact ? const SizedBox.shrink() : Text(label),
         style: OutlinedButton.styleFrom(
-          foregroundColor: Colors.white,
-          backgroundColor: Colors.white.withValues(alpha: 0.08),
-          side: BorderSide(color: Colors.white.withValues(alpha: 0.22)),
+          foregroundColor: _SiteColors.ink,
+          backgroundColor: Colors.transparent,
+          side: const BorderSide(color: _SiteColors.lineStrong),
           minimumSize: const Size(0, 46),
           padding: EdgeInsets.symmetric(
             horizontal: compact ? 14 : 16,
@@ -1325,9 +1323,9 @@ class _HeroTag extends StatelessWidget {
   Widget build(BuildContext context) {
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.08),
+        color: Colors.transparent,
         borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.18)),
+        border: Border.all(color: _SiteColors.lineStrong),
       ),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
@@ -1351,13 +1349,11 @@ class _HeroHighlightCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return DecoratedBox(
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.14)),
+      decoration: const BoxDecoration(
+        border: Border(top: BorderSide(color: _SiteColors.lineStrong)),
       ),
       child: Padding(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.only(top: 18),
         child: Wrap(
           spacing: 18,
           runSpacing: 18,
@@ -1365,15 +1361,15 @@ class _HeroHighlightCard extends StatelessWidget {
           children: const [
             _HeroHighlightItem(
               icon: Icons.phone_iphone_rounded,
-              title: 'Type on your phone',
+              title: 'No remote-keyboard struggle',
               body:
-                  'Scan once, then keep typing as TV focus moves between fields.',
+                  'Scan a setup QR code and type server details or credentials from your phone.',
             ),
             _HeroHighlightItem(
               icon: Icons.dvr_rounded,
-              title: 'Remote-first everywhere else',
+              title: 'Read-only by design',
               body:
-                  'Browsing, switching users, and playback still stay natural on the TV itself.',
+                  'Browse, play, and present memories without turning the shared TV into a library-management device.',
             ),
           ],
         ),
@@ -1400,15 +1396,7 @@ class _HeroHighlightItem extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            width: 42,
-            height: 42,
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: Icon(icon, color: _SiteColors.accentLight, size: 22),
-          ),
+          Icon(icon, color: _SiteColors.accentLight, size: 24),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
@@ -1495,16 +1483,12 @@ class _SiteColors {
   const _SiteColors._();
 
   static const page = Color(0xFF071014);
-  static const band = Color(0xFF0D1A20);
-  static const surface = Color(0xFF111F26);
-  static const surfaceRaised = Color(0xFF12222A);
-  static const surfaceSoft = Color(0xFF0C171D);
+  static const section = Color(0xFF081216);
+  static const band = Color(0xFF0B171C);
   static const ink = Color(0xFFF4FAF8);
   static const muted = Color(0xFFA7B8BE);
   static const accent = Color(0xFF91DDC5);
   static const accentLight = Color(0xFF8FE3C6);
-  static const accentSoft = Color(0xFF17352F);
   static const line = Color(0x263A555E);
   static const lineStrong = Color(0x667B929A);
-  static const shadow = Color(0x4D000000);
 }

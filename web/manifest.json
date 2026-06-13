@@ -5,7 +5,7 @@
     "display": "standalone",
     "background_color": "#071014",
     "theme_color": "#071014",
-    "description": "A TV-first Flutter client for browsing your self-hosted Immich photo and video library.",
+    "description": "Open source, TV-first Immich client for browsing your self-hosted photo and video library on Android TV, Google TV, and the web.",
     "orientation": "any",
     "prefer_related_applications": false,
     "icons": [

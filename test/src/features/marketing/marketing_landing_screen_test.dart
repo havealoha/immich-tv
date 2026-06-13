@@ -24,10 +24,11 @@ void main() {
 
     expect(
       find.text(
-        'A TV-first client for browsing your self-hosted Immich library from the couch.',
+        'A TV-first client for browsing your self-hosted Immich photo and video library from the couch.',
       ),
       findsOneWidget,
     );
+    expect(find.text('Now on Google Play for Android TV'), findsOneWidget);
     expect(find.text('Open web app'), findsWidgets);
     expect(find.text('Get it on Google Play'), findsOneWidget);
 
@@ -35,6 +36,13 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(openedWebApp, isTrue);
+
+    await tester.scrollUntilVisible(
+      find.text('500+'),
+      700,
+      scrollable: find.byType(Scrollable).first,
+    );
+    expect(find.text('500+'), findsOneWidget);
   });
 
   testWidgets('renders on a phone-sized viewport', (tester) async {
