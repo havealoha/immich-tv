@@ -217,24 +217,24 @@ class OnboardingForm extends StatelessWidget {
                   ),
                 ),
               ),
-              SizedBox(height: fieldSpacing),
-              _ScaledFieldWidth(
-                widthFactor: fieldWidthFactor,
-                child: RemoteInputMethodSwitch(
-                  value: inputMethod,
-                  enabled: !isSubmitting,
-                  firstFocusNode: serverInputMethodFocusNode,
-                  onMoveDown: inputMethod == RemoteInputMethod.tvKeyboard
-                      ? () => serverKeyboardFocusNode.requestFocus()
-                      : null,
-                  onChanged: (method) => onInputMethodChanged(
-                    OnboardingKeyboardField.server,
-                    method,
-                  ),
-                ),
-              ),
               if (isTvKeyboardEntry &&
                   activeKeyboardField == OnboardingKeyboardField.server) ...[
+                SizedBox(height: fieldSpacing),
+                _ScaledFieldWidth(
+                  widthFactor: fieldWidthFactor,
+                  child: RemoteInputMethodSwitch(
+                    value: inputMethod,
+                    enabled: !isSubmitting,
+                    firstFocusNode: serverInputMethodFocusNode,
+                    onMoveDown: inputMethod == RemoteInputMethod.tvKeyboard
+                        ? () => serverKeyboardFocusNode.requestFocus()
+                        : null,
+                    onChanged: (method) => onInputMethodChanged(
+                      OnboardingKeyboardField.server,
+                      method,
+                    ),
+                  ),
+                ),
                 SizedBox(height: fieldSpacing),
                 if (inputMethod == RemoteInputMethod.phoneQr)
                   _ScaledFieldWidth(
@@ -309,24 +309,24 @@ class OnboardingForm extends StatelessWidget {
                     decoration: const InputDecoration(labelText: 'Email'),
                   ),
                 ),
-                SizedBox(height: fieldSpacing),
-                _ScaledFieldWidth(
-                  widthFactor: fieldWidthFactor,
-                  child: RemoteInputMethodSwitch(
-                    value: inputMethod,
-                    enabled: !isSubmitting,
-                    firstFocusNode: emailInputMethodFocusNode,
-                    onMoveDown: inputMethod == RemoteInputMethod.tvKeyboard
-                        ? () => emailKeyboardFocusNode.requestFocus()
-                        : null,
-                    onChanged: (method) => onInputMethodChanged(
-                      OnboardingKeyboardField.email,
-                      method,
-                    ),
-                  ),
-                ),
                 if (isTvKeyboardEntry &&
                     activeKeyboardField == OnboardingKeyboardField.email) ...[
+                  SizedBox(height: fieldSpacing),
+                  _ScaledFieldWidth(
+                    widthFactor: fieldWidthFactor,
+                    child: RemoteInputMethodSwitch(
+                      value: inputMethod,
+                      enabled: !isSubmitting,
+                      firstFocusNode: emailInputMethodFocusNode,
+                      onMoveDown: inputMethod == RemoteInputMethod.tvKeyboard
+                          ? () => emailKeyboardFocusNode.requestFocus()
+                          : null,
+                      onChanged: (method) => onInputMethodChanged(
+                        OnboardingKeyboardField.email,
+                        method,
+                      ),
+                    ),
+                  ),
                   SizedBox(height: fieldSpacing),
                   if (inputMethod == RemoteInputMethod.phoneQr)
                     _ScaledFieldWidth(
@@ -374,25 +374,25 @@ class OnboardingForm extends StatelessWidget {
                     decoration: const InputDecoration(labelText: 'Password'),
                   ),
                 ),
-                SizedBox(height: fieldSpacing),
-                _ScaledFieldWidth(
-                  widthFactor: fieldWidthFactor,
-                  child: RemoteInputMethodSwitch(
-                    value: inputMethod,
-                    enabled: !isSubmitting,
-                    firstFocusNode: passwordInputMethodFocusNode,
-                    onMoveDown: inputMethod == RemoteInputMethod.tvKeyboard
-                        ? () => passwordKeyboardFocusNode.requestFocus()
-                        : null,
-                    onChanged: (method) => onInputMethodChanged(
-                      OnboardingKeyboardField.password,
-                      method,
-                    ),
-                  ),
-                ),
                 if (isTvKeyboardEntry &&
                     activeKeyboardField ==
                         OnboardingKeyboardField.password) ...[
+                  SizedBox(height: fieldSpacing),
+                  _ScaledFieldWidth(
+                    widthFactor: fieldWidthFactor,
+                    child: RemoteInputMethodSwitch(
+                      value: inputMethod,
+                      enabled: !isSubmitting,
+                      firstFocusNode: passwordInputMethodFocusNode,
+                      onMoveDown: inputMethod == RemoteInputMethod.tvKeyboard
+                          ? () => passwordKeyboardFocusNode.requestFocus()
+                          : null,
+                      onChanged: (method) => onInputMethodChanged(
+                        OnboardingKeyboardField.password,
+                        method,
+                      ),
+                    ),
+                  ),
                   SizedBox(height: fieldSpacing),
                   if (inputMethod == RemoteInputMethod.phoneQr)
                     _ScaledFieldWidth(
@@ -473,24 +473,24 @@ class OnboardingForm extends StatelessWidget {
                     ],
                   ),
                 ),
-                SizedBox(height: fieldSpacing),
-                _ScaledFieldWidth(
-                  widthFactor: fieldWidthFactor,
-                  child: RemoteInputMethodSwitch(
-                    value: inputMethod,
-                    enabled: !isSubmitting,
-                    firstFocusNode: apiKeyInputMethodFocusNode,
-                    onMoveDown: inputMethod == RemoteInputMethod.tvKeyboard
-                        ? () => apiKeyKeyboardFocusNode.requestFocus()
-                        : null,
-                    onChanged: (method) => onInputMethodChanged(
-                      OnboardingKeyboardField.apiKey,
-                      method,
-                    ),
-                  ),
-                ),
                 if (isTvKeyboardEntry &&
                     activeKeyboardField == OnboardingKeyboardField.apiKey) ...[
+                  SizedBox(height: fieldSpacing),
+                  _ScaledFieldWidth(
+                    widthFactor: fieldWidthFactor,
+                    child: RemoteInputMethodSwitch(
+                      value: inputMethod,
+                      enabled: !isSubmitting,
+                      firstFocusNode: apiKeyInputMethodFocusNode,
+                      onMoveDown: inputMethod == RemoteInputMethod.tvKeyboard
+                          ? () => apiKeyKeyboardFocusNode.requestFocus()
+                          : null,
+                      onChanged: (method) => onInputMethodChanged(
+                        OnboardingKeyboardField.apiKey,
+                        method,
+                      ),
+                    ),
+                  ),
                   SizedBox(height: fieldSpacing),
                   if (inputMethod == RemoteInputMethod.phoneQr)
                     _ScaledFieldWidth(

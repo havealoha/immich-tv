@@ -71,9 +71,20 @@ class ImmichTvApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final appRepositories = <RepositoryProvider>[
+      RepositoryProvider<AppEnvironment>.value(value: _environment),
+      RepositoryProvider<AuthRepository>.value(value: _authRepository),
+      RepositoryProvider<AssetImageRepository>.value(
+        value: _assetImageRepository,
+      ),
+      RepositoryProvider<ServerRepository>.value(value: _serverRepository),
+      RepositoryProvider<MediaRepository>.value(value: _mediaRepository),
+    ];
+
     final remoteInputSessionId = _remoteInputSessionId;
     if (remoteInputSessionId != null) {
       return _MarketingSiteApp(
+        repositories: appRepositories,
         appHome: _AdaptiveAppEntry(authRepository: _authRepository),
         homeOverride: RemoteTextInputPage(sessionId: remoteInputSessionId),
       );
@@ -81,6 +92,7 @@ class ImmichTvApp extends StatelessWidget {
 
     if (_shouldShowMarketingLanding) {
       return _MarketingSiteApp(
+        repositories: appRepositories,
         appHome: _AdaptiveAppEntry(authRepository: _authRepository),
       );
     }
@@ -199,15 +211,7 @@ class ImmichTvApp extends StatelessWidget {
     );
 
     return MultiRepositoryProvider(
-      providers: [
-        RepositoryProvider<AppEnvironment>.value(value: _environment),
-        RepositoryProvider<AuthRepository>.value(value: _authRepository),
-        RepositoryProvider<AssetImageRepository>.value(
-          value: _assetImageRepository,
-        ),
-        RepositoryProvider<ServerRepository>.value(value: _serverRepository),
-        RepositoryProvider<MediaRepository>.value(value: _mediaRepository),
-      ],
+      providers: appRepositories,
       child: MaterialApp(
         title: 'Immich TV',
         debugShowCheckedModeBanner: false,
@@ -330,27 +334,35 @@ class _AdaptiveViewportGateState extends State<_AdaptiveViewportGate> {
 }
 
 class _MarketingSiteApp extends StatelessWidget {
-  const _MarketingSiteApp({required this.appHome, this.homeOverride});
+  const _MarketingSiteApp({
+    required this.repositories,
+    required this.appHome,
+    this.homeOverride,
+  });
 
+  final List<RepositoryProvider> repositories;
   final Widget appHome;
   final Widget? homeOverride;
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Immich TV',
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        useMaterial3: true,
-        brightness: Brightness.dark,
-        colorScheme: const ColorScheme.dark(
-          primary: AppColors.immichBlue,
-          surface: AppColors.surface,
-          onSurface: AppColors.textPrimary,
+    return MultiRepositoryProvider(
+      providers: repositories,
+      child: MaterialApp(
+        title: 'Immich TV',
+        debugShowCheckedModeBanner: false,
+        theme: ThemeData(
+          useMaterial3: true,
+          brightness: Brightness.dark,
+          colorScheme: const ColorScheme.dark(
+            primary: AppColors.immichBlue,
+            surface: AppColors.surface,
+            onSurface: AppColors.textPrimary,
+          ),
+          scaffoldBackgroundColor: AppColors.background,
         ),
-        scaffoldBackgroundColor: AppColors.background,
+        home: homeOverride ?? _MarketingSiteGate(appHome: appHome),
       ),
-      home: homeOverride ?? _MarketingSiteGate(appHome: appHome),
     );
   }
 }
