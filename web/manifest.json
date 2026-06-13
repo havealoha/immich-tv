@@ -3,10 +3,10 @@
     "short_name": "Immich TV",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
-    "orientation": "portrait-primary",
+    "background_color": "#071014",
+    "theme_color": "#071014",
+    "description": "A TV-first Flutter client for browsing your self-hosted Immich photo and video library.",
+    "orientation": "any",
     "prefer_related_applications": false,
     "icons": [
         {
