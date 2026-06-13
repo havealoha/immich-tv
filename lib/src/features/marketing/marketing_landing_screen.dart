@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../platform/browser_navigation.dart';
-import '../../shared/presentation/app_colors.dart';
 
 const _repoUrl = 'https://github.com/WorkWithAfridi/immich-tv';
 const _issuesUrl = 'https://github.com/WorkWithAfridi/immich-tv/issues';
@@ -11,59 +10,88 @@ const _playStoreUrl =
     'https://play.google.com/store/apps/details?id=com.workwithafridi.immichtv';
 
 const _proofPoints = <_ProofPoint>[
-  _ProofPoint(value: '500+', label: 'Google Play installs'),
-  _ProofPoint(value: '1.2.0', label: 'Current release line'),
-  _ProofPoint(value: 'TV first', label: 'Android TV and Google TV'),
+  _ProofPoint(value: 'TV-first', label: 'Built for Android TV and Google TV'),
+  _ProofPoint(
+    value: 'Scan once',
+    label: 'Type on your phone across auth flows',
+  ),
+  _ProofPoint(
+    value: 'Open source',
+    label: 'Inspect, install, and contribute freely',
+  ),
 ];
 
 const _features = <_MarketingFeature>[
   _MarketingFeature(
     icon: Icons.tv_rounded,
-    title: 'Made for the couch',
+    title: 'Built for the couch',
     body:
         'Large targets, predictable focus movement, and readable spacing keep remote navigation comfortable from across the room.',
   ),
   _MarketingFeature(
     icon: Icons.photo_library_outlined,
-    title: 'Your Immich library',
+    title: 'Your self-hosted library',
     body:
         'Connect to your existing self-hosted server and browse timeline photos, albums, favorites, people, videos, and slideshows.',
   ),
   _MarketingFeature(
     icon: Icons.lock_outline_rounded,
-    title: 'Read-only by design',
+    title: 'Safe on a shared screen',
     body:
         'The app is focused on viewing and playback, so a shared living-room device can stay simple and low-risk.',
   ),
   _MarketingFeature(
-    icon: Icons.devices_rounded,
-    title: 'One Flutter codebase',
+    icon: Icons.smartphone_rounded,
+    title: 'Phone typing when you need it',
     body:
-        'The public site, web entry, and native app now ship from the same project, which keeps product messaging and app behavior aligned.',
+        'Scan once on the TV, open a simple web page on your phone, and type into focused text fields without wrestling with a remote keyboard.',
   ),
 ];
 
 const _experienceItems = <_ExperienceItem>[
   _ExperienceItem(
     icon: Icons.calendar_month_rounded,
-    title: 'Timeline by day',
-    body: 'Browse recent memories with fast year jumps for large libraries.',
+    title: 'Timeline that stays readable',
+    body:
+        'Browse large libraries with roomy rows, fast year jumps, and clear focus.',
   ),
   _ExperienceItem(
     icon: Icons.play_circle_outline_rounded,
-    title: 'Fullscreen playback',
-    body: 'Open photos and videos with remote, keyboard, and pointer controls.',
+    title: 'Fullscreen photo and video playback',
+    body:
+        'Open assets with remote, keyboard, and pointer support that feels natural on TV.',
   ),
   _ExperienceItem(
     icon: Icons.slideshow_rounded,
-    title: 'Slideshow mode',
-    body: 'Turn the TV into a simple ambient photo frame from the viewer.',
+    title: 'Ambient slideshow mode',
+    body: 'Turn the screen into a calm photo frame directly from the viewer.',
   ),
   _ExperienceItem(
     icon: Icons.account_circle_outlined,
-    title: 'Saved profiles',
+    title: 'Saved profiles and quick switching',
     body:
-        'Return to family libraries quickly with local profiles and PIN unlock.',
+        'Keep household libraries handy with saved profiles, user switching, and PIN unlock where needed.',
+  ),
+];
+
+const _flowSteps = <_FlowStep>[
+  _FlowStep(
+    step: '01',
+    title: 'Open on TV',
+    body:
+        'Launch the app, enter your server, and stay in a layout built for distance viewing.',
+  ),
+  _FlowStep(
+    step: '02',
+    title: 'Scan once on your phone',
+    body:
+        'When typing is easier on mobile, scan the QR code and keep that page open for the session.',
+  ),
+  _FlowStep(
+    step: '03',
+    title: 'Type where focus moves',
+    body:
+        'As you move between fields on TV, the phone page follows along and shows exactly where text is going.',
   ),
 ];
 
@@ -76,12 +104,12 @@ const _faqItems = <_FaqItem>[
   _FaqItem(
     question: 'Do I need my own Immich server?',
     answer:
-        'Yes for normal use. Demo mode is included so testers can preview the flow without connecting a private library.',
+        'Yes for normal use. A demo path is available so people can preview the experience before connecting a private library.',
   ),
   _FaqItem(
-    question: 'Can I use it on the web?',
+    question: 'Why does the site mention typing on my phone?',
     answer:
-        'The main web entry is available at /app. The product remains TV-first, and broader web use will continue to improve from the same Flutter project.',
+        'Some TV text entry flows can be handled from your phone after one QR scan. It is there to make sign-in and setup easier, not to replace the TV experience.',
   ),
   _FaqItem(
     question: 'Is this an official Immich app?',
@@ -118,19 +146,29 @@ class MarketingLandingScreen extends StatelessWidget {
                 child: _PageSection(
                   eyebrow: 'Why Immich TV',
                   title:
-                      'A living-room interface for your self-hosted library.',
+                      'A polished TV interface for the library you already host.',
                   body:
-                      'Immich TV avoids stretched phone patterns and keeps the experience centered on browsing, playback, and remote control.',
+                      'Immich TV is designed around focus, distance, and shared-screen comfort instead of shrinking a phone or desktop layout onto the television.',
                   child: _FeatureGrid(features: _features),
                 ),
               ),
               SliverToBoxAdapter(
                 child: _PageSection(
                   eyebrow: 'Core experience',
-                  title: 'The viewing tools that matter on a shared screen.',
+                  title: 'The parts that matter most on a large screen.',
                   body:
-                      'The app keeps the path from opening the library to enjoying photos and videos short, predictable, and readable.',
+                      'From sign-in to playback, the app keeps navigation obvious and the content front and center.',
                   child: _ExperienceGrid(items: _experienceItems),
+                ),
+              ),
+              SliverToBoxAdapter(
+                child: _PageSection(
+                  eyebrow: 'Typing made easier',
+                  title:
+                      'Use the remote when you want to. Use your phone when you do not.',
+                  body:
+                      'Authentication and onboarding support a companion web input flow, so entering server addresses, emails, and passwords does not have to feel like a TV chore.',
+                  child: _FlowStepGrid(steps: _flowSteps),
                 ),
               ),
               SliverToBoxAdapter(
@@ -138,9 +176,9 @@ class MarketingLandingScreen extends StatelessWidget {
                   leading: _ActionPanel(
                     icon: Icons.android_rounded,
                     eyebrow: 'Install',
-                    title: 'Get the Android TV build.',
+                    title: 'Install the TV app and get watching quickly.',
                     body:
-                        'Install from Google Play for the public release, or use GitHub Releases for APK builds and release notes.',
+                        'Use Google Play for the simplest setup, or download APK builds and release notes from GitHub if you prefer manual installs.',
                     primaryLabel: 'Open Google Play',
                     onPrimaryPressed: () => openExternalUrl(_playStoreUrl),
                     secondaryLabel: 'GitHub releases',
@@ -149,9 +187,9 @@ class MarketingLandingScreen extends StatelessWidget {
                   trailing: _ActionPanel(
                     icon: Icons.science_outlined,
                     eyebrow: 'Preview',
-                    title: 'Try the demo flow.',
+                    title: 'See the flow before you connect your own library.',
                     body:
-                        'Demo mode appears only when the exact server URL below is entered during onboarding.',
+                        'A demo path is included for walkthroughs and testing. Enter the exact server URL below during onboarding to unlock it.',
                     primaryLabel: 'Open web app',
                     onPrimaryPressed: onOpenWebApp,
                     content: const _DemoCredentials(),
@@ -167,7 +205,7 @@ class MarketingLandingScreen extends StatelessWidget {
               SliverToBoxAdapter(
                 child: _PageSection(
                   eyebrow: 'FAQ',
-                  title: 'Before you install.',
+                  title: 'What people usually want to know first.',
                   child: _FaqList(items: _faqItems),
                 ),
               ),
@@ -190,7 +228,7 @@ class _Hero extends StatelessWidget {
     final isCompact = MediaQuery.sizeOf(context).width < 720;
 
     return SizedBox(
-      height: isCompact ? 680 : 760,
+      height: isCompact ? 760 : 820,
       child: Stack(
         fit: StackFit.expand,
         children: [
@@ -199,12 +237,12 @@ class _Hero extends StatelessWidget {
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 colors: [
+                  Color(0xFF050C10),
                   Color(0xF2071014),
-                  Color(0xCC071014),
-                  Color(0x88071014),
+                  Color(0xD9071014),
                   Color(0xFF071014),
                 ],
-                stops: [0, 0.48, 0.74, 1],
+                stops: [0, 0.24, 0.58, 1],
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
               ),
@@ -231,6 +269,10 @@ class _Hero extends StatelessWidget {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
+                            const _HeroTag(
+                              text: 'Open source TV client for Immich',
+                            ),
+                            const SizedBox(height: 18),
                             Text(
                               'Immich TV',
                               style: GoogleFonts.manrope(
@@ -242,7 +284,7 @@ class _Hero extends StatelessWidget {
                             ),
                             const SizedBox(height: 16),
                             Text(
-                              'A TV-first client for browsing your self-hosted Immich library from the couch.',
+                              'Browse your self-hosted photo library on the biggest screen in the house, with remote-friendly navigation and optional phone-assisted typing when setup gets tedious.',
                               style: GoogleFonts.manrope(
                                 color: const Color(0xFFE8F1EF),
                                 fontSize: isCompact ? 19 : 24,
@@ -268,6 +310,11 @@ class _Hero extends StatelessWidget {
                                   dark: true,
                                 ),
                               ],
+                            ),
+                            const SizedBox(height: 24),
+                            ConstrainedBox(
+                              constraints: const BoxConstraints(maxWidth: 640),
+                              child: const _HeroHighlightCard(),
                             ),
                           ],
                         ),
@@ -314,16 +361,21 @@ class _TopBar extends StatelessWidget {
             ),
           ),
         ),
-        _NavButton(
-          icon: Icons.code_rounded,
-          label: 'GitHub',
-          onPressed: () => openExternalUrl(_repoUrl),
-        ),
-        const SizedBox(width: 8),
-        _NavButton(
-          icon: Icons.open_in_browser_rounded,
-          label: 'Web app',
-          onPressed: onOpenWebApp,
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            _NavButton(
+              icon: Icons.code_rounded,
+              label: 'GitHub',
+              onPressed: () => openExternalUrl(_repoUrl),
+            ),
+            _NavButton(
+              icon: Icons.open_in_browser_rounded,
+              label: 'Web app',
+              onPressed: onOpenWebApp,
+            ),
+          ],
         ),
       ],
     );
@@ -377,11 +429,19 @@ class _ProofTile extends StatelessWidget {
       width: width,
       child: DecoratedBox(
         decoration: BoxDecoration(
-          color: _SiteColors.surface,
+          color: _SiteColors.surfaceRaised,
+          borderRadius: BorderRadius.circular(20),
           border: Border.all(color: _SiteColors.line),
+          boxShadow: const [
+            BoxShadow(
+              color: _SiteColors.shadow,
+              blurRadius: 26,
+              offset: Offset(0, 12),
+            ),
+          ],
         ),
         child: Padding(
-          padding: const EdgeInsets.all(22),
+          padding: const EdgeInsets.all(24),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -393,7 +453,7 @@ class _ProofTile extends StatelessWidget {
                   color: _SiteColors.ink,
                 ),
               ),
-              const SizedBox(height: 4),
+              const SizedBox(height: 8),
               Text(
                 point.label,
                 style: GoogleFonts.manrope(
@@ -537,17 +597,33 @@ class _FeatureCard extends StatelessWidget {
       width: width,
       child: DecoratedBox(
         decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(8),
+          color: _SiteColors.surfaceRaised,
+          borderRadius: BorderRadius.circular(24),
           border: Border.all(color: _SiteColors.line),
+          boxShadow: const [
+            BoxShadow(
+              color: _SiteColors.shadow,
+              blurRadius: 28,
+              offset: Offset(0, 12),
+            ),
+          ],
         ),
         child: Padding(
-          padding: const EdgeInsets.all(22),
+          padding: const EdgeInsets.all(24),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(feature.icon, color: _SiteColors.accent, size: 30),
-              const SizedBox(height: 18),
+              Container(
+                width: 54,
+                height: 54,
+                decoration: BoxDecoration(
+                  color: _SiteColors.accentSoft,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: _SiteColors.lineStrong),
+                ),
+                child: Icon(feature.icon, color: _SiteColors.accent, size: 28),
+              ),
+              const SizedBox(height: 20),
               Text(
                 feature.title,
                 style: GoogleFonts.manrope(
@@ -564,6 +640,91 @@ class _FeatureCard extends StatelessWidget {
                   color: _SiteColors.muted,
                   fontSize: 15,
                   height: 1.6,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _FlowStepGrid extends StatelessWidget {
+  const _FlowStepGrid({required this.steps});
+
+  final List<_FlowStep> steps;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final columns = constraints.maxWidth >= 980
+            ? 3
+            : constraints.maxWidth >= 620
+            ? 2
+            : 1;
+        final width = (constraints.maxWidth - ((columns - 1) * 16)) / columns;
+        return Wrap(
+          spacing: 16,
+          runSpacing: 16,
+          children: steps
+              .map((step) => _FlowStepCard(step: step, width: width))
+              .toList(growable: false),
+        );
+      },
+    );
+  }
+}
+
+class _FlowStepCard extends StatelessWidget {
+  const _FlowStepCard({required this.step, required this.width});
+
+  final _FlowStep step;
+  final double width;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: width,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: _SiteColors.surface,
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: _SiteColors.line),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                step.step,
+                style: GoogleFonts.manrope(
+                  color: _SiteColors.accentLight,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 1.6,
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                step.title,
+                style: GoogleFonts.manrope(
+                  color: _SiteColors.ink,
+                  fontSize: 22,
+                  height: 1.2,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              const SizedBox(height: 10),
+              Text(
+                step.body,
+                style: GoogleFonts.manrope(
+                  color: _SiteColors.muted,
+                  fontSize: 15,
+                  height: 1.65,
                   fontWeight: FontWeight.w500,
                 ),
               ),
@@ -618,11 +779,12 @@ class _ExperienceRow extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            width: 42,
-            height: 42,
+            width: 48,
+            height: 48,
             decoration: BoxDecoration(
               color: _SiteColors.accentSoft,
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: _SiteColors.lineStrong),
             ),
             child: Icon(item.icon, color: _SiteColors.accent, size: 22),
           ),
@@ -730,12 +892,19 @@ class _ActionPanel extends StatelessWidget {
   Widget build(BuildContext context) {
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: _SiteColors.surface,
-        borderRadius: BorderRadius.circular(8),
+        color: _SiteColors.surfaceRaised,
+        borderRadius: BorderRadius.circular(28),
         border: Border.all(color: _SiteColors.line),
+        boxShadow: const [
+          BoxShadow(
+            color: _SiteColors.shadow,
+            blurRadius: 28,
+            offset: Offset(0, 12),
+          ),
+        ],
       ),
       child: Padding(
-        padding: const EdgeInsets.all(26),
+        padding: const EdgeInsets.all(28),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -803,8 +972,8 @@ class _DemoCredentials extends StatelessWidget {
   Widget build(BuildContext context) {
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: _SiteColors.band,
-        borderRadius: BorderRadius.circular(8),
+        color: _SiteColors.surfaceSoft,
+        borderRadius: BorderRadius.circular(20),
         border: Border.all(color: _SiteColors.line),
       ),
       child: Padding(
@@ -901,7 +1070,7 @@ class _RepositoryBand extends StatelessWidget {
                           ),
                           const SizedBox(height: 10),
                           Text(
-                            'Track the roadmap, audit the code, or contribute improvements.',
+                            'Track the roadmap, inspect the code, and help shape the app in public.',
                             style: GoogleFonts.manrope(
                               color: _SiteColors.surface,
                               fontSize: 34,
@@ -970,8 +1139,8 @@ class _FaqTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: _SiteColors.surface,
-        borderRadius: BorderRadius.circular(8),
+        color: _SiteColors.surfaceRaised,
+        borderRadius: BorderRadius.circular(20),
         border: Border.all(color: _SiteColors.line),
       ),
       child: Padding(
@@ -1049,15 +1218,16 @@ class _PrimaryButton extends StatelessWidget {
       icon: Icon(icon, size: 19),
       label: Text(label),
       style: FilledButton.styleFrom(
-        backgroundColor: AppColors.immichBlue,
-        foregroundColor: Colors.white,
-        minimumSize: const Size(0, 50),
-        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+        backgroundColor: _SiteColors.accent,
+        foregroundColor: _SiteColors.page,
+        minimumSize: const Size(0, 54),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
         textStyle: GoogleFonts.manrope(
           fontSize: 14,
           fontWeight: FontWeight.w900,
         ),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        elevation: 0,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       ),
     );
   }
@@ -1092,13 +1262,13 @@ class _SecondaryButton extends StatelessWidget {
               ? Colors.white.withValues(alpha: 0.34)
               : _SiteColors.lineStrong,
         ),
-        minimumSize: const Size(0, 50),
-        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+        minimumSize: const Size(0, 54),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
         textStyle: GoogleFonts.manrope(
           fontSize: 14,
           fontWeight: FontWeight.w900,
         ),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       ),
     );
   }
@@ -1118,17 +1288,155 @@ class _NavButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final compact = MediaQuery.sizeOf(context).width < 560;
-    return IconButton.filledTonal(
-      onPressed: onPressed,
-      icon: Icon(icon, size: 19),
-      tooltip: label,
-      style: IconButton.styleFrom(
-        backgroundColor: Colors.white.withValues(alpha: 0.1),
-        foregroundColor: Colors.white,
-        side: BorderSide(color: Colors.white.withValues(alpha: 0.22)),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+    return Tooltip(
+      message: label,
+      child: OutlinedButton.icon(
+        onPressed: onPressed,
+        icon: Icon(icon, size: 18),
+        label: compact ? const SizedBox.shrink() : Text(label),
+        style: OutlinedButton.styleFrom(
+          foregroundColor: Colors.white,
+          backgroundColor: Colors.white.withValues(alpha: 0.08),
+          side: BorderSide(color: Colors.white.withValues(alpha: 0.22)),
+          minimumSize: const Size(0, 46),
+          padding: EdgeInsets.symmetric(
+            horizontal: compact ? 14 : 16,
+            vertical: 12,
+          ),
+          textStyle: GoogleFonts.manrope(
+            fontSize: 13,
+            fontWeight: FontWeight.w800,
+          ),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+          ),
+        ),
       ),
-      visualDensity: compact ? VisualDensity.compact : VisualDensity.standard,
+    );
+  }
+}
+
+class _HeroTag extends StatelessWidget {
+  const _HeroTag({required this.text});
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.18)),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        child: Text(
+          text,
+          style: GoogleFonts.manrope(
+            color: const Color(0xFFE9F7F1),
+            fontSize: 12,
+            fontWeight: FontWeight.w800,
+            letterSpacing: 0.3,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _HeroHighlightCard extends StatelessWidget {
+  const _HeroHighlightCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.14)),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Wrap(
+          spacing: 18,
+          runSpacing: 18,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: const [
+            _HeroHighlightItem(
+              icon: Icons.phone_iphone_rounded,
+              title: 'Type on your phone',
+              body:
+                  'Scan once, then keep typing as TV focus moves between fields.',
+            ),
+            _HeroHighlightItem(
+              icon: Icons.dvr_rounded,
+              title: 'Remote-first everywhere else',
+              body:
+                  'Browsing, switching users, and playback still stay natural on the TV itself.',
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _HeroHighlightItem extends StatelessWidget {
+  const _HeroHighlightItem({
+    required this.icon,
+    required this.title,
+    required this.body,
+  });
+
+  final IconData icon;
+  final String title;
+  final String body;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 280,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 42,
+            height: 42,
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Icon(icon, color: _SiteColors.accentLight, size: 22),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: GoogleFonts.manrope(
+                    color: Colors.white,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  body,
+                  style: GoogleFonts.manrope(
+                    color: const Color(0xFFD5E4E0),
+                    fontSize: 13,
+                    height: 1.5,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -1164,6 +1472,18 @@ class _ExperienceItem {
   final String body;
 }
 
+class _FlowStep {
+  const _FlowStep({
+    required this.step,
+    required this.title,
+    required this.body,
+  });
+
+  final String step;
+  final String title;
+  final String body;
+}
+
 class _FaqItem {
   const _FaqItem({required this.question, required this.answer});
 
@@ -1177,6 +1497,8 @@ class _SiteColors {
   static const page = Color(0xFF071014);
   static const band = Color(0xFF0D1A20);
   static const surface = Color(0xFF111F26);
+  static const surfaceRaised = Color(0xFF12222A);
+  static const surfaceSoft = Color(0xFF0C171D);
   static const ink = Color(0xFFF4FAF8);
   static const muted = Color(0xFFA7B8BE);
   static const accent = Color(0xFF91DDC5);
@@ -1184,4 +1506,5 @@ class _SiteColors {
   static const accentSoft = Color(0xFF17352F);
   static const line = Color(0x263A555E);
   static const lineStrong = Color(0x667B929A);
+  static const shadow = Color(0x4D000000);
 }
