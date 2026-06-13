@@ -161,13 +161,15 @@ class RemoteTextInputRepository {
         return;
       }
 
-      transaction.set(document, {
+      final nextData = <String, dynamic>{
         'label': label,
-        'text': _sanitizeText(
-          text,
-          numericOnly: numericOnly,
-          maxLength: maxLength,
-        ),
+        'text': enabled
+            ? _sanitizeText(
+                text,
+                numericOnly: numericOnly,
+                maxLength: maxLength,
+              )
+            : '',
         'obscureText': obscureText,
         'numericOnly': numericOnly,
         'maxLength': maxLength,
@@ -176,7 +178,9 @@ class RemoteTextInputRepository {
         'actionId': enabled ? null : snapshot.data()?['actionId'],
         'ownerId': enabled ? ownerId : null,
         'updatedAt': FieldValue.serverTimestamp(),
-      }, SetOptions(merge: true));
+      };
+
+      transaction.set(document, nextData, SetOptions(merge: true));
     });
   }
 

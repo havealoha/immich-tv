@@ -36,7 +36,8 @@ class RemoteTextInputBridge extends StatefulWidget {
   State<RemoteTextInputBridge> createState() => _RemoteTextInputBridgeState();
 }
 
-class _RemoteTextInputBridgeState extends State<RemoteTextInputBridge> {
+class _RemoteTextInputBridgeState extends State<RemoteTextInputBridge>
+    with WidgetsBindingObserver {
   static final Map<String, RemoteTextInputSession> _sessionsByScope = {};
 
   late final String _ownerId = '${DateTime.now().microsecondsSinceEpoch}';
@@ -51,6 +52,7 @@ class _RemoteTextInputBridgeState extends State<RemoteTextInputBridge> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     widget.controller.addListener(_handleLocalTextChanged);
     _startSession();
   }
@@ -77,27 +79,28 @@ class _RemoteTextInputBridgeState extends State<RemoteTextInputBridge> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     widget.controller.removeListener(_handleLocalTextChanged);
     _writeDebounce?.cancel();
     _subscription?.cancel();
-    final session = _session;
-    final repository = _repository;
-    if (session != null && repository != null) {
-      unawaited(
-        repository.updateActiveField(
-          sessionId: session.id,
-          label: widget.label,
-          text: widget.controller.text,
-          obscureText: widget.obscureText,
-          numericOnly: widget.numericOnly,
-          maxLength: widget.maxLength,
-          enabled: false,
-          ownerId: _ownerId,
-          actionLabel: null,
-        ),
-      );
+    if (_shouldDeleteForLifecycle(WidgetsBinding.instance.lifecycleState)) {
+      _deleteSession();
+    } else {
+      _disableActiveField();
     }
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (_shouldDeleteForLifecycle(state)) {
+      _deleteSession();
+      return;
+    }
+
+    if (state == AppLifecycleState.resumed && _session == null && mounted) {
+      _startSession();
+    }
   }
 
   @override
@@ -280,27 +283,58 @@ class _RemoteTextInputBridgeState extends State<RemoteTextInputBridge> {
 
   void _restartSession() {
     _writeDebounce?.cancel();
+    _subscription?.cancel();
+    _subscription = null;
+    _session = null;
+    _startSession();
+  }
+
+  void _disableActiveField() {
     final session = _session;
+    final repository = _repository;
+    if (session == null || repository == null) {
+      return;
+    }
+
+    unawaited(
+      repository
+          .updateActiveField(
+            sessionId: session.id,
+            label: widget.label,
+            text: '',
+            obscureText: widget.obscureText,
+            numericOnly: widget.numericOnly,
+            maxLength: widget.maxLength,
+            enabled: false,
+            ownerId: _ownerId,
+            actionLabel: null,
+          )
+          .catchError((_) {}),
+    );
+  }
+
+  void _deleteSession() {
+    final session = _session ?? _sessionsByScope[widget.scopeId];
     final repository = _repository;
     _subscription?.cancel();
     _subscription = null;
     _session = null;
-    if (session != null && repository != null) {
-      unawaited(
-        repository.updateActiveField(
-          sessionId: session.id,
-          label: widget.label,
-          text: widget.controller.text,
-          obscureText: widget.obscureText,
-          numericOnly: widget.numericOnly,
-          maxLength: widget.maxLength,
-          enabled: false,
-          ownerId: _ownerId,
-          actionLabel: null,
-        ),
-      );
+
+    if (session == null || repository == null) {
+      return;
     }
-    _startSession();
+
+    if (_sessionsByScope[widget.scopeId]?.id == session.id) {
+      _sessionsByScope.remove(widget.scopeId);
+    }
+
+    unawaited(repository.deleteSession(session.id).catchError((_) {}));
+  }
+
+  bool _shouldDeleteForLifecycle(AppLifecycleState? state) {
+    return state == AppLifecycleState.hidden ||
+        state == AppLifecycleState.paused ||
+        state == AppLifecycleState.detached;
   }
 
   void _handleLocalTextChanged() {
