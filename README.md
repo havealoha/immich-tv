@@ -12,11 +12,20 @@
 
 TV-first Immich client for browsing your self-hosted photo and video library from the couch.
 
-Immich TV is a read-focused Flutter app built for large screens, remote navigation, and fullscreen playback. It connects to your existing Immich server and gives you a living-room experience designed for Android TV and Google TV first, while still supporting the wider Flutter platform matrix for development and validation.
+Immich TV is now a single Flutter codebase for both:
+
+- the public marketing site at `/`
+- the main web-app entry at `/app`
+- the native TV-first app experience across Android TV and the wider Flutter platform matrix
+
+It connects to your existing Immich server and gives you a living-room experience designed for Android TV and Google TV first, while keeping the browser-facing surfaces in the same project for future web expansion.
 
 ## Website
 
 - https://immichtvapp.web.app/
+- Route split:
+  `/` = marketing site
+  `/app` = main Flutter app entry for web
 
 ## Google Play
 
@@ -67,7 +76,7 @@ Current product direction:
 
 ## Current Version
 
-- App version: `1.1.3+11`
+- App version: `1.2.0+12`
 
 ## Getting Started
 
@@ -84,12 +93,31 @@ flutter pub get
 flutter run
 ```
 
+### Run web surfaces locally
+
+```bash
+flutter run -d chrome
+```
+
+Open:
+
+- `http://localhost:xxxx/` for the Flutter marketing site
+- `http://localhost:xxxx/app` for the main Flutter app entry
+
 ### Quality checks
 
 ```bash
 flutter analyze
 flutter test
 ```
+
+### Build the combined web output
+
+```bash
+flutter build web
+```
+
+The deployable site is written to `build/web`.
 
 ## Demo Access
 
@@ -130,6 +158,12 @@ The repository includes packaged brand assets under `assets/png/`.
 - `tv-banner-icon.png`
 - `playstore.png`
 - `appstore.png`
+
+## Web architecture
+
+- One Flutter frontend now owns both the public landing page and the future browser app path.
+- The old standalone `marketing-site/` codebase has been removed.
+- Firebase Hosting can point directly at `build/web` using the root `firebase.json`.
 
 ## Roadmap
 
