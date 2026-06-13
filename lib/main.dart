@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
@@ -24,6 +25,21 @@ Future<void> _initializeFirebaseIfSupported() async {
   }
 
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  _configureFirestoreIfSupported();
+}
+
+void _configureFirestoreIfSupported() {
+  if (!kIsWeb) {
+    return;
+  }
+
+  FirebaseFirestore.instance.settings = const Settings(
+    persistenceEnabled: false,
+    webExperimentalForceLongPolling: true,
+    webExperimentalLongPollingOptions: WebExperimentalLongPollingOptions(
+      timeoutDuration: Duration(seconds: 15),
+    ),
+  );
 }
 
 Future<void> _enableWakelockIfSupported() async {

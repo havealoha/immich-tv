@@ -91,6 +91,7 @@ class RemoteTextInputRepository {
       maxLength: maxLength,
     );
 
+    final now = _nowIso();
     await _sessions.doc(id).set({
       'text': _sanitizeText(
         initialText,
@@ -105,11 +106,12 @@ class RemoteTextInputRepository {
       'actionLabel': actionLabel,
       'actionId': null,
       'ownerId': ownerId,
-      'createdAt': FieldValue.serverTimestamp(),
-      'updatedAt': FieldValue.serverTimestamp(),
-      'expiresAt': Timestamp.fromDate(
-        DateTime.now().toUtc().add(const Duration(minutes: 20)),
-      ),
+      'createdAtIso': now,
+      'updatedAtIso': now,
+      'expiresAtIso': DateTime.now()
+          .toUtc()
+          .add(const Duration(minutes: 20))
+          .toIso8601String(),
     });
 
     return session;
@@ -159,7 +161,10 @@ class RemoteTextInputRepository {
         'actionLabel': enabled ? actionLabel : null,
         'actionId': enabled ? null : snapshot.data()?['actionId'],
         'ownerId': enabled ? ownerId : null,
-        'updatedAt': FieldValue.serverTimestamp(),
+        'updatedAtIso': _nowIso(),
+        'createdAt': FieldValue.delete(),
+        'updatedAt': FieldValue.delete(),
+        'expiresAt': FieldValue.delete(),
       };
 
       transaction.set(document, nextData, SetOptions(merge: true));
@@ -173,7 +178,8 @@ class RemoteTextInputRepository {
     return _sessions.doc(sessionId).set({
       'actionLabel': actionLabel,
       'actionId': '${DateTime.now().microsecondsSinceEpoch}',
-      'updatedAt': FieldValue.serverTimestamp(),
+      'updatedAtIso': _nowIso(),
+      'updatedAt': FieldValue.delete(),
     }, SetOptions(merge: true));
   }
 
@@ -189,7 +195,8 @@ class RemoteTextInputRepository {
         numericOnly: numericOnly,
         maxLength: maxLength,
       ),
-      'updatedAt': FieldValue.serverTimestamp(),
+      'updatedAtIso': _nowIso(),
+      'updatedAt': FieldValue.delete(),
     }, SetOptions(merge: true));
   }
 
@@ -263,6 +270,8 @@ String _sanitizeText(
   }
   return nextValue;
 }
+
+String _nowIso() => DateTime.now().toUtc().toIso8601String();
 
 String _newSessionId() {
   const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
