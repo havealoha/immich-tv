@@ -24,8 +24,15 @@ Future<void> _initializeFirebaseIfSupported() async {
     return;
   }
 
-  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-  _configureFirestoreIfSupported();
+  try {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+    _configureFirestoreIfSupported();
+  } catch (error, stackTrace) {
+    debugPrint('Firebase initialization failed: $error');
+    debugPrintStack(stackTrace: stackTrace);
+  }
 }
 
 void _configureFirestoreIfSupported() {

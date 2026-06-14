@@ -207,21 +207,66 @@ class RemoteTextInputRepository {
   RemoteTextInputSnapshot _snapshotFromDocument(
     DocumentSnapshot<Map<String, dynamic>> document,
   ) {
-    final data = document.data();
     return RemoteTextInputSnapshot(
       id: document.id,
-      text: data?['text'] as String? ?? '',
-      label: data?['label'] as String? ?? 'TV input',
-      obscureText: data?['obscureText'] as bool? ?? false,
-      numericOnly: data?['numericOnly'] as bool? ?? false,
-      maxLength: data?['maxLength'] as int?,
-      enabled: data?['enabled'] as bool? ?? false,
-      actionLabel: data?['actionLabel'] as String?,
-      actionId: data?['actionId'] as String?,
-      ownerId: data?['ownerId'] as String?,
+      text: _readStringField(document, 'text') ?? '',
+      label: _readStringField(document, 'label') ?? 'TV input',
+      obscureText: _readBoolField(document, 'obscureText') ?? false,
+      numericOnly: _readBoolField(document, 'numericOnly') ?? false,
+      maxLength: _readIntField(document, 'maxLength'),
+      enabled: _readBoolField(document, 'enabled') ?? false,
+      actionLabel: _readStringField(document, 'actionLabel'),
+      actionId: _readStringField(document, 'actionId'),
+      ownerId: _readStringField(document, 'ownerId'),
       exists: document.exists,
     );
   }
+}
+
+T? _readField<T>(
+  DocumentSnapshot<Map<String, dynamic>> document,
+  String field,
+  T? Function(Object? value) parser,
+) {
+  if (!document.exists) {
+    return null;
+  }
+
+  try {
+    return parser(document.get(field));
+  } on StateError {
+    return null;
+  } on UnsupportedError {
+    return null;
+  }
+}
+
+String? _readStringField(
+  DocumentSnapshot<Map<String, dynamic>> document,
+  String field,
+) => _readField(document, field, (value) => value as String?);
+
+bool? _readBoolField(
+  DocumentSnapshot<Map<String, dynamic>> document,
+  String field,
+) => _readField(document, field, (value) => value as bool?);
+
+int? _readIntField(
+  DocumentSnapshot<Map<String, dynamic>> document,
+  String field,
+) => _readField(document, field, _coerceToInt);
+
+int? _coerceToInt(Object? value) {
+  if (value == null) {
+    return null;
+  }
+  if (value is int) {
+    return value;
+  }
+  if (value is num) {
+    return value.toInt();
+  }
+  return int.tryParse(value.toString());
 }
 
 String remoteTextInputUrl(String sessionId) {
