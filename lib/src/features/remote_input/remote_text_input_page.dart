@@ -91,24 +91,25 @@ class _RemoteTextInputPageState extends State<RemoteTextInputPage> {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     Text(
-                      'Immich TV phone input',
+                      'Immich TV',
                       style: theme.textTheme.headlineSmall?.copyWith(
                         fontWeight: FontWeight.w900,
                       ),
                     ),
                     const SizedBox(height: AppSpacing.sm),
-                    Text(
-                      isMissing
-                          ? 'This input session has expired. Scan the QR code on the TV again.'
-                          : isConnected
-                          ? 'Typing here updates the focused TV field live.'
-                          : 'Choose Scan QR on the TV and keep the QR code visible.',
-                      style: theme.textTheme.bodyLarge?.copyWith(
-                        color: AppColors.textSecondary,
-                        height: 1.45,
+                    if (!isConnected) ...[
+                      Text(
+                        isMissing
+                            ? 'This input session has expired. Scan the QR code on the TV again.'
+                            : 'Choose Scan QR on the TV and keep the QR code visible.',
+                        style: theme.textTheme.bodyLarge?.copyWith(
+                          color: AppColors.textSecondary,
+                          height: 1.45,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: AppSpacing.lg),
+                      const SizedBox(height: AppSpacing.lg),
+                    ] else
+                      const SizedBox(height: AppSpacing.md),
                     if (_errorMessage != null)
                       _StatusBanner(
                         color: AppColors.error,
@@ -126,18 +127,10 @@ class _RemoteTextInputPageState extends State<RemoteTextInputPage> {
                       )
                     else ...[
                       Text(
-                        'Entering text into',
-                        style: theme.textTheme.labelMedium?.copyWith(
+                        'Use this page as the keyboard for the field selected on your TV. Type below, then press ${snapshot.actionLabel} when you are ready to move on.',
+                        style: theme.textTheme.bodyMedium?.copyWith(
                           color: AppColors.textSecondary,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                      const SizedBox(height: AppSpacing.xxs),
-                      Text(
-                        snapshot.label,
-                        style: theme.textTheme.headlineSmall?.copyWith(
-                          fontWeight: FontWeight.w900,
-                          color: AppColors.textPrimary,
+                          height: 1.45,
                         ),
                       ),
                       const SizedBox(height: AppSpacing.md),
@@ -182,7 +175,7 @@ class _RemoteTextInputPageState extends State<RemoteTextInputPage> {
                       ),
                       const SizedBox(height: AppSpacing.sm),
                       Text(
-                        'Keep this page open until the TV advances to the next step.',
+                        'Keep the TV on the QR input screen while this page is open.',
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: AppColors.textMuted,
                         ),
