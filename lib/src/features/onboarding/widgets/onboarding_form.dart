@@ -334,7 +334,7 @@ class OnboardingForm extends StatelessWidget {
                       child: RemoteTextInputBridge(
                         scopeId: 'app-session',
                         controller: emailController,
-                        label: 'Email',
+                        label: 'Email address',
                         enabled: !isSubmitting,
                         actionLabel: 'Next',
                         onRemoteAction: onEmailRemoteNext,

@@ -187,13 +187,17 @@ class RemoteTextInputRepository {
   RemoteTextInputSnapshot _snapshotFromDocument(
     DocumentSnapshot<Map<String, dynamic>> document,
   ) {
+    final fieldId = _readStringField(document, 'fieldId');
     return RemoteTextInputSnapshot(
       id: document.id,
       text: _readStringField(document, 'text') ?? '',
-      label: _readStringField(document, 'label') ?? 'TV input',
+      label: _displayLabelFor(
+        _readStringField(document, 'label'),
+        fieldId: fieldId,
+      ),
       actionLabel: _readStringField(document, 'actionLabel') ?? 'Continue',
       actionId: _readStringField(document, 'actionId'),
-      fieldId: _readStringField(document, 'fieldId'),
+      fieldId: fieldId,
       exists: document.exists,
     );
   }
@@ -204,7 +208,7 @@ class RemoteTextInputRepository {
     return RemoteTextInputSnapshot(
       id: document.id,
       text: document.text,
-      label: document.label,
+      label: _displayLabelFor(document.label, fieldId: document.fieldId),
       actionLabel: document.actionLabel,
       actionId: document.actionId,
       fieldId: document.fieldId,
@@ -235,6 +239,24 @@ String? _readStringField(
   DocumentSnapshot<Map<String, dynamic>> document,
   String field,
 ) => _readField(document, field, (value) => value as String?);
+
+String _displayLabelFor(String? label, {required String? fieldId}) {
+  final normalizedLabel = label?.trim();
+  if (normalizedLabel != null &&
+      normalizedLabel.isNotEmpty &&
+      normalizedLabel != 'TV input') {
+    return normalizedLabel;
+  }
+
+  final rawFieldName = fieldId?.split(':').last.trim();
+  return switch (rawFieldName) {
+    'Immich server URL' => 'Immich server URL',
+    'Email' => 'Email address',
+    'Password' => 'Password',
+    'API key' => 'API key',
+    _ => 'Focused TV field',
+  };
+}
 
 String remoteTextInputUrl(String sessionId) {
   const fallbackBaseUrl = 'https://immichtvapp.web.app';
