@@ -75,23 +75,32 @@ class RemoteTextInputWebClient {
     String id,
     firestore_interop.DocumentSnapshot snapshot,
   ) {
-    final data = snapshot.data() ?? const <String, dynamic>{};
     return RemoteTextInputWebDocument(
       id: id,
-      text: _readString(data, 'text') ?? '',
-      label: _readString(data, 'label') ?? 'TV input',
-      actionLabel: _readString(data, 'actionLabel') ?? 'Continue',
-      actionId: _readString(data, 'actionId'),
-      fieldId: _readString(data, 'fieldId'),
+      text: _readString(snapshot, 'text') ?? '',
+      label: _readString(snapshot, 'label') ?? 'TV input',
+      actionLabel: _readString(snapshot, 'actionLabel') ?? 'Continue',
+      actionId: _readString(snapshot, 'actionId'),
+      fieldId: _readString(snapshot, 'fieldId'),
       exists: snapshot.exists,
     );
   }
 
-  String? _readString(Map<String, dynamic> data, String field) {
-    final value = data[field];
+  String? _readString(
+    firestore_interop.DocumentSnapshot snapshot,
+    String field,
+  ) {
+    final Object? value;
+    try {
+      value = snapshot.get(field.toJS);
+    } catch (_) {
+      return null;
+    }
+
     if (value == null) {
       return null;
     }
+
     if (value is String) {
       return value;
     }
