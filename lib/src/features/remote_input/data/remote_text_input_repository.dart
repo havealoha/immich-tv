@@ -74,10 +74,7 @@ class RemoteTextInputRepository {
     required String fieldId,
   }) async {
     final id = _newSessionId();
-    final session = RemoteTextInputSession(
-      id: id,
-      url: remoteTextInputUrl(id, fieldLabel: label),
-    );
+    final session = RemoteTextInputSession(id: id, url: remoteTextInputUrl(id));
     await _setSession(
       id,
       _sessionPayload(
@@ -261,45 +258,23 @@ String _displayLabelFor(String? label, {required String? fieldId}) {
   };
 }
 
-String remoteTextInputUrl(String sessionId, {String? fieldLabel}) {
+String remoteTextInputUrl(String sessionId) {
   const fallbackBaseUrl = 'https://immichtvapp.web.app';
   const configuredBaseUrl = String.fromEnvironment('REMOTE_INPUT_BASE_URL');
   if (configuredBaseUrl.isNotEmpty) {
-    return _withFieldLabel(
-      _joinBaseAndPath(configuredBaseUrl, 'input/$sessionId'),
-      fieldLabel,
-    );
+    return _joinBaseAndPath(configuredBaseUrl, 'input/$sessionId');
   }
 
   final base = Uri.base;
   if (base.hasScheme &&
       (base.scheme == 'http' || base.scheme == 'https') &&
       !_isLocalDevelopmentHost(base.host)) {
-    return _withFieldLabel(
-      base
-          .replace(path: '/input/$sessionId', query: null, fragment: null)
-          .toString(),
-      fieldLabel,
-    );
+    return base
+        .replace(path: '/input/$sessionId', query: null, fragment: null)
+        .toString();
   }
 
-  return _withFieldLabel('$fallbackBaseUrl/input/$sessionId', fieldLabel);
-}
-
-String _withFieldLabel(String url, String? fieldLabel) {
-  final normalizedLabel = fieldLabel?.trim();
-  if (normalizedLabel == null || normalizedLabel.isEmpty) {
-    return url;
-  }
-  final uri = Uri.parse(url);
-  return uri
-      .replace(
-        queryParameters: <String, String>{
-          ...uri.queryParameters,
-          'field': _displayLabelFor(normalizedLabel, fieldId: null),
-        },
-      )
-      .toString();
+  return '$fallbackBaseUrl/input/$sessionId';
 }
 
 String _joinBaseAndPath(String baseUrl, String path) {

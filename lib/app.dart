@@ -86,10 +86,7 @@ class ImmichTvApp extends StatelessWidget {
       return _MarketingSiteApp(
         repositories: appRepositories,
         appHome: _AdaptiveAppEntry(authRepository: _authRepository),
-        homeOverride: RemoteTextInputPage(
-          sessionId: remoteInputSessionId,
-          fallbackLabel: _remoteInputFieldLabel,
-        ),
+        homeOverride: RemoteTextInputPage(sessionId: remoteInputSessionId),
       );
     }
 
@@ -303,14 +300,6 @@ class ImmichTvApp extends StatelessWidget {
       return segments.last;
     }
     return null;
-  }
-
-  String? get _remoteInputFieldLabel {
-    if (!kIsWeb) {
-      return null;
-    }
-    final label = Uri.base.queryParameters['field']?.trim();
-    return label == null || label.isEmpty ? null : label;
   }
 }
 
