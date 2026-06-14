@@ -9,15 +9,10 @@ import 'remote_text_input_web_client_stub.dart'
     as web_client;
 
 class RemoteTextInputSession {
-  const RemoteTextInputSession({
-    required this.id,
-    required this.url,
-    required this.label,
-  });
+  const RemoteTextInputSession({required this.id, required this.url});
 
   final String id;
   final String url;
-  final String label;
 }
 
 class RemoteTextInputSnapshot {
@@ -25,18 +20,18 @@ class RemoteTextInputSnapshot {
     required this.id,
     required this.text,
     required this.label,
-    required this.enabled,
+    required this.actionLabel,
     required this.actionId,
-    required this.ownerId,
+    required this.fieldId,
     required this.exists,
   });
 
   final String id;
   final String text;
   final String label;
-  final bool enabled;
+  final String actionLabel;
   final String? actionId;
-  final String? ownerId;
+  final String? fieldId;
   final bool exists;
 }
 
@@ -74,38 +69,22 @@ class RemoteTextInputRepository {
 
   Future<RemoteTextInputSession> createSession({
     required String label,
-    required String initialText,
-    required bool obscureText,
-    required bool numericOnly,
-    int? maxLength,
-    String? actionLabel,
-    String? ownerId,
+    required String text,
+    required String actionLabel,
+    required String fieldId,
   }) async {
     final id = _newSessionId();
-    final session = RemoteTextInputSession(
-      id: id,
-      url: remoteTextInputUrl(id),
-      label: label,
-    );
-
-    final payload = _minimalSessionPayload(
-      label: label,
-      text: _sanitizeText(
-        initialText,
-        numericOnly: numericOnly,
-        maxLength: maxLength,
+    final session = RemoteTextInputSession(id: id, url: remoteTextInputUrl(id));
+    await _setSession(
+      id,
+      _sessionPayload(
+        label: label,
+        text: text,
+        actionLabel: actionLabel,
+        actionId: null,
+        fieldId: fieldId,
       ),
-      enabled: true,
-      actionId: null,
-      ownerId: ownerId,
     );
-
-    if (kIsWeb) {
-      await _webClient!.setSession(id, payload);
-    } else {
-      await _sessions.doc(id).set(payload);
-    }
-
     return session;
   }
 
@@ -123,38 +102,40 @@ class RemoteTextInputRepository {
     return _snapshotFromDocument(await _sessions.doc(id).get());
   }
 
-  Future<void> updateActiveField({
+  Future<void> claimField({
     required String sessionId,
     required String label,
     required String text,
-    required bool obscureText,
-    required bool numericOnly,
-    required bool enabled,
-    required String ownerId,
-    String? actionLabel,
-    int? maxLength,
+    required String actionLabel,
+    required String fieldId,
   }) async {
-    final nextText = enabled
-        ? _sanitizeText(
-            text,
-            numericOnly: numericOnly,
-            maxLength: maxLength,
-          )
-        : '';
+    await _setSession(
+      sessionId,
+      _sessionPayload(
+        label: label,
+        text: text,
+        actionLabel: actionLabel,
+        actionId: null,
+        fieldId: fieldId,
+      ),
+    );
+  }
 
+  Future<void> updateText({
+    required String sessionId,
+    required String text,
+  }) async {
     if (kIsWeb) {
-      final current = await _webClient!.getSession(sessionId);
-      if (!enabled && current.ownerId != null && current.ownerId != ownerId) {
-        return;
-      }
-      await _webClient!.setSession(
+      final webClient = _webClient!;
+      final current = await webClient.getSession(sessionId);
+      await webClient.setSession(
         sessionId,
-        _minimalSessionPayload(
-          label: label,
-          text: nextText,
-          enabled: enabled,
-          actionId: null,
-          ownerId: enabled ? ownerId : null,
+        _sessionPayload(
+          label: current.label,
+          text: text,
+          actionLabel: current.actionLabel,
+          actionId: current.actionId,
+          fieldId: current.fieldId,
         ),
       );
       return;
@@ -163,18 +144,15 @@ class RemoteTextInputRepository {
     await _firestore!.runTransaction((transaction) async {
       final document = _sessions.doc(sessionId);
       final snapshot = await transaction.get(document);
-      final currentOwnerId = snapshot.data()?['ownerId'] as String?;
-      if (!enabled && currentOwnerId != null && currentOwnerId != ownerId) {
-        return;
-      }
+      final current = _snapshotFromDocument(snapshot);
       transaction.set(
         document,
-        _minimalSessionPayload(
-          label: label,
-          text: nextText,
-          enabled: enabled,
-          actionId: snapshot.data()?['actionId'] as String?,
-          ownerId: enabled ? ownerId : null,
+        _sessionPayload(
+          label: current.label,
+          text: text,
+          actionLabel: current.actionLabel,
+          actionId: current.actionId,
+          fieldId: current.fieldId,
         ),
       );
     });
@@ -182,20 +160,20 @@ class RemoteTextInputRepository {
 
   Future<void> submitAction({
     required String sessionId,
-    required String actionLabel,
+    required String text,
   }) async {
     final nextActionId = '${DateTime.now().microsecondsSinceEpoch}';
-
     if (kIsWeb) {
-      final current = await _webClient!.getSession(sessionId);
-      await _webClient!.setSession(
+      final webClient = _webClient!;
+      final current = await webClient.getSession(sessionId);
+      await webClient.setSession(
         sessionId,
-        _minimalSessionPayload(
+        _sessionPayload(
           label: current.label,
-          text: current.text,
-          enabled: current.enabled,
+          text: text,
+          actionLabel: current.actionLabel,
           actionId: nextActionId,
-          ownerId: current.ownerId,
+          fieldId: current.fieldId,
         ),
       );
       return;
@@ -207,56 +185,12 @@ class RemoteTextInputRepository {
       final current = _snapshotFromDocument(snapshot);
       transaction.set(
         document,
-        _minimalSessionPayload(
+        _sessionPayload(
           label: current.label,
-          text: current.text,
-          enabled: current.enabled,
+          text: text,
+          actionLabel: current.actionLabel,
           actionId: nextActionId,
-          ownerId: current.ownerId,
-        ),
-      );
-    });
-  }
-
-  Future<void> updateText({
-    required String sessionId,
-    required String text,
-    required bool numericOnly,
-    int? maxLength,
-  }) async {
-    final nextText = _sanitizeText(
-      text,
-      numericOnly: numericOnly,
-      maxLength: maxLength,
-    );
-
-    if (kIsWeb) {
-      final current = await _webClient!.getSession(sessionId);
-      await _webClient!.setSession(
-        sessionId,
-        _minimalSessionPayload(
-          label: current.label,
-          text: nextText,
-          enabled: current.enabled,
-          actionId: current.actionId,
-          ownerId: current.ownerId,
-        ),
-      );
-      return;
-    }
-
-    await _firestore!.runTransaction((transaction) async {
-      final document = _sessions.doc(sessionId);
-      final snapshot = await transaction.get(document);
-      final current = _snapshotFromDocument(snapshot);
-      transaction.set(
-        document,
-        _minimalSessionPayload(
-          label: current.label,
-          text: nextText,
-          enabled: current.enabled,
-          actionId: current.actionId,
-          ownerId: current.ownerId,
+          fieldId: current.fieldId,
         ),
       );
     });
@@ -270,19 +204,27 @@ class RemoteTextInputRepository {
     await _sessions.doc(id).delete();
   }
 
-  Map<String, dynamic> _minimalSessionPayload({
+  Future<void> _setSession(String id, Map<String, dynamic> data) async {
+    if (kIsWeb) {
+      await _webClient!.setSession(id, data);
+      return;
+    }
+    await _sessions.doc(id).set(data);
+  }
+
+  Map<String, dynamic> _sessionPayload({
     required String label,
     required String text,
-    required bool enabled,
+    required String actionLabel,
     required String? actionId,
-    required String? ownerId,
+    required String? fieldId,
   }) {
     return <String, dynamic>{
       'label': label,
       'text': text,
-      'enabled': enabled,
+      'actionLabel': actionLabel,
       'actionId': actionId,
-      'ownerId': ownerId,
+      'fieldId': fieldId,
     };
   }
 
@@ -293,9 +235,9 @@ class RemoteTextInputRepository {
       id: document.id,
       text: _readStringField(document, 'text') ?? '',
       label: _readStringField(document, 'label') ?? 'TV input',
-      enabled: _readBoolField(document, 'enabled') ?? false,
+      actionLabel: _readStringField(document, 'actionLabel') ?? 'Continue',
       actionId: _readStringField(document, 'actionId'),
-      ownerId: _readStringField(document, 'ownerId'),
+      fieldId: _readStringField(document, 'fieldId'),
       exists: document.exists,
     );
   }
@@ -307,9 +249,9 @@ class RemoteTextInputRepository {
       id: document.id,
       text: document.text,
       label: document.label,
-      enabled: document.enabled,
+      actionLabel: document.actionLabel,
       actionId: document.actionId,
-      ownerId: document.ownerId,
+      fieldId: document.fieldId,
       exists: document.exists,
     );
   }
@@ -337,11 +279,6 @@ String? _readStringField(
   DocumentSnapshot<Map<String, dynamic>> document,
   String field,
 ) => _readField(document, field, (value) => value as String?);
-
-bool? _readBoolField(
-  DocumentSnapshot<Map<String, dynamic>> document,
-  String field,
-) => _readField(document, field, (value) => value as bool?);
 
 String remoteTextInputUrl(String sessionId) {
   const fallbackBaseUrl = 'https://immichtvapp.web.app';
@@ -376,18 +313,6 @@ bool _isLocalDevelopmentHost(String host) {
       normalizedHost == '127.0.0.1' ||
       normalizedHost == '0.0.0.0' ||
       normalizedHost == '::1';
-}
-
-String _sanitizeText(
-  String value, {
-  required bool numericOnly,
-  int? maxLength,
-}) {
-  var nextValue = numericOnly ? value.replaceAll(RegExp(r'[^0-9]'), '') : value;
-  if (maxLength != null && nextValue.length > maxLength) {
-    nextValue = nextValue.substring(0, maxLength);
-  }
-  return nextValue;
 }
 
 String _newSessionId() {

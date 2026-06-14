@@ -69,8 +69,7 @@ class _RemoteTextInputPageState extends State<RemoteTextInputPage> {
     final theme = Theme.of(context);
     final snapshot = _snapshot;
     final isMissing = snapshot != null && !snapshot.exists;
-    final isInputEnabled =
-        snapshot != null && snapshot.exists && snapshot.enabled;
+    final isConnected = snapshot != null && snapshot.exists;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -101,9 +100,9 @@ class _RemoteTextInputPageState extends State<RemoteTextInputPage> {
                     Text(
                       isMissing
                           ? 'This input session has expired. Scan the QR code on the TV again.'
-                          : isInputEnabled
+                          : isConnected
                           ? 'Typing here updates the focused TV field live.'
-                          : 'Choose Scan QR and focus a field on the TV to type from this page.',
+                          : 'Choose Scan QR on the TV and keep the QR code visible.',
                       style: theme.textTheme.bodyLarge?.copyWith(
                         color: AppColors.textSecondary,
                         height: 1.45,
@@ -124,12 +123,6 @@ class _RemoteTextInputPageState extends State<RemoteTextInputPage> {
                       const _StatusBanner(
                         color: AppColors.warning,
                         message: 'Session not found.',
-                      )
-                    else if (!snapshot.enabled)
-                      _StatusBanner(
-                        color: AppColors.warning,
-                        message:
-                            'Phone input is paused. Switch the TV typing method to Scan QR and focus a field.',
                       )
                     else ...[
                       Text(
@@ -156,7 +149,6 @@ class _RemoteTextInputPageState extends State<RemoteTextInputPage> {
                               controller: _controller,
                               focusNode: _textFieldFocusNode,
                               autofocus: true,
-                              enabled: snapshot.enabled,
                               keyboardType: TextInputType.text,
                               minLines: 1,
                               maxLines: 4,
@@ -168,9 +160,7 @@ class _RemoteTextInputPageState extends State<RemoteTextInputPage> {
                           ),
                           const SizedBox(width: AppSpacing.sm),
                           IconButton.filledTonal(
-                            onPressed: snapshot.enabled
-                                ? _pasteFromClipboard
-                                : null,
+                            onPressed: _pasteFromClipboard,
                             tooltip: 'Paste',
                             icon: const Icon(Icons.content_paste_rounded),
                           ),
@@ -180,7 +170,7 @@ class _RemoteTextInputPageState extends State<RemoteTextInputPage> {
                       FilledButton.icon(
                         onPressed: _isSubmittingAction
                             ? null
-                            : () => _submitAction(_actionLabelFor(snapshot)),
+                            : () => _submitAction(snapshot),
                         style: FilledButton.styleFrom(
                           minimumSize: const Size.fromHeight(54),
                           textStyle: theme.textTheme.titleMedium?.copyWith(
@@ -188,7 +178,7 @@ class _RemoteTextInputPageState extends State<RemoteTextInputPage> {
                           ),
                         ),
                         icon: const Icon(Icons.arrow_forward_rounded),
-                        label: Text(_actionLabelFor(snapshot)),
+                        label: Text(snapshot.actionLabel),
                       ),
                       const SizedBox(height: AppSpacing.sm),
                       Text(
@@ -274,7 +264,7 @@ class _RemoteTextInputPageState extends State<RemoteTextInputPage> {
     if (repository == null ||
         snapshot == null ||
         !snapshot.exists ||
-        !snapshot.enabled) {
+        _applyingRemoteText) {
       return;
     }
 
@@ -285,8 +275,6 @@ class _RemoteTextInputPageState extends State<RemoteTextInputPage> {
         repository.updateText(
           sessionId: widget.sessionId,
           text: _controller.text,
-          numericOnly: false,
-          maxLength: null,
         ),
       );
     });
@@ -294,7 +282,7 @@ class _RemoteTextInputPageState extends State<RemoteTextInputPage> {
 
   Future<void> _pasteFromClipboard() async {
     final snapshot = _snapshot;
-    if (snapshot == null || !snapshot.enabled) {
+    if (snapshot == null || !snapshot.exists) {
       return;
     }
 
@@ -313,12 +301,12 @@ class _RemoteTextInputPageState extends State<RemoteTextInputPage> {
   }
 
   void _ensureTextFieldFocus(RemoteTextInputSnapshot snapshot) {
-    if (!snapshot.enabled || _textFieldFocusNode.hasFocus) {
+    if (!snapshot.exists || _textFieldFocusNode.hasFocus) {
       return;
     }
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted && snapshot == _snapshot && snapshot.enabled) {
+      if (mounted && snapshot == _snapshot && snapshot.exists) {
         _textFieldFocusNode.requestFocus();
       }
     });
@@ -332,13 +320,9 @@ class _RemoteTextInputPageState extends State<RemoteTextInputPage> {
     return snapshot.text != pendingLocalText;
   }
 
-  Future<void> _submitAction(String actionLabel) async {
+  Future<void> _submitAction(RemoteTextInputSnapshot snapshot) async {
     final repository = _repository;
-    final snapshot = _snapshot;
-    if (repository == null ||
-        snapshot == null ||
-        !snapshot.exists ||
-        !snapshot.enabled) {
+    if (repository == null || !snapshot.exists || _isSubmittingAction) {
       return;
     }
 
@@ -349,12 +333,10 @@ class _RemoteTextInputPageState extends State<RemoteTextInputPage> {
       await repository.updateText(
         sessionId: widget.sessionId,
         text: _controller.text,
-        numericOnly: false,
-        maxLength: null,
       );
       await repository.submitAction(
         sessionId: widget.sessionId,
-        actionLabel: actionLabel,
+        text: _controller.text,
       );
     } catch (error) {
       if (mounted) {
@@ -365,17 +347,6 @@ class _RemoteTextInputPageState extends State<RemoteTextInputPage> {
         setState(() => _isSubmittingAction = false);
       }
     }
-  }
-
-  String _actionLabelFor(RemoteTextInputSnapshot snapshot) {
-    final label = snapshot.label.toLowerCase();
-    if (label.contains('password') || label.contains('api key')) {
-      return 'Continue';
-    }
-    if (label.contains('server') || label.contains('email')) {
-      return 'Next';
-    }
-    return 'Done';
   }
 }
 

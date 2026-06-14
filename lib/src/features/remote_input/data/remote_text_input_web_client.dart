@@ -1,5 +1,7 @@
 import 'dart:async';
 
+// ignore_for_file: implementation_imports, depend_on_referenced_packages
+
 import 'package:cloud_firestore_web/src/interop/firestore.dart'
     as firestore_interop;
 import 'package:firebase_core/firebase_core.dart';
@@ -11,18 +13,18 @@ class RemoteTextInputWebDocument {
     required this.id,
     required this.text,
     required this.label,
-    required this.enabled,
+    required this.actionLabel,
     required this.actionId,
-    required this.ownerId,
+    required this.fieldId,
     required this.exists,
   });
 
   final String id;
   final String text;
   final String label;
-  final bool enabled;
+  final String actionLabel;
   final String? actionId;
-  final String? ownerId;
+  final String? fieldId;
   final bool exists;
 }
 
@@ -66,9 +68,9 @@ class RemoteTextInputWebClient {
       id: id,
       text: _readString(snapshot, 'text') ?? '',
       label: _readString(snapshot, 'label') ?? 'TV input',
-      enabled: _readBool(snapshot, 'enabled') ?? false,
+      actionLabel: _readString(snapshot, 'actionLabel') ?? 'Continue',
       actionId: _readString(snapshot, 'actionId'),
-      ownerId: _readString(snapshot, 'ownerId'),
+      fieldId: _readString(snapshot, 'fieldId'),
       exists: snapshot.exists,
     );
   }
@@ -79,17 +81,6 @@ class RemoteTextInputWebClient {
   ) {
     try {
       return snapshot.get(field) as String?;
-    } catch (_) {
-      return null;
-    }
-  }
-
-  bool? _readBool(
-    firestore_interop.DocumentSnapshot snapshot,
-    String field,
-  ) {
-    try {
-      return snapshot.get(field) as bool?;
     } catch (_) {
       return null;
     }

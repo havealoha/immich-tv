@@ -41,15 +41,17 @@ class _RemoteTextInputBridgeState extends State<RemoteTextInputBridge>
   static final Map<String, RemoteTextInputSession> _sessionsByScope = {};
   static final Map<String, int> _activeBridgeCountsByScope = {};
 
-  late final String _ownerId = '${DateTime.now().microsecondsSinceEpoch}';
   RemoteTextInputRepository? _repository;
   RemoteTextInputSession? _session;
   StreamSubscription<RemoteTextInputSnapshot>? _subscription;
   Timer? _writeDebounce;
-  Timer? _activeFieldHeartbeat;
   bool _applyingRemoteText = false;
   String? _lastHandledActionId;
   String? _errorMessage;
+
+  String get _fieldId => '${widget.scopeId}:${widget.label}';
+
+  String get _actionLabel => widget.actionLabel ?? 'Done';
 
   @override
   void initState() {
@@ -78,9 +80,8 @@ class _RemoteTextInputBridgeState extends State<RemoteTextInputBridge>
         oldWidget.obscureText != widget.obscureText ||
         oldWidget.numericOnly != widget.numericOnly ||
         oldWidget.maxLength != widget.maxLength ||
-        oldWidget.enabled != widget.enabled ||
         oldWidget.actionLabel != widget.actionLabel) {
-      _restartSession();
+      _claimCurrentField();
     }
   }
 
@@ -89,13 +90,8 @@ class _RemoteTextInputBridgeState extends State<RemoteTextInputBridge>
     WidgetsBinding.instance.removeObserver(this);
     widget.controller.removeListener(_handleLocalTextChanged);
     _writeDebounce?.cancel();
-    _activeFieldHeartbeat?.cancel();
     _subscription?.cancel();
-    if (_shouldDeleteForLifecycle(WidgetsBinding.instance.lifecycleState)) {
-      _deleteSession();
-    } else {
-      _scheduleDisableIfScopeBecomesInactive();
-    }
+    _scheduleDeleteIfScopeBecomesInactive();
     final remainingCount =
         (_activeBridgeCountsByScope[widget.scopeId] ?? 1) - 1;
     if (remainingCount > 0) {
@@ -108,24 +104,9 @@ class _RemoteTextInputBridgeState extends State<RemoteTextInputBridge>
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (_shouldDeleteForLifecycle(state)) {
+    if (state == AppLifecycleState.hidden ||
+        state == AppLifecycleState.detached) {
       _deleteSession();
-      return;
-    }
-
-    if (state == AppLifecycleState.paused) {
-      _disableActiveField();
-      return;
-    }
-
-    if (state == AppLifecycleState.resumed && mounted) {
-      final session = _session;
-      final repository = _repository;
-      if (session == null || repository == null) {
-        _startSession();
-      } else {
-        unawaited(_publishActiveField(repository, session));
-      }
     }
   }
 
@@ -189,7 +170,7 @@ class _RemoteTextInputBridgeState extends State<RemoteTextInputBridge>
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  'Type ${session.label} on your phone',
+                  'Type ${widget.label} on your phone',
                   style: theme.textTheme.titleSmall?.copyWith(
                     fontWeight: FontWeight.w800,
                     color: AppColors.textPrimary,
@@ -197,7 +178,7 @@ class _RemoteTextInputBridgeState extends State<RemoteTextInputBridge>
                 ),
                 const SizedBox(height: AppSpacing.xxs),
                 Text(
-                  'Scan this code to open typing on your phone. You can enter text there instead of using the TV remote. Scan once, then keep the page open as you move between fields.',
+                  'Scan once, then keep this page open. The phone input follows the focused field on the TV.',
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: AppColors.textSecondary,
                     height: 1.35,
@@ -240,12 +221,9 @@ class _RemoteTextInputBridgeState extends State<RemoteTextInputBridge>
           _sessionsByScope[widget.scopeId] ??
           await repository.createSession(
             label: widget.label,
-            initialText: widget.controller.text,
-            obscureText: widget.obscureText,
-            numericOnly: widget.numericOnly,
-            maxLength: widget.maxLength,
-            actionLabel: widget.actionLabel,
-            ownerId: _ownerId,
+            text: _currentTextForSession(),
+            actionLabel: _actionLabel,
+            fieldId: _fieldId,
           );
       _sessionsByScope[widget.scopeId] = session;
       if (!mounted) {
@@ -253,36 +231,17 @@ class _RemoteTextInputBridgeState extends State<RemoteTextInputBridge>
       }
 
       setState(() => _session = session);
-      unawaited(_publishActiveField(repository, session));
-      _startActiveFieldHeartbeat(repository, session);
-      _subscription = repository.watchSession(session.id).listen((snapshot) {
-        if (snapshot.exists &&
-            !snapshot.enabled &&
-            snapshot.ownerId == _ownerId) {
-          unawaited(_publishActiveField(repository, session));
-          return;
-        }
-        if (!snapshot.exists ||
-            !snapshot.enabled ||
-            snapshot.ownerId != _ownerId ||
-            _applyingRemoteText) {
-          return;
-        }
-        final actionId = snapshot.actionId;
-        if (actionId != null && actionId != _lastHandledActionId) {
-          _lastHandledActionId = actionId;
-          widget.onRemoteAction?.call();
-        }
-        if (snapshot.text == widget.controller.text) {
-          return;
-        }
-        _applyingRemoteText = true;
-        widget.controller.value = TextEditingValue(
-          text: snapshot.text,
-          selection: TextSelection.collapsed(offset: snapshot.text.length),
-        );
-        _applyingRemoteText = false;
-      });
+      _subscription = repository
+          .watchSession(session.id)
+          .listen(
+            _handleRemoteSnapshot,
+            onError: (Object error) {
+              if (mounted) {
+                setState(() => _errorMessage = error.toString());
+              }
+            },
+          );
+      unawaited(_claimCurrentField());
     } catch (error) {
       if (!mounted) {
         return;
@@ -291,21 +250,20 @@ class _RemoteTextInputBridgeState extends State<RemoteTextInputBridge>
     }
   }
 
-  Future<void> _publishActiveField(
-    RemoteTextInputRepository repository,
-    RemoteTextInputSession session,
-  ) async {
+  Future<void> _claimCurrentField() async {
+    final session = _session;
+    final repository = _repository;
+    if (session == null || repository == null) {
+      return;
+    }
+
     try {
-      await repository.updateActiveField(
+      await repository.claimField(
         sessionId: session.id,
         label: widget.label,
-        text: widget.controller.text,
-        obscureText: widget.obscureText,
-        numericOnly: widget.numericOnly,
-        maxLength: widget.maxLength,
-        enabled: widget.enabled,
-        ownerId: _ownerId,
-        actionLabel: widget.actionLabel,
+        text: _currentTextForSession(),
+        actionLabel: _actionLabel,
+        fieldId: _fieldId,
       );
     } catch (error) {
       if (mounted) {
@@ -314,40 +272,39 @@ class _RemoteTextInputBridgeState extends State<RemoteTextInputBridge>
     }
   }
 
+  void _handleRemoteSnapshot(RemoteTextInputSnapshot snapshot) {
+    if (!snapshot.exists || snapshot.fieldId != _fieldId) {
+      return;
+    }
+
+    final nextText = _sanitizeText(snapshot.text);
+    if (nextText != widget.controller.text) {
+      _applyingRemoteText = true;
+      widget.controller.value = TextEditingValue(
+        text: nextText,
+        selection: TextSelection.collapsed(offset: nextText.length),
+      );
+      _applyingRemoteText = false;
+    }
+
+    final actionId = snapshot.actionId;
+    if (widget.enabled &&
+        actionId != null &&
+        actionId != _lastHandledActionId) {
+      _lastHandledActionId = actionId;
+      widget.onRemoteAction?.call();
+    }
+  }
+
   void _restartSession() {
     _writeDebounce?.cancel();
-    _activeFieldHeartbeat?.cancel();
     _subscription?.cancel();
     _subscription = null;
     _session = null;
     _startSession();
   }
 
-  void _disableActiveField() {
-    final session = _session;
-    final repository = _repository;
-    if (session == null || repository == null) {
-      return;
-    }
-
-    unawaited(
-      repository
-          .updateActiveField(
-            sessionId: session.id,
-            label: widget.label,
-            text: '',
-            obscureText: widget.obscureText,
-            numericOnly: widget.numericOnly,
-            maxLength: widget.maxLength,
-            enabled: false,
-            ownerId: _ownerId,
-            actionLabel: null,
-          )
-          .catchError((_) {}),
-    );
-  }
-
-  void _scheduleDisableIfScopeBecomesInactive() {
+  void _scheduleDeleteIfScopeBecomesInactive() {
     final session = _session;
     final repository = _repository;
     if (session == null || repository == null) {
@@ -361,29 +318,17 @@ class _RemoteTextInputBridgeState extends State<RemoteTextInputBridge>
       if (_sessionsByScope[widget.scopeId]?.id != session.id) {
         return;
       }
-      unawaited(
-        repository
-            .updateActiveField(
-              sessionId: session.id,
-              label: widget.label,
-              text: '',
-              obscureText: widget.obscureText,
-              numericOnly: widget.numericOnly,
-              maxLength: widget.maxLength,
-              enabled: false,
-              ownerId: _ownerId,
-              actionLabel: null,
-            )
-            .catchError((_) {}),
-      );
+      if (_sessionsByScope[widget.scopeId]?.id == session.id) {
+        _sessionsByScope.remove(widget.scopeId);
+      }
+      unawaited(repository.deleteSession(session.id).catchError((_) {}));
     });
   }
 
   void _deleteSession() {
     final session = _session ?? _sessionsByScope[widget.scopeId];
     final repository = _repository;
-    _activeFieldHeartbeat?.cancel();
-    _activeFieldHeartbeat = null;
+    _writeDebounce?.cancel();
     _subscription?.cancel();
     _subscription = null;
     _session = null;
@@ -397,24 +342,6 @@ class _RemoteTextInputBridgeState extends State<RemoteTextInputBridge>
     }
 
     unawaited(repository.deleteSession(session.id).catchError((_) {}));
-  }
-
-  bool _shouldDeleteForLifecycle(AppLifecycleState? state) {
-    return state == AppLifecycleState.hidden ||
-        state == AppLifecycleState.detached;
-  }
-
-  void _startActiveFieldHeartbeat(
-    RemoteTextInputRepository repository,
-    RemoteTextInputSession session,
-  ) {
-    _activeFieldHeartbeat?.cancel();
-    _activeFieldHeartbeat = Timer.periodic(const Duration(seconds: 1), (_) {
-      if (!mounted || _session?.id != session.id) {
-        return;
-      }
-      unawaited(_publishActiveField(repository, session));
-    });
   }
 
   void _handleLocalTextChanged() {
@@ -433,12 +360,23 @@ class _RemoteTextInputBridgeState extends State<RemoteTextInputBridge>
       unawaited(
         repository.updateText(
           sessionId: session.id,
-          text: widget.controller.text,
-          numericOnly: widget.numericOnly,
-          maxLength: widget.maxLength,
+          text: _currentTextForSession(),
         ),
       );
     });
+  }
+
+  String _currentTextForSession() => _sanitizeText(widget.controller.text);
+
+  String _sanitizeText(String value) {
+    var nextValue = widget.numericOnly
+        ? value.replaceAll(RegExp(r'[^0-9]'), '')
+        : value;
+    final maxLength = widget.maxLength;
+    if (maxLength != null && nextValue.length > maxLength) {
+      nextValue = nextValue.substring(0, maxLength);
+    }
+    return nextValue;
   }
 }
 

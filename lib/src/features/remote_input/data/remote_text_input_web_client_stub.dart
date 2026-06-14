@@ -5,18 +5,18 @@ class RemoteTextInputWebDocument {
     required this.id,
     required this.text,
     required this.label,
-    required this.enabled,
+    required this.actionLabel,
     required this.actionId,
-    required this.ownerId,
+    required this.fieldId,
     required this.exists,
   });
 
   final String id;
   final String text;
   final String label;
-  final bool enabled;
+  final String actionLabel;
   final String? actionId;
-  final String? ownerId;
+  final String? fieldId;
   final bool exists;
 }
 
