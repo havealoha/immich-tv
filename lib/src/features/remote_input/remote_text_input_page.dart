@@ -157,25 +157,12 @@ class _RemoteTextInputPageState extends State<RemoteTextInputPage> {
                               focusNode: _textFieldFocusNode,
                               autofocus: true,
                               enabled: snapshot.enabled,
-                              obscureText: snapshot.obscureText,
-                              keyboardType: snapshot.numericOnly
-                                  ? TextInputType.number
-                                  : TextInputType.text,
-                              inputFormatters: [
-                                if (snapshot.numericOnly)
-                                  FilteringTextInputFormatter.digitsOnly,
-                                if (snapshot.maxLength != null)
-                                  LengthLimitingTextInputFormatter(
-                                    snapshot.maxLength,
-                                  ),
-                              ],
+                              keyboardType: TextInputType.text,
                               minLines: 1,
-                              maxLines: snapshot.obscureText ? 1 : 4,
+                              maxLines: 4,
                               decoration: InputDecoration(
                                 labelText: snapshot.label,
-                                hintText: snapshot.numericOnly
-                                    ? 'Enter numbers'
-                                    : 'Type the value',
+                                hintText: 'Type the value',
                               ),
                             ),
                           ),
@@ -298,8 +285,8 @@ class _RemoteTextInputPageState extends State<RemoteTextInputPage> {
         repository.updateText(
           sessionId: widget.sessionId,
           text: _controller.text,
-          numericOnly: snapshot.numericOnly,
-          maxLength: snapshot.maxLength,
+          numericOnly: false,
+          maxLength: null,
         ),
       );
     });
@@ -317,18 +304,11 @@ class _RemoteTextInputPageState extends State<RemoteTextInputPage> {
       return;
     }
 
-    final pastedText = snapshot.numericOnly
-        ? text.replaceAll(RegExp(r'[^0-9]'), '')
-        : text;
-    final truncatedText = snapshot.maxLength == null
-        ? pastedText
-        : pastedText.characters.take(snapshot.maxLength!).toString();
-
     _controller.value = TextEditingValue(
-      text: truncatedText,
-      selection: TextSelection.collapsed(offset: truncatedText.length),
+      text: text,
+      selection: TextSelection.collapsed(offset: text.length),
     );
-    _pendingLocalText = truncatedText;
+    _pendingLocalText = text;
     _ensureTextFieldFocus(snapshot);
   }
 
@@ -369,8 +349,8 @@ class _RemoteTextInputPageState extends State<RemoteTextInputPage> {
       await repository.updateText(
         sessionId: widget.sessionId,
         text: _controller.text,
-        numericOnly: snapshot.numericOnly,
-        maxLength: snapshot.maxLength,
+        numericOnly: false,
+        maxLength: null,
       );
       await repository.submitAction(
         sessionId: widget.sessionId,
@@ -388,11 +368,6 @@ class _RemoteTextInputPageState extends State<RemoteTextInputPage> {
   }
 
   String _actionLabelFor(RemoteTextInputSnapshot snapshot) {
-    final configuredLabel = snapshot.actionLabel?.trim();
-    if (configuredLabel != null && configuredLabel.isNotEmpty) {
-      return configuredLabel;
-    }
-
     final label = snapshot.label.toLowerCase();
     if (label.contains('password') || label.contains('api key')) {
       return 'Continue';

@@ -1,26 +1,23 @@
-import 'dart:async';
 import 'dart:math';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 
+import 'remote_text_input_web_client_stub.dart'
+    if (dart.library.js_interop) 'remote_text_input_web_client.dart'
+    as web_client;
+
 class RemoteTextInputSession {
   const RemoteTextInputSession({
     required this.id,
     required this.url,
     required this.label,
-    required this.obscureText,
-    required this.numericOnly,
-    required this.maxLength,
   });
 
   final String id;
   final String url;
   final String label;
-  final bool obscureText;
-  final bool numericOnly;
-  final int? maxLength;
 }
 
 class RemoteTextInputSnapshot {
@@ -28,11 +25,7 @@ class RemoteTextInputSnapshot {
     required this.id,
     required this.text,
     required this.label,
-    required this.obscureText,
-    required this.numericOnly,
-    required this.maxLength,
     required this.enabled,
-    required this.actionLabel,
     required this.actionId,
     required this.ownerId,
     required this.exists,
@@ -41,36 +34,43 @@ class RemoteTextInputSnapshot {
   final String id;
   final String text;
   final String label;
-  final bool obscureText;
-  final bool numericOnly;
-  final int? maxLength;
   final bool enabled;
-  final String? actionLabel;
   final String? actionId;
   final String? ownerId;
   final bool exists;
 }
 
 class RemoteTextInputRepository {
-  RemoteTextInputRepository._(this._firestore);
+  RemoteTextInputRepository._native(this._firestore) : _webClient = null;
+
+  RemoteTextInputRepository._web(this._webClient) : _firestore = null;
 
   static RemoteTextInputRepository? tryCreate() {
+    if (kIsWeb) {
+      if (!web_client.RemoteTextInputWebClient.isSupported) {
+        return null;
+      }
+      return RemoteTextInputRepository._web(
+        web_client.RemoteTextInputWebClient(),
+      );
+    }
+
     if (Firebase.apps.isEmpty) {
       return null;
     }
-    if (!kIsWeb &&
-        defaultTargetPlatform != TargetPlatform.android &&
+    if (defaultTargetPlatform != TargetPlatform.android &&
         defaultTargetPlatform != TargetPlatform.iOS &&
         defaultTargetPlatform != TargetPlatform.macOS) {
       return null;
     }
-    return RemoteTextInputRepository._(FirebaseFirestore.instance);
+    return RemoteTextInputRepository._native(FirebaseFirestore.instance);
   }
 
-  final FirebaseFirestore _firestore;
+  final FirebaseFirestore? _firestore;
+  final web_client.RemoteTextInputWebClient? _webClient;
 
   CollectionReference<Map<String, dynamic>> get _sessions =>
-      _firestore.collection('remoteTextInputs');
+      _firestore!.collection('remoteTextInputs');
 
   Future<RemoteTextInputSession> createSession({
     required String label,
@@ -86,42 +86,40 @@ class RemoteTextInputRepository {
       id: id,
       url: remoteTextInputUrl(id),
       label: label,
-      obscureText: obscureText,
-      numericOnly: numericOnly,
-      maxLength: maxLength,
     );
 
-    final now = _nowIso();
-    await _sessions.doc(id).set({
-      'text': _sanitizeText(
+    final payload = _minimalSessionPayload(
+      label: label,
+      text: _sanitizeText(
         initialText,
         numericOnly: numericOnly,
         maxLength: maxLength,
       ),
-      'label': label,
-      'obscureText': obscureText,
-      'numericOnly': numericOnly,
-      'maxLength': maxLength,
-      'enabled': true,
-      'actionLabel': actionLabel,
-      'actionId': null,
-      'ownerId': ownerId,
-      'createdAtIso': now,
-      'updatedAtIso': now,
-      'expiresAtIso': DateTime.now()
-          .toUtc()
-          .add(const Duration(minutes: 20))
-          .toIso8601String(),
-    });
+      enabled: true,
+      actionId: null,
+      ownerId: ownerId,
+    );
+
+    if (kIsWeb) {
+      await _webClient!.setSession(id, payload);
+    } else {
+      await _sessions.doc(id).set(payload);
+    }
 
     return session;
   }
 
   Stream<RemoteTextInputSnapshot> watchSession(String id) {
+    if (kIsWeb) {
+      return _webClient!.watchSession(id).map(_snapshotFromWebDocument);
+    }
     return _sessions.doc(id).snapshots().map(_snapshotFromDocument);
   }
 
   Future<RemoteTextInputSnapshot> getSession(String id) async {
+    if (kIsWeb) {
+      return _snapshotFromWebDocument(await _webClient!.getSession(id));
+    }
     return _snapshotFromDocument(await _sessions.doc(id).get());
   }
 
@@ -136,51 +134,88 @@ class RemoteTextInputRepository {
     String? actionLabel,
     int? maxLength,
   }) async {
-    final document = _sessions.doc(sessionId);
-    await _firestore.runTransaction((transaction) async {
+    final nextText = enabled
+        ? _sanitizeText(
+            text,
+            numericOnly: numericOnly,
+            maxLength: maxLength,
+          )
+        : '';
+
+    if (kIsWeb) {
+      final current = await _webClient!.getSession(sessionId);
+      if (!enabled && current.ownerId != null && current.ownerId != ownerId) {
+        return;
+      }
+      await _webClient!.setSession(
+        sessionId,
+        _minimalSessionPayload(
+          label: label,
+          text: nextText,
+          enabled: enabled,
+          actionId: null,
+          ownerId: enabled ? ownerId : null,
+        ),
+      );
+      return;
+    }
+
+    await _firestore!.runTransaction((transaction) async {
+      final document = _sessions.doc(sessionId);
       final snapshot = await transaction.get(document);
       final currentOwnerId = snapshot.data()?['ownerId'] as String?;
-
       if (!enabled && currentOwnerId != null && currentOwnerId != ownerId) {
         return;
       }
-
-      final nextData = <String, dynamic>{
-        'label': label,
-        'text': enabled
-            ? _sanitizeText(
-                text,
-                numericOnly: numericOnly,
-                maxLength: maxLength,
-              )
-            : '',
-        'obscureText': obscureText,
-        'numericOnly': numericOnly,
-        'maxLength': maxLength,
-        'enabled': enabled,
-        'actionLabel': enabled ? actionLabel : null,
-        'actionId': enabled ? null : snapshot.data()?['actionId'],
-        'ownerId': enabled ? ownerId : null,
-        'updatedAtIso': _nowIso(),
-        'createdAt': FieldValue.delete(),
-        'updatedAt': FieldValue.delete(),
-        'expiresAt': FieldValue.delete(),
-      };
-
-      transaction.set(document, nextData, SetOptions(merge: true));
+      transaction.set(
+        document,
+        _minimalSessionPayload(
+          label: label,
+          text: nextText,
+          enabled: enabled,
+          actionId: snapshot.data()?['actionId'] as String?,
+          ownerId: enabled ? ownerId : null,
+        ),
+      );
     });
   }
 
   Future<void> submitAction({
     required String sessionId,
     required String actionLabel,
-  }) {
-    return _sessions.doc(sessionId).set({
-      'actionLabel': actionLabel,
-      'actionId': '${DateTime.now().microsecondsSinceEpoch}',
-      'updatedAtIso': _nowIso(),
-      'updatedAt': FieldValue.delete(),
-    }, SetOptions(merge: true));
+  }) async {
+    final nextActionId = '${DateTime.now().microsecondsSinceEpoch}';
+
+    if (kIsWeb) {
+      final current = await _webClient!.getSession(sessionId);
+      await _webClient!.setSession(
+        sessionId,
+        _minimalSessionPayload(
+          label: current.label,
+          text: current.text,
+          enabled: current.enabled,
+          actionId: nextActionId,
+          ownerId: current.ownerId,
+        ),
+      );
+      return;
+    }
+
+    await _firestore!.runTransaction((transaction) async {
+      final document = _sessions.doc(sessionId);
+      final snapshot = await transaction.get(document);
+      final current = _snapshotFromDocument(snapshot);
+      transaction.set(
+        document,
+        _minimalSessionPayload(
+          label: current.label,
+          text: current.text,
+          enabled: current.enabled,
+          actionId: nextActionId,
+          ownerId: current.ownerId,
+        ),
+      );
+    });
   }
 
   Future<void> updateText({
@@ -188,20 +223,67 @@ class RemoteTextInputRepository {
     required String text,
     required bool numericOnly,
     int? maxLength,
-  }) {
-    return _sessions.doc(sessionId).set({
-      'text': _sanitizeText(
-        text,
-        numericOnly: numericOnly,
-        maxLength: maxLength,
-      ),
-      'updatedAtIso': _nowIso(),
-      'updatedAt': FieldValue.delete(),
-    }, SetOptions(merge: true));
+  }) async {
+    final nextText = _sanitizeText(
+      text,
+      numericOnly: numericOnly,
+      maxLength: maxLength,
+    );
+
+    if (kIsWeb) {
+      final current = await _webClient!.getSession(sessionId);
+      await _webClient!.setSession(
+        sessionId,
+        _minimalSessionPayload(
+          label: current.label,
+          text: nextText,
+          enabled: current.enabled,
+          actionId: current.actionId,
+          ownerId: current.ownerId,
+        ),
+      );
+      return;
+    }
+
+    await _firestore!.runTransaction((transaction) async {
+      final document = _sessions.doc(sessionId);
+      final snapshot = await transaction.get(document);
+      final current = _snapshotFromDocument(snapshot);
+      transaction.set(
+        document,
+        _minimalSessionPayload(
+          label: current.label,
+          text: nextText,
+          enabled: current.enabled,
+          actionId: current.actionId,
+          ownerId: current.ownerId,
+        ),
+      );
+    });
   }
 
   Future<void> deleteSession(String id) async {
+    if (kIsWeb) {
+      await _webClient!.deleteSession(id);
+      return;
+    }
     await _sessions.doc(id).delete();
+  }
+
+  Map<String, dynamic> _minimalSessionPayload({
+    required String label,
+    required String text,
+    required bool enabled,
+    required String? actionId,
+    required String? ownerId,
+  }) {
+    return <String, dynamic>{
+      'label': label,
+      'text': text,
+      'enabled': enabled,
+      'actionId': actionId,
+      'ownerId': ownerId,
+    };
   }
 
   RemoteTextInputSnapshot _snapshotFromDocument(
@@ -211,13 +293,23 @@ class RemoteTextInputRepository {
       id: document.id,
       text: _readStringField(document, 'text') ?? '',
       label: _readStringField(document, 'label') ?? 'TV input',
-      obscureText: _readBoolField(document, 'obscureText') ?? false,
-      numericOnly: _readBoolField(document, 'numericOnly') ?? false,
-      maxLength: _readIntField(document, 'maxLength'),
       enabled: _readBoolField(document, 'enabled') ?? false,
-      actionLabel: _readStringField(document, 'actionLabel'),
       actionId: _readStringField(document, 'actionId'),
       ownerId: _readStringField(document, 'ownerId'),
+      exists: document.exists,
+    );
+  }
+
+  RemoteTextInputSnapshot _snapshotFromWebDocument(
+    web_client.RemoteTextInputWebDocument document,
+  ) {
+    return RemoteTextInputSnapshot(
+      id: document.id,
+      text: document.text,
+      label: document.label,
+      enabled: document.enabled,
+      actionId: document.actionId,
+      ownerId: document.ownerId,
       exists: document.exists,
     );
   }
@@ -250,24 +342,6 @@ bool? _readBoolField(
   DocumentSnapshot<Map<String, dynamic>> document,
   String field,
 ) => _readField(document, field, (value) => value as bool?);
-
-int? _readIntField(
-  DocumentSnapshot<Map<String, dynamic>> document,
-  String field,
-) => _readField(document, field, _coerceToInt);
-
-int? _coerceToInt(Object? value) {
-  if (value == null) {
-    return null;
-  }
-  if (value is int) {
-    return value;
-  }
-  if (value is num) {
-    return value.toInt();
-  }
-  return int.tryParse(value.toString());
-}
 
 String remoteTextInputUrl(String sessionId) {
   const fallbackBaseUrl = 'https://immichtvapp.web.app';
@@ -315,8 +389,6 @@ String _sanitizeText(
   }
   return nextValue;
 }
-
-String _nowIso() => DateTime.now().toUtc().toIso8601String();
 
 String _newSessionId() {
   const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';

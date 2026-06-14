@@ -39,12 +39,14 @@ class RemoteTextInputBridge extends StatefulWidget {
 class _RemoteTextInputBridgeState extends State<RemoteTextInputBridge>
     with WidgetsBindingObserver {
   static final Map<String, RemoteTextInputSession> _sessionsByScope = {};
+  static final Map<String, int> _activeBridgeCountsByScope = {};
 
   late final String _ownerId = '${DateTime.now().microsecondsSinceEpoch}';
   RemoteTextInputRepository? _repository;
   RemoteTextInputSession? _session;
   StreamSubscription<RemoteTextInputSnapshot>? _subscription;
   Timer? _writeDebounce;
+  Timer? _activeFieldHeartbeat;
   bool _applyingRemoteText = false;
   String? _lastHandledActionId;
   String? _errorMessage;
@@ -52,6 +54,11 @@ class _RemoteTextInputBridgeState extends State<RemoteTextInputBridge>
   @override
   void initState() {
     super.initState();
+    _activeBridgeCountsByScope.update(
+      widget.scopeId,
+      (count) => count + 1,
+      ifAbsent: () => 1,
+    );
     WidgetsBinding.instance.addObserver(this);
     widget.controller.addListener(_handleLocalTextChanged);
     _startSession();
@@ -82,11 +89,19 @@ class _RemoteTextInputBridgeState extends State<RemoteTextInputBridge>
     WidgetsBinding.instance.removeObserver(this);
     widget.controller.removeListener(_handleLocalTextChanged);
     _writeDebounce?.cancel();
+    _activeFieldHeartbeat?.cancel();
     _subscription?.cancel();
     if (_shouldDeleteForLifecycle(WidgetsBinding.instance.lifecycleState)) {
       _deleteSession();
     } else {
-      _disableActiveField();
+      _scheduleDisableIfScopeBecomesInactive();
+    }
+    final remainingCount =
+        (_activeBridgeCountsByScope[widget.scopeId] ?? 1) - 1;
+    if (remainingCount > 0) {
+      _activeBridgeCountsByScope[widget.scopeId] = remainingCount;
+    } else {
+      _activeBridgeCountsByScope.remove(widget.scopeId);
     }
     super.dispose();
   }
@@ -239,7 +254,14 @@ class _RemoteTextInputBridgeState extends State<RemoteTextInputBridge>
 
       setState(() => _session = session);
       unawaited(_publishActiveField(repository, session));
+      _startActiveFieldHeartbeat(repository, session);
       _subscription = repository.watchSession(session.id).listen((snapshot) {
+        if (snapshot.exists &&
+            !snapshot.enabled &&
+            snapshot.ownerId == _ownerId) {
+          unawaited(_publishActiveField(repository, session));
+          return;
+        }
         if (!snapshot.exists ||
             !snapshot.enabled ||
             snapshot.ownerId != _ownerId ||
@@ -294,6 +316,7 @@ class _RemoteTextInputBridgeState extends State<RemoteTextInputBridge>
 
   void _restartSession() {
     _writeDebounce?.cancel();
+    _activeFieldHeartbeat?.cancel();
     _subscription?.cancel();
     _subscription = null;
     _session = null;
@@ -324,9 +347,43 @@ class _RemoteTextInputBridgeState extends State<RemoteTextInputBridge>
     );
   }
 
+  void _scheduleDisableIfScopeBecomesInactive() {
+    final session = _session;
+    final repository = _repository;
+    if (session == null || repository == null) {
+      return;
+    }
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if ((_activeBridgeCountsByScope[widget.scopeId] ?? 0) > 0) {
+        return;
+      }
+      if (_sessionsByScope[widget.scopeId]?.id != session.id) {
+        return;
+      }
+      unawaited(
+        repository
+            .updateActiveField(
+              sessionId: session.id,
+              label: widget.label,
+              text: '',
+              obscureText: widget.obscureText,
+              numericOnly: widget.numericOnly,
+              maxLength: widget.maxLength,
+              enabled: false,
+              ownerId: _ownerId,
+              actionLabel: null,
+            )
+            .catchError((_) {}),
+      );
+    });
+  }
+
   void _deleteSession() {
     final session = _session ?? _sessionsByScope[widget.scopeId];
     final repository = _repository;
+    _activeFieldHeartbeat?.cancel();
+    _activeFieldHeartbeat = null;
     _subscription?.cancel();
     _subscription = null;
     _session = null;
@@ -345,6 +402,19 @@ class _RemoteTextInputBridgeState extends State<RemoteTextInputBridge>
   bool _shouldDeleteForLifecycle(AppLifecycleState? state) {
     return state == AppLifecycleState.hidden ||
         state == AppLifecycleState.detached;
+  }
+
+  void _startActiveFieldHeartbeat(
+    RemoteTextInputRepository repository,
+    RemoteTextInputSession session,
+  ) {
+    _activeFieldHeartbeat?.cancel();
+    _activeFieldHeartbeat = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (!mounted || _session?.id != session.id) {
+        return;
+      }
+      unawaited(_publishActiveField(repository, session));
+    });
   }
 
   void _handleLocalTextChanged() {
