@@ -36,6 +36,10 @@ class RemoteTextInputWebClient {
     throw UnsupportedError('Web client is only available on web.');
   }
 
+  Future<void> updateSessionFields(String id, Map<String, dynamic> data) async {
+    throw UnsupportedError('Web client is only available on web.');
+  }
+
   Future<void> deleteSession(String id) async {
     throw UnsupportedError('Web client is only available on web.');
   }

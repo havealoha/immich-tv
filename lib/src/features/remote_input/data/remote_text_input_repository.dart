@@ -126,36 +126,11 @@ class RemoteTextInputRepository {
     required String text,
   }) async {
     if (kIsWeb) {
-      final webClient = _webClient!;
-      final current = await webClient.getSession(sessionId);
-      await webClient.setSession(
-        sessionId,
-        _sessionPayload(
-          label: current.label,
-          text: text,
-          actionLabel: current.actionLabel,
-          actionId: current.actionId,
-          fieldId: current.fieldId,
-        ),
-      );
+      await _webClient!.updateSessionFields(sessionId, {'text': text});
       return;
     }
 
-    await _firestore!.runTransaction((transaction) async {
-      final document = _sessions.doc(sessionId);
-      final snapshot = await transaction.get(document);
-      final current = _snapshotFromDocument(snapshot);
-      transaction.set(
-        document,
-        _sessionPayload(
-          label: current.label,
-          text: text,
-          actionLabel: current.actionLabel,
-          actionId: current.actionId,
-          fieldId: current.fieldId,
-        ),
-      );
-    });
+    await _sessions.doc(sessionId).update({'text': text});
   }
 
   Future<void> submitAction({
@@ -164,35 +139,16 @@ class RemoteTextInputRepository {
   }) async {
     final nextActionId = '${DateTime.now().microsecondsSinceEpoch}';
     if (kIsWeb) {
-      final webClient = _webClient!;
-      final current = await webClient.getSession(sessionId);
-      await webClient.setSession(
-        sessionId,
-        _sessionPayload(
-          label: current.label,
-          text: text,
-          actionLabel: current.actionLabel,
-          actionId: nextActionId,
-          fieldId: current.fieldId,
-        ),
-      );
+      await _webClient!.updateSessionFields(sessionId, {
+        'text': text,
+        'actionId': nextActionId,
+      });
       return;
     }
 
-    await _firestore!.runTransaction((transaction) async {
-      final document = _sessions.doc(sessionId);
-      final snapshot = await transaction.get(document);
-      final current = _snapshotFromDocument(snapshot);
-      transaction.set(
-        document,
-        _sessionPayload(
-          label: current.label,
-          text: text,
-          actionLabel: current.actionLabel,
-          actionId: nextActionId,
-          fieldId: current.fieldId,
-        ),
-      );
+    await _sessions.doc(sessionId).update({
+      'text': text,
+      'actionId': nextActionId,
     });
   }
 

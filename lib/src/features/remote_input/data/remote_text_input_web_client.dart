@@ -1,9 +1,12 @@
 import 'dart:async';
+import 'dart:js_interop';
 
 // ignore_for_file: implementation_imports, depend_on_referenced_packages
 
 import 'package:cloud_firestore_web/src/interop/firestore.dart'
     as firestore_interop;
+import 'package:cloud_firestore_web/src/interop/firestore_interop.dart'
+    as js_firestore_interop;
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_core_web/firebase_core_web_interop.dart'
     as core_interop;
@@ -51,6 +54,14 @@ class RemoteTextInputWebClient {
 
   Future<void> setSession(String id, Map<String, dynamic> data) {
     return _document(id).set(Map<String, dynamic>.from(data));
+  }
+
+  Future<void> updateSessionFields(String id, Map<String, dynamic> data) {
+    final fields = <js_firestore_interop.FieldPath, dynamic>{
+      for (final entry in data.entries)
+        js_firestore_interop.FieldPath(entry.key.toJS): entry.value,
+    };
+    return _document(id).update(fields);
   }
 
   Future<void> deleteSession(String id) {

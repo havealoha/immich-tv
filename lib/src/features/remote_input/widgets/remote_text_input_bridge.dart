@@ -273,7 +273,7 @@ class _RemoteTextInputBridgeState extends State<RemoteTextInputBridge>
   }
 
   void _handleRemoteSnapshot(RemoteTextInputSnapshot snapshot) {
-    if (!snapshot.exists || snapshot.fieldId != _fieldId) {
+    if (!snapshot.exists) {
       return;
     }
 
