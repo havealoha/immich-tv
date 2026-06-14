@@ -9,9 +9,14 @@ import '../../shared/presentation/app_spacing.dart';
 import 'data/remote_text_input_repository.dart';
 
 class RemoteTextInputPage extends StatefulWidget {
-  const RemoteTextInputPage({super.key, required this.sessionId});
+  const RemoteTextInputPage({
+    super.key,
+    required this.sessionId,
+    this.fallbackLabel,
+  });
 
   final String sessionId;
+  final String? fallbackLabel;
 
   @override
   State<RemoteTextInputPage> createState() => _RemoteTextInputPageState();
@@ -70,6 +75,7 @@ class _RemoteTextInputPageState extends State<RemoteTextInputPage> {
     final snapshot = _snapshot;
     final isMissing = snapshot != null && !snapshot.exists;
     final isConnected = snapshot != null && snapshot.exists;
+    final fieldLabel = _fieldLabelFor(snapshot);
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -134,7 +140,7 @@ class _RemoteTextInputPageState extends State<RemoteTextInputPage> {
                       ),
                       const SizedBox(height: AppSpacing.xxs),
                       Text(
-                        snapshot.label,
+                        fieldLabel,
                         style: theme.textTheme.headlineSmall?.copyWith(
                           fontWeight: FontWeight.w900,
                           color: AppColors.textPrimary,
@@ -153,7 +159,7 @@ class _RemoteTextInputPageState extends State<RemoteTextInputPage> {
                               minLines: 1,
                               maxLines: 4,
                               decoration: InputDecoration(
-                                labelText: snapshot.label,
+                                labelText: fieldLabel,
                                 hintText: 'Type the value',
                               ),
                             ),
@@ -347,6 +353,18 @@ class _RemoteTextInputPageState extends State<RemoteTextInputPage> {
         setState(() => _isSubmittingAction = false);
       }
     }
+  }
+
+  String _fieldLabelFor(RemoteTextInputSnapshot? snapshot) {
+    final label = snapshot?.label.trim();
+    if (label != null && label.isNotEmpty && label != 'Focused TV field') {
+      return label;
+    }
+    final fallbackLabel = widget.fallbackLabel?.trim();
+    if (fallbackLabel != null && fallbackLabel.isNotEmpty) {
+      return fallbackLabel;
+    }
+    return 'Focused TV field';
   }
 }
 
