@@ -15,6 +15,7 @@ import 'cubit/onboarding_cubit.dart';
 import 'cubit/onboarding_state.dart';
 import 'widgets/onboarding_form.dart';
 import 'widgets/onboarding_shell.dart';
+import 'widgets/certificate_trust_dialog.dart';
 
 class OnboardingFlow extends StatefulWidget {
   const OnboardingFlow({super.key});
@@ -246,7 +247,7 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
     );
   }
 
-  Future<void> _handlePrimaryAction(
+ Future<void> _handlePrimaryAction(
     BuildContext context,
     OnboardingState state,
   ) async {
@@ -256,7 +257,22 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
     final messenger = ScaffoldMessenger.of(context);
 
     if (state.step == OnboardingStep.server) {
-      await onboardingCubit.validateServer(_serverController.text);
+      final rawUrl = _serverController.text.trim();
+      if (rawUrl.isEmpty) return;
+
+      await onboardingCubit.validateServer(rawUrl);
+
+      // Show certificate trust dialog if a self-signed cert was detected
+      if (context.mounted && onboardingCubit.state.pendingCertificate != null) {
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => CertificateTrustDialog(
+            rawUrl: rawUrl,
+            onTrust: () => onboardingCubit.trustCertificateAndRetry(rawUrl),
+          ),
+        );
+      }
       return;
     }
 
@@ -280,6 +296,7 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
       return;
     }
 
+    // === PIN logic (unchanged) ===
     final session = state.pendingSession;
     if (session == null) {
       messenger.showSnackBar(
