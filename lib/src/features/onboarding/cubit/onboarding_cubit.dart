@@ -22,35 +22,17 @@ OnboardingCubit({
   final AuthRepository _authRepository;
   final ServerRepository _serverRepository;
 
-  Future<void> validateServer(String rawUrl) async {
-    emit(
-      state.copyWith(
-        status: OnboardingStatus.validatingServer,
-        clearError: true,
-      ),
-    );
+  OnboardingCubit({
+  required AuthRepository authRepository,
+  required ServerRepository serverRepository,
+  CertificateTrustService? trustService,
+}) : 
+  _authRepository = authRepository,
+  _serverRepository = serverRepository,
+  _trustService = trustService ?? CertificateTrustService(),
+  super(const OnboardingState());
 
-    try {
-      final result = await _serverRepository.validateServer(rawUrl);
-      emit(
-        state.copyWith(
-          step: OnboardingStep.authMethod,
-          status: OnboardingStatus.idle,
-          serverConfig: result.serverConfig,
-          clearError: true,
-        ),
-      );
-    } catch (error) {
-      emit(
-        state.copyWith(
-          status: OnboardingStatus.idle,
-          errorMessage: error is AppException
-              ? error.message
-              : 'We could not validate that server right now.',
-        ),
-      );
-    }
-  }
+final CertificateTrustService _trustService;
 
   Future<AuthenticatedSession?> signIn({
     required String email,
