@@ -10,57 +10,52 @@ enum OnboardingStatus { idle, validatingServer, signingIn, savingProfile }
 
 class OnboardingState extends Equatable {
   const OnboardingState({
-    this.step = OnboardingStep.server,
+    this.step = OnboardingStep.serverUrl,
     this.status = OnboardingStatus.idle,
     this.serverConfig,
-    this.pendingSession,
+    this.email,
+    this.password,
     this.errorMessage,
-    this.authMethod = ImmichAuthMethod.password,
+    this.pendingCertificate,   // ← NEW
   });
 
   final OnboardingStep step;
   final OnboardingStatus status;
   final ServerConfig? serverConfig;
-  final AuthenticatedSession? pendingSession;
+  final String? email;
+  final String? password;
   final String? errorMessage;
-  final ImmichAuthMethod authMethod;
-
-  bool get isBusy => status != OnboardingStatus.idle;
-  bool get hasValidatedServer => serverConfig != null;
-  bool get hasPendingSession => pendingSession != null;
+  final X509Certificate? pendingCertificate;   // ← NEW
 
   OnboardingState copyWith({
     OnboardingStep? step,
     OnboardingStatus? status,
     ServerConfig? serverConfig,
-    AuthenticatedSession? pendingSession,
+    String? email,
+    String? password,
     String? errorMessage,
-    ImmichAuthMethod? authMethod,
-    bool clearServerConfig = false,
-    bool clearPendingSession = false,
     bool clearError = false,
+    X509Certificate? pendingCertificate,   // ← NEW
   }) {
     return OnboardingState(
       step: step ?? this.step,
       status: status ?? this.status,
-      serverConfig: clearServerConfig
-          ? null
-          : (serverConfig ?? this.serverConfig),
-      pendingSession: clearPendingSession
-          ? null
-          : (pendingSession ?? this.pendingSession),
+      serverConfig: serverConfig ?? this.serverConfig,
+      email: email ?? this.email,
+      password: password ?? this.password,
       errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
-      authMethod: authMethod ?? this.authMethod,
+      pendingCertificate: pendingCertificate ?? this.pendingCertificate,
     );
   }
 
   @override
   List<Object?> get props => [
-    step,
-    status,
-    serverConfig,
-    pendingSession,
-    errorMessage,
-    authMethod,
-  ];
+        step,
+        status,
+        serverConfig,
+        email,
+        password,
+        errorMessage,
+        pendingCertificate,
+      ];
 }
