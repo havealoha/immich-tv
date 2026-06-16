@@ -8,13 +8,17 @@ import '../../../core/repositories/server_repository.dart';
 import 'onboarding_state.dart';
 
 class OnboardingCubit extends Cubit<OnboardingState> {
-  OnboardingCubit({
-    required AuthRepository authRepository,
-    required ServerRepository serverRepository,
-  }) : _authRepository = authRepository,
-       _serverRepository = serverRepository,
-       super(const OnboardingState());
+OnboardingCubit({
+  required AuthRepository authRepository,
+  required ServerRepository serverRepository,
+  CertificateTrustService? trustService,
+}) : 
+  _authRepository = authRepository,
+  _serverRepository = serverRepository,
+  _trustService = trustService ?? CertificateTrustService(),
+  super(const OnboardingState());
 
+  final CertificateTrustService _trustService;
   final AuthRepository _authRepository;
   final ServerRepository _serverRepository;
 
